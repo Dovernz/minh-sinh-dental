@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dental_backend
+    volumes:
+      - ./backend:/app  # Ánh xạ thư mục backend ở máy host vào /app để hot-reload khi dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env  # Truyền biến môi trường từ file .env vào container
+    command: python manage.py runserver 0.0.0.0:8000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dental_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Giữ lại node_modules trong container để không bị ghi đè bởi host
+    ports:
+      - "3000:3000"
+    environment:
+      - WATCHPACK_POLLING=true # Giúp Next.js hot-reload tốt hơn trong Docker trên Windows
