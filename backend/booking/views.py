@@ -48,7 +48,11 @@ class DailyScheduleView(APIView):
             time_slots = TimeSlot.objects.all().order_by('start_time')
         
         # Lấy tất cả Bookings trong ngày đó của clinic
-        bookings = Booking.objects.filter(clinic=clinic, booking_date=target_date)
+        bookings = Booking.objects.filter(
+            clinic=clinic, 
+            booking_date=target_date,
+            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
+        ).exclude(status_history__status__iexact='cancelled').distinct()
         
         total_chairs = clinic.total_chairs
         matrix = []
@@ -101,7 +105,11 @@ class AvailableSlotsView(APIView):
         target_date = parse_date(date_str)
         
         time_slots = TimeSlot.objects.all().order_by('start_time')
-        bookings = Booking.objects.filter(clinic=clinic, booking_date=target_date)
+        bookings = Booking.objects.filter(
+            clinic=clinic, 
+            booking_date=target_date,
+            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
+        ).exclude(status_history__status__iexact='cancelled').distinct()
         
         results = []
         for ts in time_slots:
@@ -142,7 +150,12 @@ class BookingCreateView(APIView):
             return Response({"error": "Sai định dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
             
         # Tìm các ghế trống trong ca này
-        existing_bookings = Booking.objects.filter(clinic=clinic, booking_date=target_date, start_time=start_time)
+        existing_bookings = Booking.objects.filter(
+            clinic=clinic, 
+            booking_date=target_date, 
+            start_time=start_time,
+            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
+        ).exclude(status_history__status__iexact='cancelled').distinct()
         occupied_chairs = list(existing_bookings.values_list('chair_number', flat=True))
         available_chairs = [c for c in range(1, clinic.total_chairs + 1) if c not in occupied_chairs]
         
@@ -191,14 +204,32 @@ class BookingCreateView(APIView):
                     booking_date=target_date,
                     start_time=start_time,
                     end_time=end_time,
-                    chair_number=chair_to_assign,
-                    status='Booked'
+                    chair_number=chair_to_assign
                 )
                 
-                BookingStatus.objects.create(booking=booking, status='Booked')
+                BookingStatus.objects.create(booking=booking, status='booked')
                 created_booking_ids.append(booking.id)
             
         return Response({
             "message": "Đặt lịch thành công!",
             "booking_ids": created_booking_ids
         }, status=status.HTTP_201_CREATED)
+
+class TopupInfoView(APIView):
+    def get(self, request):
+        from .models import TopupInfo
+        config = TopupInfo.objects.filter(is_default=True).first()
+        if not config:
+            return Response({'error': 'Chưa cấu hình tài khoản thanh toán'}, status=status.HTTP_404_NOT_FOUND)
+            
+        amount = request.query_params.get('amount', '0')
+        note = request.query_params.get('note', 'Thanh toan')
+        
+        qr_url = f'https://img.vietqr.io/image/{config.bank_name}-{config.account_number}-compact2.png?amount={amount}&addInfo={note}&accountName={config.account_name}'
+        
+        return Response({
+            'bank_name': config.bank_name,
+            'account_number': config.account_number,
+            'account_name': config.account_name,
+            'qr_url': qr_url
+        }, status=status.HTTP_200_OK)

@@ -88,14 +88,18 @@ export default function Home() {
     setSelectedDate(today);
   }, []);
 
-  // Gọi API lấy ma trận ghế khi đổi ngày hoặc cơ sở
-  useEffect(() => {
+  const fetchMatrix = () => {
     if (selectedClinic && selectedDate) {
-      axios.get(`http://localhost:8000/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}`)
+      axios.get(`http://localhost:8000/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}&t=${new Date().getTime()}`)
         .then(res => setMatrixData(res.data))
         .catch(err => console.error(err));
     }
-  }, [selectedClinic, selectedDate, bookingSuccess]);
+  };
+
+  // Gọi API lấy ma trận ghế khi đổi ngày hoặc cơ sở
+  useEffect(() => {
+    fetchMatrix();
+  }, [selectedClinic, selectedDate]);
 
   // Update mảng form dựa trên số lượng khách
   useEffect(() => {
@@ -115,6 +119,15 @@ export default function Home() {
     const updated = [...patients];
     updated[index] = { ...updated[index], [field]: value };
     setPatients(updated);
+  };
+
+  const resetForm = () => {
+    setPatients([{ fullName: '', phone: '', email: '', dob: '', service: '' }]);
+    setNumPatients(1);
+    setSelectedTime('');
+    setBookingSuccess(false);
+    setMyBookingIds([]);
+    setCurrentStep(1);
   };
 
   const handleBookingSubmit = async () => {
@@ -149,9 +162,9 @@ export default function Home() {
       const res = await axios.post('http://localhost:8000/api/bookings/', payload);
       
       if (res.status === 201) {
-        setMyBookingIds(res.data.booking_ids);
-        setBookingSuccess(true);
-        alert('Đặt lịch thành công! Bạn có thể xem lại sơ đồ ghế bên dưới.');
+        alert('Đặt lịch thành công!');
+        resetForm();
+        fetchMatrix();
       }
     } catch (error: any) {
       alert("Lỗi đặt lịch: " + (error.response?.data?.error || "Vui lòng thử lại"));
@@ -159,6 +172,89 @@ export default function Home() {
   };
 
   const maxChairs = matrixData.length > 0 ? matrixData[0].chairs.length : 0;
+
+  const validStartTimes = useMemo(() => {
+    if (matrixData.length === 0 || patients.length === 0) return new Set();
+    const valid = new Set<string>();
+
+    for (let i = 0; i < matrixData.length; i++) {
+      let allPatientsSatisfied = true;
+      const occupiedChairs = new Set<number>();
+
+      for (let p of patients) {
+        const s = services.find(srv => srv.id === p.service);
+        const duration = s ? s.duration_minutes : 30;
+        const slotsNeeded = Math.ceil(duration / 30);
+
+        let foundChair = false;
+        for (let chairNum = 1; chairNum <= maxChairs; chairNum++) {
+          if (occupiedChairs.has(chairNum)) continue;
+
+          let isAvailable = true;
+          for (let step = 0; step < slotsNeeded; step++) {
+            if (i + step >= matrixData.length) { isAvailable = false; break; }
+            const cell = matrixData[i + step].chairs.find(c => c.chair === chairNum);
+            if (!cell || cell.status !== 'available') { isAvailable = false; break; }
+          }
+          if (isAvailable) {
+            foundChair = true;
+            occupiedChairs.add(chairNum);
+            break;
+          }
+        }
+
+        if (!foundChair) {
+          allPatientsSatisfied = false;
+          break;
+        }
+      }
+      if (allPatientsSatisfied) {
+        valid.add(matrixData[i].start_time);
+      }
+    }
+    return valid;
+  }, [matrixData, patients, services, maxChairs]);
+
+  const previewAssignments = useMemo(() => {
+    if (bookingSuccess || !selectedTime) return [];
+    const assignments: any[] = [];
+    const startIndex = matrixData.findIndex(r => r.start_time === selectedTime);
+    if (startIndex === -1) return [];
+
+    const occupiedChairs = new Set();
+    for (let i = 0; i < patients.length; i++) {
+      const p = patients[i];
+      const s = services.find(srv => srv.id === p.service);
+      const duration = s ? s.duration_minutes : 30;
+      const slotsNeeded = Math.ceil(duration / 30);
+
+      let assignedChair = null;
+      for (let chairNum = 1; chairNum <= maxChairs; chairNum++) {
+        if (occupiedChairs.has(chairNum)) continue;
+        let isAvailable = true;
+        for (let step = 0; step < slotsNeeded; step++) {
+          if (startIndex + step >= matrixData.length) { isAvailable = false; break; }
+          const cell = matrixData[startIndex + step].chairs.find(c => c.chair === chairNum);
+          if (!cell || cell.status !== 'available') { isAvailable = false; break; }
+        }
+        if (isAvailable) {
+          assignedChair = chairNum;
+          break;
+        }
+      }
+      if (assignedChair) {
+        occupiedChairs.add(assignedChair);
+        assignments.push({
+          chair: assignedChair,
+          startIndex: startIndex,
+          slotsNeeded: slotsNeeded,
+          patientName: p.fullName || `Khách ${i+1}`,
+          serviceName: s ? s.name : ''
+        });
+      }
+    }
+    return assignments;
+  }, [selectedTime, patients, services, matrixData, bookingSuccess, maxChairs]);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
@@ -332,6 +428,7 @@ export default function Home() {
         {currentStep === 3 && (
           <div className="mb-8 animate-fade-in-up">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Bước 3: Chọn Ngày Giờ Khám</h2>
+
             
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
               <div className="mb-6 max-w-sm">
@@ -350,18 +447,18 @@ export default function Home() {
               {/* Ma trận Grid Trực tiếp */}
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Sơ đồ Khung giờ và Phân bổ Ghế ngồi</h3>
-                <p className="text-sm text-gray-500 mb-4">Nhấp vào một khung giờ bên dưới để đặt lịch. Các ghế màu xanh lam nhạt hiển thị vị trí dự kiến của bạn.</p>
+                <p className="text-sm text-gray-500 mb-4">Nhấp vào một khung giờ bên dưới để đặt lịch. Các dịch vụ kéo dài nhiều slot sẽ tự động khóa nhiều ô liên tiếp.</p>
                 
-                <div className="mb-4 flex flex-wrap gap-4 text-sm font-medium bg-gray-50 p-3 rounded-lg">
-                  <div className="flex items-center"><div className="w-4 h-4 bg-green-100 border border-green-300 rounded mr-2"></div> Trống</div>
-                  <div className="flex items-center"><div className="w-4 h-4 bg-gray-200 border border-gray-300 rounded mr-2"></div> Đã có người đặt</div>
-                  {!bookingSuccess && <div className="flex items-center"><div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded mr-2"></div> Đang chọn (Dự kiến)</div>}
+                <div className="mb-4 flex flex-wrap gap-4 text-sm font-medium bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <div className="flex items-center"><div className="w-4 h-4 bg-green-50 border border-green-200 rounded mr-2"></div> Trống</div>
+                  <div className="flex items-center"><div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded mr-2"></div> Đã có người đặt</div>
+                  {!bookingSuccess && <div className="flex items-center"><div className="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded mr-2"></div> Đang chọn (Dự kiến)</div>}
                   {bookingSuccess && <div className="flex items-center"><div className="w-4 h-4 bg-blue-600 rounded mr-2"></div> Đã đặt thành công</div>}
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
                   <div className="min-w-max">
-                    <div className="flex bg-gray-100 border-b border-gray-200">
+                    <div className="flex bg-gray-50 border-b border-gray-200">
                       <div className="w-28 shrink-0 p-4 font-bold text-gray-700 border-r border-gray-200 text-center">Khung giờ</div>
                       {Array.from({ length: maxChairs }).map((_, i) => (
                         <div key={i} className="flex-1 p-4 font-bold text-gray-700 text-center border-r border-gray-200 last:border-0 min-w-[150px]">
@@ -370,59 +467,109 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {matrixData.map((row) => {
-                      const availableChairs = row.chairs.filter(c => c.status === 'available');
-                      // Nếu khách chọn giờ này, các ghế được xem trước sẽ là `numPatients` ghế trống đầu tiên
-                      const previewChairIds = (selectedTime === row.start_time && !bookingSuccess)
-                        ? availableChairs.slice(0, numPatients).map(c => c.chair)
-                        : [];
-                      
+                    {matrixData.map((row, rowIndex) => {
+                      const isValidStart = validStartTimes.has(row.start_time);
                       const isRowSelected = selectedTime === row.start_time;
-                      const hasEnoughSpace = availableChairs.length >= numPatients;
 
                       return (
                         <div 
                           key={row.start_time} 
+                          className="flex group h-24"
                           onClick={() => {
-                            if (!bookingSuccess && hasEnoughSpace) setSelectedTime(row.start_time);
+                            if (!bookingSuccess && isValidStart) setSelectedTime(row.start_time);
                           }}
-                          className={`
-                            flex border-b border-gray-200 last:border-0 transition-colors 
-                            ${bookingSuccess ? '' : hasEnoughSpace ? 'cursor-pointer hover:bg-blue-50/30' : 'opacity-70 bg-gray-50'}
-                            ${isRowSelected ? 'bg-blue-50/50' : ''}
-                          `}
                         >
-                          <div className={`w-28 shrink-0 p-4 font-bold border-r border-gray-200 flex items-center justify-center ${isRowSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                          <div 
+                            className={`
+                              w-28 shrink-0 p-4 font-bold flex items-center justify-center border-b border-r border-gray-200 transition-colors
+                              ${bookingSuccess ? 'bg-white' : isValidStart ? 'cursor-pointer group-hover:bg-blue-50/50 bg-white' : 'opacity-60 bg-gray-50'}
+                              ${isRowSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-600'}
+                            `}
+                          >
                             {row.start_time}
                           </div>
                           
                           {row.chairs.map((c) => {
-                            const isMyBooking = c.booking_id && myBookingIds.includes(c.booking_id);
-                            const isPreview = previewChairIds.includes(c.chair);
-                            
-                            let bgClass = "bg-green-100/50 text-green-800";
-                            let content = <div className="text-sm font-medium">Trống</div>;
+                            const currentBookingId = c.booking_id;
+                            let mergeDown = false;
+                            let isFirst = true;
+                            let isMyBooking = false;
+                            let isPreview = false;
+                            let cellContent = <div className="text-sm font-medium text-green-800">Trống</div>;
+                            let bgClass = "bg-green-50";
 
-                            if (isMyBooking) {
-                              bgClass = "bg-blue-600 text-white shadow-inner";
-                              content = (
-                                <>
-                                  <div className="font-bold text-sm truncate w-full">{c.customer_name}</div>
-                                  <div className="text-xs opacity-90 truncate w-full">{c.service_name}</div>
-                                </>
-                              );
-                            } else if (isPreview) {
-                              bgClass = "bg-blue-200 border-2 border-blue-400 text-blue-900";
-                              content = <div className="text-sm font-bold">Lịch của bạn</div>;
-                            } else if (c.status === 'booked') {
-                              bgClass = "bg-gray-200 text-gray-500 cursor-not-allowed";
-                              content = <div className="text-xs italic">Kín lịch</div>;
+                            // Check Booked State
+                            if (currentBookingId) {
+                              isMyBooking = myBookingIds.includes(currentBookingId);
+                              
+                              const nextRow = matrixData[rowIndex + 1];
+                              if (nextRow && nextRow.chairs.find(x => x.chair === c.chair)?.booking_id === currentBookingId) mergeDown = true;
+                              
+                              const prevRow = matrixData[rowIndex - 1];
+                              if (prevRow && prevRow.chairs.find(x => x.chair === c.chair)?.booking_id === currentBookingId) isFirst = false;
+
+                              if (isMyBooking) {
+                                bgClass = "bg-blue-600 text-white shadow-inner";
+                                if (isFirst) {
+                                  cellContent = (
+                                    <>
+                                      <div className="font-bold text-sm truncate w-full">{c.customer_name}</div>
+                                      <div className="text-xs opacity-90 truncate w-full">{c.service_name}</div>
+                                    </>
+                                  );
+                                } else {
+                                  cellContent = <></>;
+                                }
+                              } else { 
+                                bgClass = "bg-gray-100 text-gray-500 cursor-not-allowed";
+                                if (isFirst) {
+                                  cellContent = <div className="text-xs italic font-medium mt-1">Kín lịch</div>;
+                                } else {
+                                  cellContent = <></>;
+                                }
+                              }
+                            } else {
+                              // Check Preview State
+                              const assignment = previewAssignments.find(a => a.chair === c.chair);
+                              if (assignment && rowIndex >= assignment.startIndex && rowIndex < assignment.startIndex + assignment.slotsNeeded) {
+                                isPreview = true;
+                                if (rowIndex < assignment.startIndex + assignment.slotsNeeded - 1) mergeDown = true;
+                                if (rowIndex > assignment.startIndex) isFirst = false;
+
+                                bgClass = "bg-blue-200 text-blue-900 border-x-2 border-blue-400";
+                                if (isFirst) bgClass += " border-t-2";
+                                if (!mergeDown) bgClass += " border-b-2";
+
+                                if (isFirst) {
+                                  cellContent = (
+                                    <>
+                                      <div className="font-bold text-sm truncate w-full">{assignment.patientName}</div>
+                                      <div className="text-xs opacity-90 truncate w-full">{assignment.serviceName}</div>
+                                    </>
+                                  );
+                                } else {
+                                  cellContent = <></>;
+                                }
+                              }
                             }
 
+                            // Calculate styling to merge cells seamlessly
+                            let wrapperClasses = `flex-1 flex flex-col border-r border-gray-200 last:border-0 min-w-[150px] px-2 ${!bookingSuccess && isValidStart ? 'cursor-pointer' : ''}`;
+                            if (mergeDown && isFirst) wrapperClasses += " pt-2 pb-0";
+                            else if (mergeDown && !isFirst) wrapperClasses += " py-0";
+                            else if (!mergeDown && !isFirst) wrapperClasses += " pb-2 pt-0 border-b";
+                            else wrapperClasses += " py-2 border-b"; 
+
+                            let innerClasses = `w-full h-full flex flex-col items-center justify-center p-2 text-center transition-all min-h-[50px] ${bgClass}`;
+                            if (mergeDown && isFirst) innerClasses += " rounded-t-lg rounded-b-none";
+                            else if (mergeDown && !isFirst) innerClasses += " rounded-none";
+                            else if (!mergeDown && !isFirst) innerClasses += " rounded-b-lg rounded-t-none";
+                            else innerClasses += " rounded-lg";
+
                             return (
-                              <div key={c.chair} className="flex-1 border-r border-gray-200 last:border-0 p-2 min-w-[150px]">
-                                <div className={`h-full w-full rounded-lg flex flex-col items-center justify-center p-2 text-center transition-all min-h-[60px] ${bgClass}`}>
-                                  {content}
+                              <div key={c.chair} className={wrapperClasses}>
+                                <div className={innerClasses}>
+                                  {cellContent}
                                 </div>
                               </div>
                             )

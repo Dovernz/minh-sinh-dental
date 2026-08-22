@@ -1,0 +1,59 @@
+{% extends "admin/change_list.html" %}
+
+{% block search %}
+<div style="background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;">
+    <form method="GET" class="schedule-filter-form" style="display: flex; gap: 20px; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-weight: bold; margin: 0;">Cơ sở:</label>
+            <select name="clinic_id" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+                {% for c in clinics %}
+                    <option value="{{ c.id }}" {% if c.id == clinic_id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-weight: bold; margin: 0;">Ngày khám:</label>
+            <input type="date" name="target_date" value="{{ target_date }}" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button type="submit" style="padding: 8px 16px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Lọc dữ liệu</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block result_list %}
+<div class="results">
+    {% if clinic %}
+        <h2>Lịch Ngày - Cơ sở: {{ clinic.name }}</h2>
+    {% endif %}
+    <table style="width: 100%; border-collapse: collapse; text-align: center;">
+        <thead>
+            <tr>
+                <th style="border: 1px solid #ccc; padding: 10px; background: #f8f8f8;">Time \ Ghế</th>
+                {% for c in chairs %}
+                    <th style="border: 1px solid #ccc; padding: 10px; background: #f8f8f8;">Ghế {{ c }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in matrix %}
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 10px; font-weight: bold; background: #f8f8f8;">{{ row.time }}</td>
+                    {% for c, b in row.chairs.items %}
+                        <td style="border: 1px solid #ccc; padding: 10px; vertical-align: top;">
+                            {% if b %}
+                                <div style="background: #e1f5fe; padding: 5px; border-radius: 4px; text-align: left; font-size: 13px;">
+                                    <strong>{{ b.customer.full_name }}</strong><br>
+                                    {{ b.customer.phone }}<br>
+                                    <span style="color: #555;">{{ b.service.name|default:"-" }}</span>
+                                </div>
+                            {% else %}
+                                <span style="color: #ccc;">Trống</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

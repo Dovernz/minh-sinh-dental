@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'admin:operations_scheduleview_weekly' %}" class="button">Quay lại Lịch Tuần</a>
+</div>
+
+<h2>{{ title }} - {{ today|date:"d/m/Y" }}</h2>
+
+<div class="results">
+    {% for row in schedule_data %}
+        <div style="margin-bottom: 30px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #fff;">
+            <h3 style="margin-top: 0; color: #417690;">Khung giờ: {{ row.time }}</h3>
+            {% if row.bookings %}
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="border-bottom: 2px solid #ddd; padding: 8px; text-align: left;">Tên Khách Hàng</th>
+                            <th style="border-bottom: 2px solid #ddd; padding: 8px; text-align: left;">Số Điện Thoại</th>
+                            <th style="border-bottom: 2px solid #ddd; padding: 8px; text-align: left;">Dịch Vụ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in row.bookings %}
+                            <tr>
+                                <td style="border-bottom: 1px solid #ddd; padding: 8px;">{{ b.customer.full_name }}</td>
+                                <td style="border-bottom: 1px solid #ddd; padding: 8px;">{{ b.customer.phone }}</td>
+                                <td style="border-bottom: 1px solid #ddd; padding: 8px;">{{ b.service.name|default:"-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="color: #888;">Không có ca khám nào.</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

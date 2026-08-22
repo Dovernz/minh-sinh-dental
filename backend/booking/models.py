@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib import admin
+from django.db.models import Sum
 
 class Clinic(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên chi nhánh")
@@ -19,6 +21,7 @@ class Service(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên dịch vụ")
     category = models.CharField(max_length=50, blank=True, null=True, verbose_name="Phân loại")
     duration_minutes = models.IntegerField(default=30, verbose_name="Thời gian (phút)")
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Giá dịch vụ')
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -52,11 +55,18 @@ class Customer(models.Model):
         return self.full_name
 
 class Employee(models.Model):
+    ROLE_CHOICES = [
+        ('Admin', 'Admin'),
+        ('Doctor', 'Doctor'),
+        ('Reception', 'Reception'),
+        ('Marketing', 'Marketing'),
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile', blank=True, null=True)
     full_name = models.CharField(max_length=255, verbose_name="Họ và tên")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Số điện thoại")
     email = models.EmailField(max_length=50, blank=True, null=True, verbose_name="Email")
     specialty = models.CharField(max_length=50, blank=True, null=True, verbose_name="Chuyên môn")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Doctor', verbose_name="Vai trò")
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -66,21 +76,16 @@ class Employee(models.Model):
         return self.full_name
 
 class Booking(models.Model):
-    STATUS_CHOICES = [
-        ('Booked', 'Booked'),
-        ('Paid', 'Paid'),
-        ('Cancelled', 'Cancelled'),
-    ]
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='bookings')
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='bookings')
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
     employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
+    doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_bookings', verbose_name='Bác sĩ khám')
     booking_date = models.DateField(verbose_name="Ngày khám")
     start_time = models.TimeField(verbose_name="Bắt đầu")
     end_time = models.TimeField(verbose_name="Kết thúc")
     chair_number = models.IntegerField(blank=True, null=True, verbose_name="Số ghế")
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Booked', verbose_name="Trạng thái")
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -91,15 +96,14 @@ class Booking(models.Model):
 
 class BookingStatus(models.Model):
     STATUS_CHOICES = [
-        ('Booked', 'Booked'),
-        ('CheckedIn', 'CheckedIn'),
-        ('Paid', 'Paid'),
-        ('Cancelled', 'Cancelled'),
+        ('booked', 'booked'),
+        ('paid', 'paid'),
+        ('cancelled', 'cancelled'),
     ]
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='status_history')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-    changed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True)
-    created_on = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='booked')
+    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'db_table_booking_status'
@@ -107,21 +111,22 @@ class BookingStatus(models.Model):
     def __str__(self):
         return f"{self.booking.id} - {self.status}"
 
-class BookingBill(models.Model):
+class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('QR Code', 'QR Code'),
         ('Cash', 'Cash'),
         ('Card', 'Card'),
     ]
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='bill')
-    payment_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Số tiền")
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Số tiền")
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='QR Code', verbose_name="Phương thức")
-    customer_rating = models.IntegerField(blank=True, null=True, choices=[(i, i) for i in range(1, 6)])
-    customer_review = models.TextField(blank=True, null=True)
-    created_on = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'db_table_booking_bill'
+        db_table = 'db_table_payments'
+
+    def __str__(self):
+        return f"{self.booking.id} - {self.amount}"
 
 class InventoryDetail(models.Model):
     item_name = models.CharField(max_length=255, verbose_name="Tên vật tư")
@@ -159,3 +164,24 @@ class Article(models.Model):
 
     def __str__(self):
         return self.title
+
+
+
+class TopupInfo(models.Model):
+    bank_name = models.CharField(max_length=50, verbose_name='Tên ngân hàng (Mã)')
+    account_number = models.CharField(max_length=50, verbose_name='Số tài khoản')
+    account_name = models.CharField(max_length=100, verbose_name='Tên tài khoản')
+    is_default = models.BooleanField(default=False, verbose_name='Mặc định')
+
+    class Meta:
+        db_table = 'db_table_topup_info'
+        verbose_name = 'Cấu hình Thanh toán'
+        verbose_name_plural = 'Cấu hình Thanh toán'
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            TopupInfo.objects.filter(is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.bank_name} - {self.account_number}'

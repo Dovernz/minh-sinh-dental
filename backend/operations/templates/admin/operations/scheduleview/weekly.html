@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{% url 'admin:operations_scheduleview_daily' %}" class="button">Xem Lịch Ngày Hôm Nay</a>
+</div>
+
+<h2>{{ title }}</h2>
+<table style="width: 100%; border-collapse: collapse; text-align: center;">
+    <thead>
+        <tr>
+            <th style="border: 1px solid #ccc; padding: 10px;">Time \ Date</th>
+            {% for d in days %}
+                <th style="border: 1px solid #ccc; padding: 10px;">{{ d|date:"d/m/Y" }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in schedule_data %}
+            <tr>
+                <td style="border: 1px solid #ccc; padding: 10px; font-weight: bold;">{{ row.time }}</td>
+                {% for d_info in row.days %}
+                    <td style="border: 1px solid #ccc; padding: 10px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ d_info.color }};"></span>
+                        <br>
+                        {{ d_info.count }} / {{ d_info.total }}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
