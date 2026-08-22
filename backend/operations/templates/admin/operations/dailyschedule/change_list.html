@@ -2,20 +2,20 @@
 
 {% block search %}
 <div style="background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;">
-    <form method="GET" class="schedule-filter-form" style="display: flex; gap: 20px; align-items: center;">
+    <form method="GET" action="" class="schedule-filter-form" style="display: flex; gap: 20px; align-items: center;">
         <div style="display: flex; align-items: center; gap: 8px;">
             <label style="font-weight: bold; margin: 0;">Cơ sở:</label>
-            <select name="clinic_id" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+            <select name="clinic_id" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
                 {% for c in clinics %}
-                    <option value="{{ c.id }}" {% if c.id == clinic_id %}selected{% endif %}>{{ c.name }}</option>
+                    <option value="{{ c.id }}" {% if c.id|stringformat:"s" == selected_clinic_id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <label style="font-weight: bold; margin: 0;">Ngày khám:</label>
-            <input type="date" name="target_date" value="{{ target_date }}" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="date" name="booking_date" value="{{ selected_start_date }}" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
         </div>
-        <button type="submit" style="padding: 8px 16px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Lọc dữ liệu</button>
+        <button type="submit" style="display: none; padding: 8px 16px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Lọc dữ liệu</button>
     </form>
 </div>
 {% endblock %}

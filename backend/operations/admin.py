@@ -144,20 +144,29 @@ class DailyScheduleAdmin(BaseRBACAdmin):
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
-            cl = response.context_data['cl']
-            qs = cl.queryset # Original queryset
+            import datetime
+            qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
             clinic_id = request.GET.get('clinic_id')
-            target_date_str = request.GET.get('target_date')
+            date_str = request.GET.get('booking_date')
 
             if not clinic_id:
                 first_clinic = clinics.first()
                 clinic_id = str(first_clinic.id) if first_clinic else None
                 
-            target_date = parse_date(target_date_str) if target_date_str else date.today()
-            if not target_date:
-                target_date = date.today()
+            try:
+                selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.date.today()
+            except ValueError:
+                selected_date = datetime.date.today()
+            
+            # Đảm bảo qs luôn được filter theo clinic_id và booking_date nếu thiếu trên URL
+            if not request.GET.get('clinic_id'):
+                qs = qs.filter(clinic_id=clinic_id)
+            if not request.GET.get('booking_date'):
+                qs = qs.filter(booking_date=selected_date)
+                
+            qs = qs.exclude(status_history__status__iexact='cancelled').select_related('customer', 'service')
             
             clinic = clinics.filter(id=clinic_id).first()
             total_chairs = clinic.total_chairs if clinic else 5
@@ -168,11 +177,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             matrix = []
             for ts in time_slots:
                 row = {'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}", 'chairs': {}}
-                ts_bookings = qs.filter(
-                    clinic=clinic,
-                    booking_date=target_date,
-                    start_time=ts.start_time
-                ).exclude(status_history__status__iexact='cancelled').select_related('customer', 'service')
+                ts_bookings = qs.filter(start_time=ts.start_time)
                 for c in chairs:
                     b = ts_bookings.filter(chair_number=c).first()
                     row['chairs'][c] = b
@@ -182,8 +187,8 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             response.context_data['chairs'] = chairs
             response.context_data['clinic'] = clinic
             response.context_data['clinics'] = clinics
-            response.context_data['target_date'] = target_date.strftime('%Y-%m-%d')
-            response.context_data['clinic_id'] = int(clinic_id) if clinic_id else ''
+            response.context_data['selected_start_date'] = selected_date.strftime('%Y-%m-%d')
+            response.context_data['selected_clinic_id'] = str(clinic_id) if clinic_id else ''
             
         return response
 
@@ -198,13 +203,12 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
-            cl = response.context_data['cl']
-            qs = cl.queryset
+            qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
             clinic_id = request.GET.get('clinic_id')
-            start_date_str = request.GET.get('start_date')
-            end_date_str = request.GET.get('end_date')
+            start_date_str = request.GET.get('booking_date__gte')
+            end_date_str = request.GET.get('booking_date__lte')
 
             if not clinic_id:
                 first_clinic = clinics.first()
@@ -217,6 +221,22 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             end_date = parse_date(end_date_str) if end_date_str else start_date + timedelta(days=6)
             if not end_date or end_date < start_date:
                 end_date = start_date + timedelta(days=6)
+            
+            # Đảm bảo qs được filter nếu thiếu param trên URL
+            if not request.GET.get('clinic_id'):
+                qs = qs.filter(clinic_id=clinic_id)
+            if not request.GET.get('booking_date__gte') or not request.GET.get('booking_date__lte'):
+                qs = qs.filter(booking_date__gte=start_date, booking_date__lte=end_date)
+                
+            qs = qs.exclude(status_history__status__iexact='cancelled').distinct()
+            
+            # Tối ưu hóa Database: Đẩy việc đếm tổng (Aggregation) cho cơ sở dữ liệu
+            # Dùng order_by() để xóa các ordering mặc định, đảm bảo GROUP BY đúng
+            from django.db.models import Count
+            aggregated_data = qs.order_by().values('booking_date', 'start_time').annotate(total_bookings=Count('id'))
+            counts_map = {}
+            for item in aggregated_data:
+                counts_map[(item['booking_date'], item['start_time'])] = item['total_bookings']
             
             days = []
             current = start_date
@@ -233,11 +253,7 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             for ts in time_slots:
                 row = {'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}", 'days': []}
                 for d in days:
-                    count = qs.filter(
-                        clinic=clinic,
-                        booking_date=d, 
-                        start_time=ts.start_time
-                    ).exclude(status_history__status__iexact='cancelled').distinct().count()
+                    count = counts_map.get((d, ts.start_time), 0)
                     occupancy = (count / total_chairs) * 100 if total_chairs > 0 else 0
                     if occupancy < 80:
                         color = 'green'
@@ -258,8 +274,8 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             response.context_data['days'] = days
             response.context_data['clinic'] = clinic
             response.context_data['clinics'] = clinics
-            response.context_data['start_date'] = start_date.strftime('%Y-%m-%d')
-            response.context_data['end_date'] = end_date.strftime('%Y-%m-%d')
-            response.context_data['clinic_id'] = int(clinic_id) if clinic_id else ''
+            response.context_data['selected_start_date'] = start_date.strftime('%Y-%m-%d')
+            response.context_data['selected_end_date'] = end_date.strftime('%Y-%m-%d')
+            response.context_data['selected_clinic_id'] = str(clinic_id) if clinic_id else ''
             
         return response
