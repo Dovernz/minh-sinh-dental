@@ -1,27 +1,45 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User, Group
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from .models import (
     Clinic, Service, TimeSlot, Customer, Employee, 
     Booking, BookingStatus, Payment, TopupInfo,
     InventoryDetail, InventoryUsage, Article
 )
 
+
 admin.site.unregister(User)
+admin.site.unregister(Group)
+
+@admin.register(Group)
+class CustomGroupAdmin(GroupAdmin):
+    def has_module_permission(self, request):
+        if request.user.is_superuser:
+            return True
+        return request.user.groups.filter(name='Admin').exists()
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     def has_module_permission(self, request):
-        return request.user.is_superuser
+        if request.user.is_superuser:
+            return True
+        return request.user.groups.filter(name='Admin').exists()
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
         new_fieldsets = []
         for name, opts in fieldsets:
-            new_fields = tuple(f for f in opts.get('fields', []) if f not in ('last_login', 'date_joined'))
-            if new_fields:
-                new_fieldsets.append((name, {**opts, 'fields': new_fields}))
+            fields = list(opts.get('fields', []))
+            if 'last_login' in fields: fields.remove('last_login')
+            if 'date_joined' in fields: fields.remove('date_joined')
+            
+            # Chặn nhóm Admin tự ý cấp quyền is_superuser
+            if not request.user.is_superuser and 'is_superuser' in fields:
+                fields.remove('is_superuser')
+                
+            if fields:
+                new_fieldsets.append((name, {**opts, 'fields': tuple(fields)}))
         return tuple(new_fieldsets)
 
 def is_staff(request):
@@ -29,15 +47,31 @@ def is_staff(request):
 
 class BaseRBACAdmin(admin.ModelAdmin):
     def has_module_permission(self, request):
-        return request.user.is_superuser
+        if request.user.is_superuser:
+            return True
+        if request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+            return True
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+            return True
+        return False
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+            return True
+        return False
 
     def has_change_permission(self, request, obj=None):
-        if is_staff(request): return False
-        return super().has_change_permission(request, obj)
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+            return True
+        return False
         
     def has_delete_permission(self, request, obj=None):
-        if is_staff(request): return False
-        return super().has_delete_permission(request, obj)
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+            return True
+        return False
 
 @admin.register(TopupInfo)
 class TopupInfoAdmin(BaseRBACAdmin):
@@ -80,19 +114,15 @@ class EmployeeAdmin(BaseRBACAdmin):
         if not change:
             username = obj.phone or obj.email or f"user_{obj.id}"
             new_user = User.objects.create_user(username=username, password='password123')
-            
-            if obj.role:
-                group, _ = Group.objects.get_or_create(name=obj.role)
-                new_user.groups.add(group)
-                if obj.role == 'Admin':
-                    new_user.is_staff = True
-                    new_user.is_superuser = True
-                else:
-                    new_user.is_staff = True
-                new_user.save()
-            
             obj.user = new_user
-        
+            
+        if obj.user and obj.role:
+            group = Group.objects.get(name=obj.role)
+            obj.user.groups.clear()
+            obj.user.groups.add(group)
+            obj.user.is_staff = True
+            obj.user.save()
+            
         super().save_model(request, obj, form, change)
 
 @admin.register(Booking)

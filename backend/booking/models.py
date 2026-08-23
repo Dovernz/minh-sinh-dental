@@ -151,12 +151,26 @@ class InventoryUsage(models.Model):
     class Meta:
         db_table = 'db_table_inventory_usage'
 
+from ckeditor_uploader.fields import RichTextUploadingField
+
 class Article(models.Model):
+    STATUS_CHOICES = [
+        ('Draft', 'Bản nháp'),
+        ('Published', 'Xuất bản')
+    ]
     title = models.CharField(max_length=255, verbose_name="Tiêu đề")
     slug = models.SlugField(max_length=255, unique=True)
-    content = models.TextField(verbose_name="Nội dung")
+    content = RichTextUploadingField(verbose_name="Nội dung")
     thumbnail_url = models.TextField(blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
+    word_file = models.FileField(upload_to='temp/', null=True, blank=True, verbose_name="Tải lên File Word (.docx)")
+    
+    # SEO fields
+    meta_title = models.CharField(max_length=255, blank=True, null=True, verbose_name="SEO Title")
+    meta_description = models.TextField(blank=True, null=True, verbose_name="SEO Description")
+    focus_keyword = models.CharField(max_length=255, blank=True, null=True, verbose_name="Focus Keyword")
+    
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:

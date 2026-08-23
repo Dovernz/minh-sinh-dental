@@ -34,6 +34,9 @@ INSTALLED_APPS = [
     # Third party
     'rest_framework',
     'corsheaders',
+    'storages',
+    'ckeditor',
+    'ckeditor_uploader',
     
     # Local apps
     'booking',
@@ -114,6 +117,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -123,3 +127,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Supabase S3 Configuration
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='your-access-key')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='your-secret-key')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='your-bucket-name')
+AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='https://your-project-ref.supabase.co/storage/v1/s3')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='ap-southeast-1')
+AWS_S3_FILE_OVERWRITE = False
+
+SUPABASE_FOLDER = env('SUPABASE_FOLDER', default='media')
+AWS_LOCATION = SUPABASE_FOLDER
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# CKEditor Configuration
+CKEDITOR_UPLOAD_PATH = 'uploads/'
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 600,
+        'width': '100%',
+        'extraPlugins': ','.join(['font', 'colorbutton', 'justify', 'uploadimage', 'image2']),
+    },
+}

@@ -13,17 +13,24 @@ from .models import ManageBooking, DailySchedule, WeeklySchedule
 
 class BaseRBACAdmin(admin.ModelAdmin):
     def has_module_permission(self, request):
-        if request.user.is_superuser:
-            return True
+        if request.user.is_superuser: return True
         return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
 
+    def has_view_permission(self, request, obj=None):
+        if request.user.is_superuser: return True
+        return request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
+
+    def has_add_permission(self, request):
+        if request.user.is_superuser: return True
+        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
+
     def has_change_permission(self, request, obj=None):
-        if is_staff(request): return False
-        return super().has_change_permission(request, obj)
+        if request.user.is_superuser: return True
+        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
         
     def has_delete_permission(self, request, obj=None):
-        if is_staff(request): return False
-        return super().has_delete_permission(request, obj)
+        if request.user.is_superuser: return True
+        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
 class BookingStatusInline(admin.TabularInline):
     model = BookingStatus
@@ -45,6 +52,10 @@ from django.views.decorators.csrf import csrf_exempt
 
 @admin.register(ManageBooking)
 class ManageBookingAdmin(BaseRBACAdmin):
+    def has_module_permission(self, request):
+        if request.user.is_superuser: return True
+        return request.user.groups.filter(name='Reception').exists()
+        
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
         return request.user.groups.filter(name='Reception').exists()
