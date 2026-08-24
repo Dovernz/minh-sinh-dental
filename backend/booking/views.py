@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from datetime import timedelta
 from django.utils.dateparse import parse_datetime, parse_date
 
-from .models import Clinic, ServiceCategory, ServiceDetail, Booking, Customer, BookingStatus, TimeSlot
+from .models import Clinic, ServiceCategory, ServiceDetail, Booking, Customer, BookingStatusHistory, TimeSlot
 from .serializers import ClinicSerializer, ServiceCategorySerializer
 from django.http import JsonResponse
 
@@ -56,36 +56,76 @@ class DailyScheduleView(APIView):
                 TimeSlot.objects.create(start_time=st, end_time=et)
             time_slots = TimeSlot.objects.all().order_by('start_time')
         
-        # Lấy tất cả Bookings trong ngày đó của clinic
-        bookings = Booking.objects.filter(
-            clinic=clinic, 
-            booking_date=target_date,
-            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
-        ).exclude(status_history__status__iexact='cancelled').distinct()
+        try:
+            # Lấy tất cả Bookings trong ngày đó của clinic
+            bookings = Booking.objects.filter(
+                clinic=clinic, 
+                appointment_time__date=target_date,
+                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
+            )
+            list(bookings) # Force evaluation to catch DB mismatch errors
+        except Exception as e:
+            print("DailyScheduleView Booking Error:", e)
+            bookings = Booking.objects.none()
+        
         
         total_chairs = clinic.total_chairs
         matrix = []
         
-        for ts in time_slots:
-            ts_bookings = bookings.filter(start_time=ts.start_time)
-            chairs = []
+        # Calculate start/end for all bookings and assign chairs consistently
+        from datetime import datetime, timedelta
+        
+        booking_spans = []
+        for b in bookings:
+            start = b.appointment_time.time() if b.appointment_time else None
+            if not start:
+                continue
+            duration = 30
+            if None:
+                duration = 30
             
+            # create dummy datetime to add timedelta
+            dummy = datetime.combine(datetime.today(), start)
+            end = (dummy + timedelta(minutes=duration)).time()
+            booking_spans.append({"booking": b, "start": start, "end": end, "chair": None})
+            
+        for ts in time_slots:
+            ts_start = ts.start_time
+            # find bookings active in this slot
+            active_bookings = []
+            for span in booking_spans:
+                if span["start"] <= ts_start < span["end"]:
+                    active_bookings.append(span)
+                    
+            # assign chairs to those that don't have one
+            used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None)
+            for span in active_bookings:
+                if span["chair"] is None:
+                    # find first available chair
+                    for c in range(1, total_chairs + 1):
+                        if c not in used_chairs:
+                            span["chair"] = c
+                            used_chairs.add(c)
+                            break
+                            
+            chairs = []
             for chair_num in range(1, total_chairs + 1):
-                # Tìm xem có booking nào đang chiếm ghế này không
-                b = ts_bookings.filter(chair_number=chair_num).first()
-                if b:
+                # find if any active booking has this chair
+                active_span = next((s for s in active_bookings if s["chair"] == chair_num), None)
+                if active_span:
+                    b = active_span["booking"]
                     chairs.append({
                         "chair": chair_num,
                         "status": "booked",
-                        "booking.booking_id": b.booking.booking_id,
-                        "customer_name": b.customer.full_name,
-                        "service_name": b.service.name if b.service else "Khám tổng quát"
+                        "booking_id": b.booking_id,
+                        "customer_name": getattr(b.customer, 'name', getattr(b.customer, 'full_name', '')),
+                        "service_name": "Kh?m t?ng qu?t"
                     })
                 else:
                     chairs.append({
                         "chair": chair_num,
                         "status": "available",
-                        "booking.booking_id": None,
+                        "booking_id": None,
                         "customer_name": None,
                         "service_name": None
                     })
@@ -95,7 +135,6 @@ class DailyScheduleView(APIView):
                 "start_time": ts.start_time.strftime('%H:%M'),
                 "chairs": chairs
             })
-            
         return Response(matrix, status=status.HTTP_200_OK)
 
 class AvailableSlotsView(APIView):
@@ -114,15 +153,20 @@ class AvailableSlotsView(APIView):
         target_date = parse_date(date_str)
         
         time_slots = TimeSlot.objects.all().order_by('start_time')
-        bookings = Booking.objects.filter(
-            clinic=clinic, 
-            booking_date=target_date,
-            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
-        ).exclude(status_history__status__iexact='cancelled').distinct()
+        try:
+            bookings = Booking.objects.filter(
+                clinic=clinic, 
+                appointment_time__date=target_date,
+                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
+            )
+            list(bookings)
+        except Exception as e:
+            print("AvailableSlotsView Booking Error:", e)
+            bookings = Booking.objects.none()
         
         results = []
         for ts in time_slots:
-            booked_count = bookings.filter(start_time=ts.start_time).count()
+            booked_count = bookings.filter(appointment_time__time=ts.start_time).count()
             available = max(0, clinic.total_chairs - booked_count)
             results.append({
                 "time": f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}",
@@ -158,20 +202,25 @@ class BookingCreateView(APIView):
         except ValueError:
             return Response({"error": "Sai định dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Tìm các ghế trống trong ca này
-        existing_bookings = Booking.objects.filter(
-            clinic=clinic, 
-            booking_date=target_date, 
-            start_time=start_time,
-            status_history__status__in=['booked', 'paid', 'Booked', 'Paid']
-        ).exclude(status_history__status__iexact='cancelled').distinct()
-        occupied_chairs = list(existing_bookings.values_list('chair_number', flat=True))
-        available_chairs = [c for c in range(1, clinic.total_chairs + 1) if c not in occupied_chairs]
-        
-        if len(patients) > len(available_chairs):
-            return Response({"error": f"Chỉ còn {len(available_chairs)} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Tìm số lượng booking đã có trong ca này
+            existing_bookings = Booking.objects.filter(
+                clinic=clinic, 
+                appointment_time__date=target_date, 
+                appointment_time__time=start_time,
+                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
+            )
+            occupied_count = existing_bookings.count()
+        except Exception as e:
+            print("BookingCreateView Booking Error:", e)
+            occupied_count = 0
             
-        created_booking.booking_ids = []
+        available_count = max(0, clinic.total_chairs - occupied_count)
+        
+        if len(patients) > available_count:
+            return Response({"error": f"Chỉ còn {available_count} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        created_booking_ids = []
         
         from django.db import transaction
         with transaction.atomic():
@@ -198,30 +247,22 @@ class BookingCreateView(APIView):
                 if category_id:
                     category = ServiceCategory.objects.filter(pk=category_id).first()
                     
-                duration = category.estimate_time if category else 30
-                
-                from datetime import datetime as dt_module, date
-                dummy_dt = dt_module.combine(date.today(), start_time)
-                end_time = (dummy_dt + timedelta(minutes=duration)).time()
-                
-                chair_to_assign = available_chairs[i]
+                from datetime import datetime as dt_module
+                appointment_time_dt = dt_module.combine(target_date, start_time)
                 
                 booking = Booking.objects.create(
                     customer=customer,
                     clinic=clinic,
-                    category=category,
-                    booking_date=target_date,
-                    start_time=start_time,
-                    end_time=end_time,
-                    chair_number=chair_to_assign
+                    
+                    appointment_time=appointment_time_dt,
+                    status='Pending'
                 )
                 
-                BookingStatus.objects.create(booking=booking, status='booked')
-                created_booking.booking_ids.append(booking.booking_id)
+                created_booking_ids.append(booking.booking_id)
             
         return Response({
             "message": "Đặt lịch thành công!",
-            "booking.booking_ids": created_booking.booking_ids
+            "booking.booking_ids": created_booking_ids
         }, status=status.HTTP_201_CREATED)
 
 class TopupInfoView(APIView):

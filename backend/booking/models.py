@@ -74,9 +74,12 @@ class TimeSlot(models.Model):
 
 class Customer(models.Model):
     customer_id = models.AutoField(primary_key=True)
-    full_name = models.CharField(max_length=100, verbose_name="Họ và tên")
+    patient_code = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="Mã bệnh nhân")
+    name = models.CharField(max_length=100, verbose_name="Họ và tên")
     phone = models.CharField(max_length=12, unique=True, verbose_name="Số điện thoại")
-    dob = models.DateField(blank=True, null=True, verbose_name="Ngày sinh")
+    birthday = models.DateField(blank=True, null=True, verbose_name="Ngày sinh")
+    gender = models.CharField(max_length=10, blank=True, null=True, verbose_name="Giới tính")
+    address = models.TextField(blank=True, null=True, verbose_name="Địa chỉ")
     email = models.EmailField(max_length=100, blank=True, null=True, verbose_name="Email")
     created_on = models.DateTimeField(auto_now_add=True)
 
@@ -84,7 +87,7 @@ class Customer(models.Model):
         db_table = 'db_table_customers'
 
     def __str__(self):
-        return self.full_name
+        return self.name
 
 class Employee(models.Model):
     employee_id = models.AutoField(primary_key=True)
@@ -112,15 +115,9 @@ class Booking(models.Model):
     booking_id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='bookings')
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='bookings')
-    category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    service_detail = models.ForeignKey(ServiceDetail, on_delete=models.SET_NULL, null=True, blank=True)
-    employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
-    # doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_bookings', verbose_name='Bác sĩ khám')
-    booking_date = models.DateField(verbose_name="Ngày khám", db_index=True)
-    start_time = models.TimeField(verbose_name="Bắt đầu", db_index=True)
-    end_time = models.TimeField(verbose_name="Kết thúc")
-    chair_number = models.IntegerField(blank=True, null=True, verbose_name="Số ghế")
-    # actual_price = models.IntegerField(null=True, blank=True, verbose_name='Số tiền thực tế')
+    # Các trường category, service_detail, employee đã được chuyển sang BookingDetail
+    appointment_time = models.DateTimeField(null=True, blank=True, verbose_name="Thời gian khám")
+    status = models.CharField(max_length=20, default='Pending', verbose_name="Trạng thái")
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     created_on = models.DateTimeField(auto_now_add=True)
 
@@ -128,25 +125,21 @@ class Booking(models.Model):
         db_table = 'db_table_bookings'
 
     def __str__(self):
-        return f"{self.customer.full_name} - {self.booking_date} {self.start_time}"
+        return f"{self.customer.full_name} - {self.appointment_time}"
 
-class BookingStatus(models.Model):
-    status_id = models.AutoField(primary_key=True)
-    STATUS_CHOICES = [
-        ('booked', 'booked'),
-        ('paid', 'paid'),
-        ('cancelled', 'cancelled'),
-    ]
+class BookingStatusHistory(models.Model):
+    history_id = models.AutoField(primary_key=True)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='status_history')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='booked')
-    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
-    created_on = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, verbose_name="Trạng thái")
+    changed_at = models.DateTimeField(auto_now_add=True)
+    changed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True)
+    notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
     class Meta:
-        db_table = 'db_table_booking_status'
+        db_table = 'db_table_booking_status_history'
 
     def __str__(self):
-        return f"{self.booking.id} - {self.status}"
+        return f"{self.booking.booking_id} - {self.status}"
 
 class Payment(models.Model):
     payment_id = models.AutoField(primary_key=True)

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
 interface Clinic {
-  id: number;
+  id?: number;
+  clinic_id?: number;
   name: string;
   address: string;
   hotline: string;
@@ -13,9 +14,10 @@ interface Clinic {
 }
 
 interface ServiceCategory {
-  id: number;
+  id?: number;
+  category_id?: number;
   name: string;
-  estimate_time: number;
+  estimate_time?: number;
 }
 
 interface PatientForm {
@@ -49,7 +51,7 @@ export default function Home() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   
   // State: Bước 1
-  const [selectedClinic, setSelectedClinic] = useState<number | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<number | string | null>(null);
   
   // State: Bước 2
   const [numPatients, setNumPatients] = useState<number>(1);
@@ -181,8 +183,8 @@ export default function Home() {
       const occupiedChairs = new Set<number>();
 
       for (let p of patients) {
-        const s = categories.find(srv => srv.id === p.category_id);
-        const duration = s ? s.estimate_time : 30;
+        const s = categories.find(srv => (srv.category_id || srv.id) === p.category_id);
+        const duration = s?.estimate_time || 30;
         const slotsNeeded = Math.ceil(duration / 30);
 
         let foundChair = false;
@@ -223,8 +225,8 @@ export default function Home() {
     const occupiedChairs = new Set();
     for (let i = 0; i < patients.length; i++) {
       const p = patients[i];
-      const s = categories.find(srv => srv.id === p.category_id);
-      const duration = s ? s.estimate_time : 30;
+      const s = categories.find(srv => (srv.category_id || srv.id) === p.category_id);
+      const duration = s?.estimate_time || 30;
       const slotsNeeded = Math.ceil(duration / 30);
 
       let assignedChair = null;
@@ -268,52 +270,58 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {clinics.map((clinic) => (
-              <div 
-                key={clinic.id}
-                onClick={() => setSelectedClinic(clinic.id)}
-                className={`
-                  p-6 rounded-2xl shadow-sm border-2 cursor-pointer transition-all duration-200 bg-white
-                  ${selectedClinic === clinic.id 
-                    ? 'border-blue-500 ring-4 ring-blue-100 bg-blue-50/30' 
-                    : 'border-transparent hover:border-gray-200'
-                  }
-                `}
-              >
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{clinic.name}</h3>
-                <div className="text-sm text-gray-600 mb-2">{clinic.address}</div>
-                <div className="text-sm text-gray-600">{clinic.hotline}</div>
-              </div>
-            ))}
+            {clinics.map((clinic, index) => {
+              // Lấy ID an toàn: Ưu tiên clinic_id, nếu không có lấy id, nếu vẫn không có thì lấy index
+              const safeId = clinic.clinic_id || clinic.id || index;
+              
+              return (
+                <div 
+                  key={safeId}
+                  onClick={() => setSelectedClinic(safeId)}
+                  className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                    selectedClinic === safeId 
+                      ? 'border-blue-500 bg-blue-50/50 shadow-md transform scale-[1.02]' 
+                      : 'border-gray-100 hover:border-blue-200 hover:shadow-sm'
+                  }`}
+                >
+                  <h3 className="font-semibold text-lg mb-2 text-gray-800">{clinic.name}</h3>
+                  <p className="text-gray-500 text-sm mb-1">{clinic.address}</p>
+                  <p className="text-gray-500 text-sm">{clinic.hotline}</p>
+                </div>
+              );
+            })}
           </div>
 
-          {selectedClinic && (
-            <div className="animate-fade-in-up bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Bản đồ vị trí cơ sở</h3>
-              {clinics.find(c => c.id === selectedClinic) && (
-                <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative h-80">
-                  {/* Sử dụng iframe tìm kiếm động theo địa chỉ */}
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight={0} 
-                    marginWidth={0} 
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(clinics.find(c => c.id === selectedClinic)?.address || '')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
-                  ></iframe>
-                </div>
-              )}
-              {clinics.find(c => c.id === selectedClinic)?.map_url && (
-                <div className="mt-4 text-right">
-                  <a href={clinics.find(c => c.id === selectedClinic)?.map_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center">
-                    Mở trên Google Maps ứng dụng
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
+          {selectedClinic && (() => {
+            const currentClinic = clinics.find((c, idx) => (c.clinic_id || c.id || idx) === selectedClinic);
+            return (
+              <div className="animate-fade-in-up bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Bản đồ vị trí cơ sở</h3>
+                {currentClinic && (
+                  <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative h-80">
+                    {/* Sử dụng iframe tìm kiếm động theo địa chỉ */}
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      frameBorder="0" 
+                      scrolling="no" 
+                      marginHeight={0} 
+                      marginWidth={0} 
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(currentClinic.address || '')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                    ></iframe>
+                  </div>
+                )}
+                {currentClinic?.map_url && (
+                  <div className="mt-4 text-right">
+                    <a href={currentClinic.map_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline inline-flex items-center">
+                      Mở trên Google Maps ứng dụng
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {selectedClinic && (
             <div className="flex justify-end">
@@ -396,9 +404,14 @@ export default function Home() {
                         onChange={(e) => handlePatientChange(index, 'category_id', parseInt(e.target.value) || '')} 
                       >
                         <option value="">-- Chọn nhóm dịch vụ --</option>
-                        {categories.map(s => (
-                          <option key={s.id} value={s.id}>{s.name} ({s.estimate_time}p)</option>
-                        ))}
+                        {categories.map((s, catIndex) => {
+                          const safeCatId = s.category_id || s.id || catIndex;
+                          return (
+                            <option key={safeCatId} value={s.category_id || s.id}>
+                              {s.name} {s.estimate_time ? `(${s.estimate_time}p)` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   </div>

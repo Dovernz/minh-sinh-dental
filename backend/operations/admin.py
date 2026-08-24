@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import ManageBooking
-from booking.models import BookingStatus, Payment
+from booking.models import BookingStatusHistory, Payment
 
 def is_staff(request):
     return request.user.groups.filter(name='Staff').exists() and not request.user.is_superuser and not request.user.groups.filter(name='Admin').exists()
@@ -32,8 +32,8 @@ class BaseRBACAdmin(admin.ModelAdmin):
         if request.user.is_superuser: return True
         return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
-class BookingStatusInline(admin.TabularInline):
-    model = BookingStatus
+class BookingStatusHistoryInline(admin.TabularInline):
+    model = BookingStatusHistory
     extra = 1
     # Nhân viên chỉ có thể thêm, không thể sửa trạng thái cũ để đảm bảo tính lịch sử
     def has_change_permission(self, request, obj=None):
@@ -66,13 +66,13 @@ class ManageBookingAdmin(BaseRBACAdmin):
 
     from booking.admin import BookingAdminForm
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'category', 'current_status', 'total_paid', 'quick_payment_ui')
+    list_display = ('booking_id', 'customer', 'current_status', 'total_paid', 'quick_payment_ui')
     list_editable = ()
-    list_filter = ('booking_date', 'clinic', 'category')
+    list_filter = ('appointment_time', 'clinic', 'status')
     # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
-    search_fields = ('customer__full_name', 'customer__phone', 'doctor__full_name', 'notes')
-    date_hierarchy = 'booking_date'
-    inlines = [BookingStatusInline, PaymentInline]
+    search_fields = ('customer__name', 'customer__phone', 'notes')
+    date_hierarchy = 'appointment_time'
+    inlines = [BookingStatusHistoryInline, PaymentInline]
 
     class Media:
         js = ('admin/js/quick_pay.js', 'admin/js/booking_chained_select.js')
@@ -140,7 +140,7 @@ class ManageBookingAdmin(BaseRBACAdmin):
                         amount=amount,
                         payment_method=method
                     )
-                    BookingStatus.objects.create(
+                    BookingStatusHistory.objects.create(
                         booking=booking,
                         status='paid',
                         note='Thanh toán nhanh qua Admin'
@@ -168,7 +168,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             
             clinics = Clinic.objects.all()
             clinic_id = request.GET.get('clinic_id')
-            date_str = request.GET.get('booking_date')
+            date_str = request.GET.get('appointment_time__date')
 
             if not clinic_id:
                 first_clinic = clinics.first()
@@ -182,12 +182,12 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             # Đảm bảo qs luôn được filter theo clinic_id và booking_date nếu thiếu trên URL
             if not request.GET.get('clinic_id'):
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('booking_date'):
-                qs = qs.filter(booking_date=selected_date)
+            if not request.GET.get('appointment_time__date'):
+                qs = qs.filter(appointment_time__date=selected_date)
                 
-            qs = qs.exclude(status_history__status__iexact='cancelled').select_related('customer', 'service')
+            qs = qs.exclude(status__iexact='cancelled').select_related('customer')
             
-            clinic = clinics.filter(id=clinic_id).first()
+            clinic = clinics.filter(clinic_id=clinic_id).first()
             total_chairs = clinic.total_chairs if clinic else 5
             chairs = range(1, total_chairs + 1)
             
@@ -196,9 +196,9 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             matrix = []
             for ts in time_slots:
                 row = {'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}", 'chairs': {}}
-                ts_bookings = qs.filter(start_time=ts.start_time)
+                ts_bookings = list(qs.filter(appointment_time__time=ts.start_time))
                 for c in chairs:
-                    b = ts_bookings.filter(chair_number=c).first()
+                    b = ts_bookings[c - 1] if c <= len(ts_bookings) else None
                     row['chairs'][c] = b
                 matrix.append(row)
                 
@@ -226,8 +226,8 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             
             clinics = Clinic.objects.all()
             clinic_id = request.GET.get('clinic_id')
-            start_date_str = request.GET.get('booking_date__gte')
-            end_date_str = request.GET.get('booking_date__lte')
+            start_date_str = request.GET.get('appointment_time__date__gte')
+            end_date_str = request.GET.get('appointment_time__date__lte')
 
             if not clinic_id:
                 first_clinic = clinics.first()
@@ -244,18 +244,18 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             # Đảm bảo qs được filter nếu thiếu param trên URL
             if not request.GET.get('clinic_id'):
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('booking_date__gte') or not request.GET.get('booking_date__lte'):
-                qs = qs.filter(booking_date__gte=start_date, booking_date__lte=end_date)
+            if not request.GET.get('appointment_time__date__gte') or not request.GET.get('appointment_time__date__lte'):
+                qs = qs.filter(appointment_time__date__gte=start_date, appointment_time__date__lte=end_date)
                 
-            qs = qs.exclude(status_history__status__iexact='cancelled').distinct()
+            qs = qs.exclude(status__iexact='cancelled').distinct()
             
             # Tối ưu hóa Database: Đẩy việc đếm tổng (Aggregation) cho cơ sở dữ liệu
             # Dùng order_by() để xóa các ordering mặc định, đảm bảo GROUP BY đúng
-            from django.db.models import Count
-            aggregated_data = qs.order_by().values('booking_date', 'start_time').annotate(total_bookings=Count('id'))
             counts_map = {}
-            for item in aggregated_data:
-                counts_map[(item['booking_date'], item['start_time'])] = item['total_bookings']
+            for b in qs:
+                if b.appointment_time:
+                    key = (b.appointment_time.date(), b.appointment_time.time())
+                    counts_map[key] = counts_map.get(key, 0) + 1
             
             days = []
             current = start_date
@@ -263,7 +263,7 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
                 days.append(current)
                 current += timedelta(days=1)
             
-            clinic = clinics.filter(id=clinic_id).first()
+            clinic = clinics.filter(clinic_id=clinic_id).first()
             total_chairs = clinic.total_chairs if clinic else 5
             
             time_slots = TimeSlot.objects.all().order_by('start_time')

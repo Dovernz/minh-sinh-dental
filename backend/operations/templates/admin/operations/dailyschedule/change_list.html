@@ -7,13 +7,13 @@
             <label style="font-weight: bold; margin: 0;">Cơ sở:</label>
             <select name="clinic_id" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
                 {% for c in clinics %}
-                    <option value="{{ c.id }}" {% if c.id|stringformat:"s" == selected_clinic_id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    <option value="{{ c.clinic_id }}" {% if c.clinic_id|stringformat:"s" == selected_clinic_id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <label style="font-weight: bold; margin: 0;">Ngày khám:</label>
-            <input type="date" name="booking_date" value="{{ selected_start_date }}" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="date" name="appointment_time__date" value="{{ selected_start_date }}" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
         </div>
         <button type="submit" style="display: none; padding: 8px 16px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Lọc dữ liệu</button>
     </form>
@@ -42,9 +42,9 @@
                         <td style="border: 1px solid #ccc; padding: 10px; vertical-align: top;">
                             {% if b %}
                                 <div style="background: #e1f5fe; padding: 5px; border-radius: 4px; text-align: left; font-size: 13px;">
-                                    <strong>{{ b.customer.full_name }}</strong><br>
+                                    <strong>{{ b.customer.name }}</strong><br>
                                     {{ b.customer.phone }}<br>
-                                    <span style="color: #555;">{{ b.service.name|default:"-" }}</span>
+                                    <span style="color: #555;">{{ "Kh?m t?ng qu?t" }}</span>
                                 </div>
                             {% else %}
                                 <span style="color: #ccc;">Trống</span>

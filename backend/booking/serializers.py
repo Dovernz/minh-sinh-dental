@@ -24,8 +24,6 @@ class CustomerSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer(read_only=True)
     clinic = ClinicSerializer(read_only=True)
-    category = ServiceCategorySerializer(read_only=True)
-    service_detail = ServiceDetailSerializer(read_only=True)
     
     class Meta:
         model = Booking

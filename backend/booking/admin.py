@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from .models import BookingDetail, Billing
 from .models import (
     Clinic, ServiceCategory, ServiceDetail, TimeSlot, Customer, Employee, 
-    Booking, BookingStatus, Payment, TopupInfo,
+    Booking, BookingStatusHistory, Payment, TopupInfo,
     InventoryDetail, InventoryUsage, Article
 )
 
@@ -273,8 +273,8 @@ class TimeSlotAdmin(BaseRBACAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
-    list_display = ('full_name', 'phone', 'dob', 'email', 'created_on')
-    search_fields = ('full_name', 'phone', 'email')
+    list_display = ('name', 'phone', 'birthday', 'email', 'created_on')
+    search_fields = ('name', 'phone', 'email')
     list_filter = ('created_on',)
 
 @admin.register(Employee)
@@ -352,10 +352,9 @@ class BookingDetailInline(admin.TabularInline):
 class BookingAdmin(BaseRBACAdmin):
     inlines = [BookingDetailInline]
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'category', 'booking_date', 'start_time')
-    list_filter = ('booking_date', 'clinic', 'category')
-    search_fields = ('customer__full_name', 'customer__phone', 'doctor__full_name', 'notes')
-    date_hierarchy = 'booking_date'
+    list_display = ('booking_id', 'customer', 'appointment_time', 'status')
+    list_filter = ('clinic', 'status')
+    search_fields = ('customer__name', 'customer__phone', 'notes')
     # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
 
     class Media:
@@ -366,11 +365,11 @@ class BookingAdmin(BaseRBACAdmin):
             obj.actual_price = obj.service_detail.price
         super().save_model(request, obj, form, change)
 
-@admin.register(BookingStatus)
-class BookingStatusAdmin(BaseRBACAdmin):
-    list_display = ('booking', 'status', 'created_on')
-    list_filter = ('status', 'created_on')
-    search_fields = ('booking__customer__full_name',)
+@admin.register(BookingStatusHistory)
+class BookingStatusHistoryAdmin(BaseRBACAdmin):
+    list_display = ('booking', 'status', 'changed_at')
+    list_filter = ('status', 'changed_at')
+    search_fields = ('booking__customer__name',)
     def has_change_permission(self, request, obj=None):
         return False
 
@@ -378,7 +377,7 @@ class BookingStatusAdmin(BaseRBACAdmin):
 class PaymentAdmin(BaseRBACAdmin):
     list_display = ('booking', 'amount', 'payment_method', 'created_on')
     list_filter = ('payment_method', 'created_on')
-    search_fields = ('booking__customer__full_name',)
+    search_fields = ('booking__customer__name',)
 
 
 
@@ -392,7 +391,7 @@ class InventoryDetailAdmin(BaseRBACAdmin):
 class InventoryUsageAdmin(BaseRBACAdmin):
     list_display = ('booking', 'item', 'quantity_used', 'employee', 'created_on')
     list_filter = ('created_on',)
-    search_fields = ('booking__customer__full_name', 'item__item_name', 'employee__full_name')
+    search_fields = ('booking__customer__name', 'item__item_name', 'employee__full_name')
 
 @admin.register(Article)
 class ArticleAdmin(BaseRBACAdmin):
@@ -409,7 +408,7 @@ from django.utils.safestring import mark_safe
 class BillingAdmin(BaseRBACAdmin):
     list_display = ('booking', 'sub_total', 'discount', 'final_total', 'created_on', 'print_invoice_button')
     readonly_fields = ('sub_total', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
-    search_fields = ('booking__booking_id', 'booking__customer__full_name')
+    search_fields = ('booking__booking_id', 'booking__customer__name')
     
     fieldsets = (
         ('Thông tin chung', {
