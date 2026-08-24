@@ -1,0 +1,10 @@
+{% extends 'admin/import_export/import.html' %}
+{% load i18n %}
+
+{% block import_hints %}
+    {{ block.super }}
+    <div style='margin-bottom: 20px;'>
+        <a href='../export/?template=1' class='button' style='background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px;'>Tải File Excel Mẫu</a>
+        <p class='help'>Tải file mẫu để đảm bảo có đầy đủ các cột hợp lệ trước khi Import.</p>
+    </div>
+{% endblock %}

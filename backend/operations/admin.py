@@ -64,15 +64,23 @@ class ManageBookingAdmin(BaseRBACAdmin):
         if request.user.is_superuser: return True
         return request.user.groups.filter(name='Reception').exists()
 
-    list_display = ('id', 'customer', 'doctor', 'service', 'current_status', 'total_paid', 'quick_payment_ui')
-    list_editable = ('doctor',)
-    list_filter = ('booking_date', 'clinic', 'service', 'doctor')
+    from booking.admin import BookingAdminForm
+    form = BookingAdminForm
+    list_display = ('booking_id', 'customer', 'category', 'current_status', 'total_paid', 'quick_payment_ui')
+    list_editable = ()
+    list_filter = ('booking_date', 'clinic', 'category')
+    # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
     search_fields = ('customer__full_name', 'customer__phone', 'doctor__full_name', 'notes')
     date_hierarchy = 'booking_date'
     inlines = [BookingStatusInline, PaymentInline]
 
     class Media:
-        js = ('admin/js/quick_pay.js',)
+        js = ('admin/js/quick_pay.js', 'admin/js/booking_chained_select.js')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.actual_price and obj.service_detail:
+            obj.actual_price = obj.service_detail.price
+        super().save_model(request, obj, form, change)
 
     @admin.display(description='Thanh toán nhanh')
     def quick_payment_ui(self, obj):
@@ -88,7 +96,7 @@ class ManageBookingAdmin(BaseRBACAdmin):
                 <button type="button" class="button quick-pay-btn" data-booking-id="{0}" onclick="handleQuickPay({0})" style="margin:0;">Xác nhận</button>
             </div>
             ''',
-            obj.id
+            obj.booking_id
         )
 
     def get_urls(self):
@@ -164,7 +172,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
 
             if not clinic_id:
                 first_clinic = clinics.first()
-                clinic_id = str(first_clinic.id) if first_clinic else None
+                clinic_id = str(first_clinic.clinic_id) if first_clinic else None
                 
             try:
                 selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.date.today()
@@ -223,7 +231,7 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
 
             if not clinic_id:
                 first_clinic = clinics.first()
-                clinic_id = str(first_clinic.id) if first_clinic else None
+                clinic_id = str(first_clinic.clinic_id) if first_clinic else None
 
             start_date = parse_date(start_date_str) if start_date_str else date.today()
             if not start_date:

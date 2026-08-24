@@ -35,12 +35,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'storages',
+    'import_export',
     'ckeditor',
     'ckeditor_uploader',
     
     # Local apps
     'booking',
     'operations',
+    'services_menu',
     'marketing',
 ]
 

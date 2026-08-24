@@ -4,17 +4,26 @@ from rest_framework.response import Response
 from datetime import timedelta
 from django.utils.dateparse import parse_datetime, parse_date
 
-from .models import Clinic, Service, Booking, Customer, BookingStatus, TimeSlot
-from .serializers import ClinicSerializer, ServiceSerializer
+from .models import Clinic, ServiceCategory, ServiceDetail, Booking, Customer, BookingStatus, TimeSlot
+from .serializers import ClinicSerializer, ServiceCategorySerializer
+from django.http import JsonResponse
+
+def get_services_by_category(request):
+    category_id = request.GET.get('category_id')
+    if not category_id:
+        return JsonResponse([], safe=False)
+    
+    services = ServiceDetail.objects.filter(category_id=category_id).values('service_id', 'name', 'code', 'difficulty', 'price')
+    return JsonResponse(list(services), safe=False)
 
 class ClinicListView(generics.ListAPIView):
     def get(self, request):
-        clinics = Clinic.objects.all().order_by('id').values('id', 'name', 'address', 'hotline', 'total_chairs', 'map_url')
+        clinics = Clinic.objects.all().order_by('clinic_id').values('clinic_id', 'name', 'address', 'hotline', 'total_chairs', 'map_url')
         return Response(list(clinics), status=status.HTTP_200_OK)
 
 class ServiceListView(generics.ListAPIView):
-    queryset = Service.objects.all()
-    serializer_class = ServiceSerializer
+    queryset = ServiceCategory.objects.all()
+    serializer_class = ServiceCategorySerializer
 
 class DailyScheduleView(APIView):
     def get(self, request):
@@ -68,7 +77,7 @@ class DailyScheduleView(APIView):
                     chairs.append({
                         "chair": chair_num,
                         "status": "booked",
-                        "booking_id": b.id,
+                        "booking.booking_id": b.booking.booking_id,
                         "customer_name": b.customer.full_name,
                         "service_name": b.service.name if b.service else "Khám tổng quát"
                     })
@@ -76,7 +85,7 @@ class DailyScheduleView(APIView):
                     chairs.append({
                         "chair": chair_num,
                         "status": "available",
-                        "booking_id": None,
+                        "booking.booking_id": None,
                         "customer_name": None,
                         "service_name": None
                     })
@@ -162,14 +171,14 @@ class BookingCreateView(APIView):
         if len(patients) > len(available_chairs):
             return Response({"error": f"Chỉ còn {len(available_chairs)} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
             
-        created_booking_ids = []
+        created_booking.booking_ids = []
         
         from django.db import transaction
         with transaction.atomic():
             for i, p in enumerate(patients):
                 full_name = p.get('fullName')
                 phone = p.get('phone')
-                service_id = p.get('service')
+                category_id = p.get('category_id')
                 email = p.get('email')
                 dob = p.get('dob')
                 
@@ -185,11 +194,11 @@ class BookingCreateView(APIView):
                     }
                 )
                 
-                service = None
-                if service_id:
-                    service = Service.objects.filter(pk=service_id).first()
+                category = None
+                if category_id:
+                    category = ServiceCategory.objects.filter(pk=category_id).first()
                     
-                duration = service.duration_minutes if service else 30
+                duration = category.estimate_time if category else 30
                 
                 from datetime import datetime as dt_module, date
                 dummy_dt = dt_module.combine(date.today(), start_time)
@@ -200,7 +209,7 @@ class BookingCreateView(APIView):
                 booking = Booking.objects.create(
                     customer=customer,
                     clinic=clinic,
-                    service=service,
+                    category=category,
                     booking_date=target_date,
                     start_time=start_time,
                     end_time=end_time,
@@ -208,11 +217,11 @@ class BookingCreateView(APIView):
                 )
                 
                 BookingStatus.objects.create(booking=booking, status='booked')
-                created_booking_ids.append(booking.id)
+                created_booking.booking_ids.append(booking.booking_id)
             
         return Response({
             "message": "Đặt lịch thành công!",
-            "booking_ids": created_booking_ids
+            "booking.booking_ids": created_booking.booking_ids
         }, status=status.HTTP_201_CREATED)
 
 class TopupInfoView(APIView):

@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hóa Đơn - {{ booking.booking_id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .info-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .totals { width: 50%; float: right; margin-bottom: 30px; }
+        .totals table { border: none; }
+        .totals th, .totals td { border: none; padding: 5px; }
+        .totals th { text-align: right; width: 60%; }
+        .totals td { text-align: right; font-weight: bold; }
+        .qr-section { text-align: center; clear: both; margin-top: 40px; }
+        .print-btn { display: block; margin: 20px auto; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; text-align: center; width: 150px; text-decoration: none;}
+        @media print {
+            .print-btn { display: none; }
+            body { margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">🖨️ In Hóa Đơn</button>
+    
+    <div class="header">
+        <h2>NHA KHOA MINH SINH</h2>
+        <p>Địa chỉ: 123 Đường Răng Hàm Mặt, TP.HCM</p>
+        <p>Điện thoại: 0909 123 456</p>
+    </div>
+
+    <div class="info-section">
+        <div>
+            <strong>Khách hàng:</strong> {{ customer.full_name }}<br>
+            <strong>Điện thoại:</strong> {{ customer.phone }}<br>
+            <strong>Bác sĩ:</strong> {{ booking.doctor.full_name|default:"-" }}
+        </div>
+        <div style="text-align: right;">
+            <strong>Mã HĐ (Booking ID):</strong> #{{ booking.booking_id }}<br>
+            <strong>Ngày khám:</strong> {{ booking.booking_date|date:"d/m/Y" }}<br>
+            <strong>Ngày in:</strong> {% now "d/m/Y H:i" %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Tên dịch vụ</th>
+                <th>Đơn giá</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in details %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.service_detail.name|default:"Dịch vụ khác" }}</td>
+                <td>{{ item.actual_price|floatformat:0 }} ₫</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" style="text-align:center;">Không có dịch vụ nào</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <th>Tổng tạm tính:</th>
+                <td>{{ billing.sub_total|floatformat:0 }} ₫</td>
+            </tr>
+            <tr>
+                <th>Khuyến mãi:</th>
+                <td>- {{ billing.discount.value|default:"0" }} {{ billing.discount.discount_type|default:"" }}</td>
+            </tr>
+            <tr>
+                <th>Điều chỉnh:</th>
+                <td>{{ billing.adjustment|floatformat:0 }} ₫</td>
+            </tr>
+            <tr>
+                <th style="font-size: 1.2em; color: #d9534f;">TỔNG THANH TOÁN:</th>
+                <td style="font-size: 1.2em; color: #d9534f;">{{ billing.final_total|floatformat:0 }} ₫</td>
+            </tr>
+        </table>
+    </div>
+
+    {% if qr_url %}
+    <div class="qr-section">
+        <p><strong>Quét mã QR để thanh toán</strong></p>
+        <img src="{{ qr_url }}" alt="QR Code" style="max-width: 250px;">
+    </div>
+    {% endif %}
+    
+</body>
+</html>

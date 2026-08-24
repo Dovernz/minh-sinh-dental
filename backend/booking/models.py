@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.db.models import Sum
 
 class Clinic(models.Model):
+    clinic_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, verbose_name="Tên chi nhánh")
     address = models.TextField(blank=True, null=True, verbose_name="Địa chỉ")
     hotline = models.CharField(max_length=12, blank=True, null=True, verbose_name="Hotline")
@@ -17,20 +18,50 @@ class Clinic(models.Model):
     def __str__(self):
         return self.name
 
-class Service(models.Model):
-    name = models.CharField(max_length=100, verbose_name="Tên dịch vụ")
-    category = models.CharField(max_length=50, blank=True, null=True, verbose_name="Phân loại")
-    duration_minutes = models.IntegerField(default=30, verbose_name="Thời gian (phút)")
-    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Giá dịch vụ')
+class ServiceCategory(models.Model):
+    category_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, verbose_name="Tên danh mục")
+    estimate_time = models.IntegerField(default=30, verbose_name="Thời gian ước tính (phút)")
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'db_table_services'
+        db_table = 'db_table_service_categories'
+        verbose_name = 'Danh mục Dịch vụ'
+        verbose_name_plural = 'Danh mục Dịch vụ'
 
     def __str__(self):
         return self.name
 
+class ServiceDetail(models.Model):
+    service_id = models.AutoField(primary_key=True)
+    DIFFICULTY_CHOICES = [
+        ('Cơ bản', 'Cơ bản'),
+        ('Dễ', 'Dễ'),
+        ('Trung bình', 'Trung bình'),
+        ('Khó', 'Khó'),
+        ('Phức tạp', 'Phức tạp'),
+    ]
+    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services', verbose_name='Danh mục')
+    code = models.CharField(max_length=20, null=True, blank=True, verbose_name='Mã dịch vụ')
+    name = models.CharField(max_length=255, verbose_name='Tên dịch vụ chi tiết')
+    difficulty = models.CharField(max_length=50, choices=DIFFICULTY_CHOICES, default='Cơ bản', verbose_name='Độ khó')
+    price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Giá')
+    warranty = models.CharField(max_length=100, null=True, blank=True, verbose_name='Bảo hành')
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'db_table_service_details'
+        verbose_name = 'Chi tiết Dịch vụ'
+        verbose_name_plural = 'Chi tiết Dịch vụ'
+        constraints = [
+            models.UniqueConstraint(fields=['category', 'name'], name='unique_service_detail')
+        ]
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
 class TimeSlot(models.Model):
+    timeslot_id = models.AutoField(primary_key=True)
     start_time = models.TimeField(verbose_name="Thời gian bắt đầu")
     end_time = models.TimeField(verbose_name="Thời gian kết thúc")
     created_on = models.DateTimeField(auto_now_add=True)
@@ -42,6 +73,7 @@ class TimeSlot(models.Model):
         return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
 
 class Customer(models.Model):
+    customer_id = models.AutoField(primary_key=True)
     full_name = models.CharField(max_length=100, verbose_name="Họ và tên")
     phone = models.CharField(max_length=12, unique=True, verbose_name="Số điện thoại")
     dob = models.DateField(blank=True, null=True, verbose_name="Ngày sinh")
@@ -55,6 +87,7 @@ class Customer(models.Model):
         return self.full_name
 
 class Employee(models.Model):
+    employee_id = models.AutoField(primary_key=True)
     ROLE_CHOICES = [
         ('Admin', 'Admin'),
         ('Doctor', 'Doctor'),
@@ -76,15 +109,18 @@ class Employee(models.Model):
         return self.full_name
 
 class Booking(models.Model):
+    booking_id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='bookings')
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='bookings')
-    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
+    category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    service_detail = models.ForeignKey(ServiceDetail, on_delete=models.SET_NULL, null=True, blank=True)
     employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='bookings')
-    doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_bookings', verbose_name='Bác sĩ khám')
+    # doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_bookings', verbose_name='Bác sĩ khám')
     booking_date = models.DateField(verbose_name="Ngày khám", db_index=True)
     start_time = models.TimeField(verbose_name="Bắt đầu", db_index=True)
     end_time = models.TimeField(verbose_name="Kết thúc")
     chair_number = models.IntegerField(blank=True, null=True, verbose_name="Số ghế")
+    # actual_price = models.IntegerField(null=True, blank=True, verbose_name='Số tiền thực tế')
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     created_on = models.DateTimeField(auto_now_add=True)
 
@@ -95,6 +131,7 @@ class Booking(models.Model):
         return f"{self.customer.full_name} - {self.booking_date} {self.start_time}"
 
 class BookingStatus(models.Model):
+    status_id = models.AutoField(primary_key=True)
     STATUS_CHOICES = [
         ('booked', 'booked'),
         ('paid', 'paid'),
@@ -103,7 +140,7 @@ class BookingStatus(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='status_history')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='booked')
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'db_table_booking_status'
@@ -112,6 +149,7 @@ class BookingStatus(models.Model):
         return f"{self.booking.id} - {self.status}"
 
 class Payment(models.Model):
+    payment_id = models.AutoField(primary_key=True)
     PAYMENT_METHOD_CHOICES = [
         ('QR Code', 'QR Code'),
         ('Cash', 'Cash'),
@@ -120,7 +158,7 @@ class Payment(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Số tiền")
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='QR Code', verbose_name="Phương thức")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'db_table_payments'
@@ -129,6 +167,7 @@ class Payment(models.Model):
         return f"{self.booking.id} - {self.amount}"
 
 class InventoryDetail(models.Model):
+    item_id = models.AutoField(primary_key=True)
     item_name = models.CharField(max_length=255, verbose_name="Tên vật tư")
     unit = models.CharField(max_length=50, verbose_name="Đơn vị tính")
     category = models.CharField(max_length=100, blank=True, null=True, verbose_name="Phân loại")
@@ -142,6 +181,7 @@ class InventoryDetail(models.Model):
         return self.item_name
 
 class InventoryUsage(models.Model):
+    usage_id = models.AutoField(primary_key=True)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='inventory_usages')
     item = models.ForeignKey(InventoryDetail, on_delete=models.RESTRICT, related_name='usages')
     quantity_used = models.PositiveIntegerField(verbose_name="Số lượng dùng")
@@ -154,6 +194,7 @@ class InventoryUsage(models.Model):
 from ckeditor_uploader.fields import RichTextUploadingField
 
 class Article(models.Model):
+    article_id = models.AutoField(primary_key=True)
     STATUS_CHOICES = [
         ('Draft', 'Bản nháp'),
         ('Published', 'Xuất bản')
@@ -182,6 +223,7 @@ class Article(models.Model):
 
 
 class TopupInfo(models.Model):
+    topup_id = models.AutoField(primary_key=True)
     bank_name = models.CharField(max_length=50, verbose_name='Tên ngân hàng (Mã)')
     account_number = models.CharField(max_length=50, verbose_name='Số tài khoản')
     account_name = models.CharField(max_length=100, verbose_name='Tên tài khoản')
@@ -199,3 +241,89 @@ class TopupInfo(models.Model):
 
     def __str__(self):
         return f'{self.bank_name} - {self.account_number}'
+
+
+class CatalogServiceDetail(ServiceDetail):
+    class Meta:
+        proxy = True
+        app_label = 'services_menu'
+        verbose_name = 'Bảng chi tiết'
+        verbose_name_plural = 'Bảng chi tiết'
+
+
+class Discount(models.Model):
+    discount_id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50, unique=True, verbose_name="Mã giảm giá")
+    description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
+    discount_type = models.CharField(max_length=20, choices=[("Percent", "Phần trăm"), ("Fixed", "Số tiền")], default="Percent", verbose_name="Loại giảm giá")
+    value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Giá trị")
+    is_active = models.BooleanField(default=True, verbose_name="Trạng thái")
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "db_table_discounts"
+        verbose_name = "Khuyến mãi"
+        verbose_name_plural = "Khuyến mãi"
+
+    def __str__(self):
+        return f"{self.code} ({self.value} {self.discount_type})"
+
+class BookingDetail(models.Model):
+    detail_id = models.AutoField(primary_key=True)
+    booking = models.ForeignKey("Booking", on_delete=models.CASCADE, related_name="details")
+    service_detail = models.ForeignKey("ServiceDetail", on_delete=models.SET_NULL, null=True, verbose_name="Dịch vụ")
+    doctor = models.ForeignKey("Employee", on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'Doctor'}, verbose_name="Bác sĩ khám")
+    actual_price = models.IntegerField(null=True, blank=True, verbose_name="Đơn giá")
+    quantity = models.PositiveIntegerField(default=1, verbose_name="Số lượng")
+
+    class Meta:
+        db_table = "db_table_booking_details"
+        verbose_name = "Dịch vụ trong Lịch"
+        verbose_name_plural = "Các dịch vụ"
+
+    def save(self, *args, **kwargs):
+        if not self.actual_price and self.service_detail:
+            self.actual_price = self.service_detail.price or 0
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.booking.booking_id} - {self.service_detail.name if self.service_detail else ''}"
+
+class Billing(models.Model):
+    billing_id = models.AutoField(primary_key=True)
+    booking = models.OneToOneField("Booking", on_delete=models.CASCADE, related_name="billing", verbose_name="Lịch khám")
+    sub_total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Tổng tiền gốc (Hệ thống tính)")
+    discount = models.ForeignKey(Discount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Khuyến mãi")
+    manual_total = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Tổng tiền thu thực tế (Nhập tay)")
+    adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Số tiền điều chỉnh")
+    final_total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Số tiền cuối cùng")
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "db_table_billing"
+        verbose_name = "Hóa đơn Kế toán"
+        verbose_name_plural = "Hóa đơn Kế toán"
+
+    def save(self, *args, **kwargs):
+        discount_amount = 0
+        if self.discount and self.discount.is_active:
+            if self.discount.discount_type == "Percent":
+                discount_amount = (self.sub_total * self.discount.value) / 100
+            else:
+                discount_amount = self.discount.value
+
+        calculated_total = self.sub_total - discount_amount
+        if calculated_total < 0:
+            calculated_total = 0
+
+        if self.manual_total is not None:
+            self.adjustment = self.manual_total - calculated_total
+            self.final_total = self.manual_total
+        else:
+            self.adjustment = 0
+            self.final_total = calculated_total
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Bill #{self.billing_id} - Booking {self.booking.booking_id}"

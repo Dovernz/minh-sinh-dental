@@ -12,11 +12,10 @@ interface Clinic {
   map_url?: string;
 }
 
-interface Service {
+interface ServiceCategory {
   id: number;
   name: string;
-  category: string;
-  duration_minutes: number;
+  estimate_time: number;
 }
 
 interface PatientForm {
@@ -24,7 +23,7 @@ interface PatientForm {
   phone: string;
   email: string;
   dob: string;
-  service: number | '';
+  category_id: number | '';
 }
 
 interface MatrixChair {
@@ -47,7 +46,7 @@ export default function Home() {
   
   // Data
   const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   
   // State: Bước 1
   const [selectedClinic, setSelectedClinic] = useState<number | null>(null);
@@ -55,7 +54,7 @@ export default function Home() {
   // State: Bước 2
   const [numPatients, setNumPatients] = useState<number>(1);
   const [patients, setPatients] = useState<PatientForm[]>([
-    { fullName: '', phone: '', email: '', dob: '', service: '' }
+    { fullName: '', phone: '', email: '', dob: '', category_id: '' }
   ]);
   
   // State: Bước 3
@@ -70,12 +69,12 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clinicRes, serviceRes] = await Promise.all([
+        const [clinicRes, categoryRes] = await Promise.all([
           axios.get('http://localhost:8000/api/clinics/'),
           axios.get('http://localhost:8000/api/services/')
         ]);
         setClinics(clinicRes.data);
-        setServices(serviceRes.data);
+        setCategories(categoryRes.data);
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu API:", error);
       } finally {
@@ -107,7 +106,7 @@ export default function Home() {
     if (numPatients > currentLength) {
       const newPatients = [...patients];
       for (let i = currentLength; i < numPatients; i++) {
-        newPatients.push({ fullName: '', phone: '', email: '', dob: '', service: '' });
+        newPatients.push({ fullName: '', phone: '', email: '', dob: '', category_id: '' });
       }
       setPatients(newPatients);
     } else if (numPatients < currentLength && numPatients > 0) {
@@ -122,7 +121,7 @@ export default function Home() {
   };
 
   const resetForm = () => {
-    setPatients([{ fullName: '', phone: '', email: '', dob: '', service: '' }]);
+    setPatients([{ fullName: '', phone: '', email: '', dob: '', category_id: '' }]);
     setNumPatients(1);
     setSelectedTime('');
     setBookingSuccess(false);
@@ -136,7 +135,7 @@ export default function Home() {
       return;
     }
     
-    const isValid = patients.every(p => p.fullName.trim() !== '' && p.phone.trim() !== '' && p.service !== '');
+    const isValid = patients.every(p => p.fullName.trim() !== '' && p.phone.trim() !== '' && p.category_id !== '');
     if (!isValid) {
       alert("Vui lòng điền đủ Họ tên, SĐT và chọn Dịch vụ cho tất cả các khách hàng!");
       return;
@@ -182,8 +181,8 @@ export default function Home() {
       const occupiedChairs = new Set<number>();
 
       for (let p of patients) {
-        const s = services.find(srv => srv.id === p.service);
-        const duration = s ? s.duration_minutes : 30;
+        const s = categories.find(srv => srv.id === p.category_id);
+        const duration = s ? s.estimate_time : 30;
         const slotsNeeded = Math.ceil(duration / 30);
 
         let foundChair = false;
@@ -213,7 +212,7 @@ export default function Home() {
       }
     }
     return valid;
-  }, [matrixData, patients, services, maxChairs]);
+  }, [matrixData, patients, categories, maxChairs]);
 
   const previewAssignments = useMemo(() => {
     if (bookingSuccess || !selectedTime) return [];
@@ -224,8 +223,8 @@ export default function Home() {
     const occupiedChairs = new Set();
     for (let i = 0; i < patients.length; i++) {
       const p = patients[i];
-      const s = services.find(srv => srv.id === p.service);
-      const duration = s ? s.duration_minutes : 30;
+      const s = categories.find(srv => srv.id === p.category_id);
+      const duration = s ? s.estimate_time : 30;
       const slotsNeeded = Math.ceil(duration / 30);
 
       let assignedChair = null;
@@ -254,7 +253,7 @@ export default function Home() {
       }
     }
     return assignments;
-  }, [selectedTime, patients, services, matrixData, bookingSuccess, maxChairs]);
+  }, [selectedTime, patients, categories, matrixData, bookingSuccess, maxChairs]);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
@@ -392,13 +391,13 @@ export default function Home() {
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Dịch vụ cần khám *</label>
                       <select 
-                        value={p.service} 
-                        onChange={(e) => handlePatientChange(index, 'service', parseInt(e.target.value) || '')} 
-                        className="w-full px-4 py-2 border rounded-lg outline-none focus:border-blue-500 bg-white"
+                        className="p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500 w-full md:w-1/4"
+                        value={p.category_id} 
+                        onChange={(e) => handlePatientChange(index, 'category_id', parseInt(e.target.value) || '')} 
                       >
-                        <option value="" disabled>-- Chọn dịch vụ --</option>
-                        {services.map(s => (
-                          <option key={s.id} value={s.id}>{s.name} ({s.duration_minutes} phút)</option>
+                        <option value="">-- Chọn nhóm dịch vụ --</option>
+                        {categories.map(s => (
+                          <option key={s.id} value={s.id}>{s.name} ({s.estimate_time}p)</option>
                         ))}
                       </select>
                     </div>
