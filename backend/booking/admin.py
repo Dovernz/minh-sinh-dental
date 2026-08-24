@@ -2,6 +2,7 @@
 from django.shortcuts import get_object_or_404, render
 from django.utils.html import format_html
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
@@ -49,7 +50,7 @@ class CustomUserAdmin(UserAdmin):
 def is_staff(request):
     return request.user.groups.filter(name='Staff').exists() and not request.user.is_superuser and not request.user.groups.filter(name='Admin').exists()
 
-class BaseRBACAdmin(admin.ModelAdmin):
+class BaseRBACAdmin(ModelAdmin):
     def has_module_permission(self, request):
         if request.user.is_superuser:
             return True
@@ -342,7 +343,7 @@ class BookingDetailInlineForm(forms.ModelForm):
             'actual_price': forms.TextInput(attrs={'class': 'formatted-price', 'type': 'text'}),
         }
 
-class BookingDetailInline(admin.TabularInline):
+class BookingDetailInline(TabularInline):
     model = BookingDetail
     form = BookingDetailInlineForm
     extra = 1

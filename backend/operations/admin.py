@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from .models import ManageBooking
 from booking.models import BookingStatusHistory, Payment
 
@@ -11,7 +12,7 @@ from datetime import date, timedelta
 from booking.models import TimeSlot, Booking, Clinic
 from .models import ManageBooking, DailySchedule, WeeklySchedule
 
-class BaseRBACAdmin(admin.ModelAdmin):
+class BaseRBACAdmin(ModelAdmin):
     def has_module_permission(self, request):
         if request.user.is_superuser: return True
         return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
@@ -32,14 +33,14 @@ class BaseRBACAdmin(admin.ModelAdmin):
         if request.user.is_superuser: return True
         return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
-class BookingStatusHistoryInline(admin.TabularInline):
+class BookingStatusHistoryInline(TabularInline):
     model = BookingStatusHistory
     extra = 1
     # Nhân viên chỉ có thể thêm, không thể sửa trạng thái cũ để đảm bảo tính lịch sử
     def has_change_permission(self, request, obj=None):
         return False
 
-class PaymentInline(admin.TabularInline):
+class PaymentInline(TabularInline):
     model = Payment
     extra = 1
 

@@ -1,21 +1,21 @@
 {% extends "admin/change_list.html" %}
 
 {% block search %}
-<div style="background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd;">
-    <form method="GET" action="" class="schedule-filter-form" style="display: flex; gap: 20px; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-weight: bold; margin: 0;">Cơ sở:</label>
-            <select name="clinic_id" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+<div class="schedule-filter-wrapper p-4 mb-5 rounded-lg border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
+    <form method="GET" action="" class="schedule-filter-form flex gap-5 items-center flex-wrap">
+        <div class="flex items-center gap-2">
+            <label class="font-bold m-0 dark:text-gray-200">Cơ sở:</label>
+            <select name="clinic_id" onchange="this.form.submit()" class="px-3 py-1.5 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
                 {% for c in clinics %}
                     <option value="{{ c.clinic_id }}" {% if c.clinic_id|stringformat:"s" == selected_clinic_id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-weight: bold; margin: 0;">Ngày khám:</label>
-            <input type="date" name="appointment_time__date" value="{{ selected_start_date }}" onchange="this.form.submit()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px;">
+        <div class="flex items-center gap-2">
+            <label class="font-bold m-0 dark:text-gray-200">Ngày khám:</label>
+            <input type="date" name="appointment_time__date" value="{{ selected_start_date }}" onchange="this.form.submit()" class="px-3 py-1.5 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
         </div>
-        <button type="submit" style="display: none; padding: 8px 16px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Lọc dữ liệu</button>
+        <button type="submit" class="hidden px-4 py-2 bg-blue-600 text-white rounded-md font-bold cursor-pointer dark:bg-blue-500">Lọc dữ liệu</button>
     </form>
 </div>
 {% endblock %}
@@ -23,31 +23,31 @@
 {% block result_list %}
 <div class="results">
     {% if clinic %}
-        <h2>Lịch Ngày - Cơ sở: {{ clinic.name }}</h2>
+        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Lịch Ngày - Cơ sở: {{ clinic.name }}</h2>
     {% endif %}
-    <table style="width: 100%; border-collapse: collapse; text-align: center;">
+    <table class="w-full text-center border-collapse text-sm dark:text-gray-300">
         <thead>
             <tr>
-                <th style="border: 1px solid #ccc; padding: 10px; background: #f8f8f8;">Time \ Ghế</th>
+                <th class="border border-gray-300 p-2.5 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">Time \ Ghế</th>
                 {% for c in chairs %}
-                    <th style="border: 1px solid #ccc; padding: 10px; background: #f8f8f8;">Ghế {{ c }}</th>
+                    <th class="border border-gray-300 p-2.5 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">Ghế {{ c }}</th>
                 {% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for row in matrix %}
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 10px; font-weight: bold; background: #f8f8f8;">{{ row.time }}</td>
+                    <td class="border border-gray-300 p-2.5 font-bold bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">{{ row.time }}</td>
                     {% for c, b in row.chairs.items %}
-                        <td style="border: 1px solid #ccc; padding: 10px; vertical-align: top;">
+                        <td class="border border-gray-300 p-2.5 align-top dark:border-gray-700">
                             {% if b %}
-                                <div style="background: #e1f5fe; padding: 5px; border-radius: 4px; text-align: left; font-size: 13px;">
+                                <div class="p-1.5 rounded-md text-left text-xs bg-blue-50 dark:bg-blue-900/50 dark:text-blue-100">
                                     <strong>{{ b.customer.name }}</strong><br>
                                     {{ b.customer.phone }}<br>
-                                    <span style="color: #555;">{{ "Kh?m t?ng qu?t" }}</span>
+                                    <span class="text-gray-600 dark:text-gray-400">{{ "Kh?m t?ng qu?t" }}</span>
                                 </div>
                             {% else %}
-                                <span style="color: #ccc;">Trống</span>
+                                <span class="text-gray-400 dark:text-gray-600">Trống</span>
                             {% endif %}
                         </td>
                     {% endfor %}

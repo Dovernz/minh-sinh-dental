@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.db import models
 from .models import MarketingArticle
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
@@ -39,7 +40,7 @@ class MarketingArticleForm(forms.ModelForm):
         return cleaned_data
 
 @admin.register(MarketingArticle)
-class MarketingArticleAdmin(admin.ModelAdmin):
+class MarketingArticleAdmin(ModelAdmin):
     form = MarketingArticleForm
     list_display = ('title', 'slug', 'status', 'user', 'created_on', 'preview_link')
     search_fields = ('title', 'slug', 'focus_keyword')
