@@ -36,9 +36,31 @@
     color: #6b7280 !important;
 }
 
-/* Hide logo in sidebar, only keep it for login page */
-#sidebar header img,
+
+
+/* Ẩn hoàn toàn thẻ <img> bên trong khu vực Sidebar Header */
+aside#sidebar header img,
 .sidebar-header img,
-.sidebar img[alt="Nha Khoa Minh Sinh"] {
+[data-sidebar] header img {
     display: none !important;
+}
+
+/* Ép hiển thị lại dòng chữ Site Header (Nha Khoa Minh Sinh) */
+aside#sidebar header a span,
+.sidebar-header span,
+[data-sidebar] header span {
+    display: inline-block !important;
+    margin-left: 0 !important;
+    font-weight: 700 !important;
+    font-size: 1.125rem !important;
+    color: #f3f4f6 !important;
+}
+
+/* Giãn cách các dòng trong bảng Lịch Ngày/Tuần */
+.results table td, .results table th {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    vertical-align: middle;
 }

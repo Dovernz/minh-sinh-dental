@@ -1,172 +1,18 @@
-import os
-from pathlib import Path
-import environ
+﻿import os
+import re
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+file_path = "core/settings.py"
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
 
-# Khởi tạo django-environ
-env = environ.Env(
-    DEBUG=(bool, False)
-)
+# Split out the UNFOLD config and reconstruct it to ensure correctness
+if "UNFOLD =" in content:
+    content = content.split("UNFOLD =")[0]
 
-# Đọc các biến môi trường từ file .env
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
-
-ALLOWED_HOSTS = ['*']
-
-# Application definition
-
-INSTALLED_APPS = [
-    'unfold',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    
-    # Third party
-    'rest_framework',
-    'corsheaders',
-    'storages',
-    'import_export',
-    'ckeditor',
-    'ckeditor_uploader',
-    
-    # Local apps
-    'booking',
-    'operations',
-    'services_menu',
-    'marketing',
-]
-
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = 'core.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = 'core.wsgi.application'
-
-import dj_database_url
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-DATABASES = {
-    'default': dj_database_url.config(default=env('DATABASE_URL'))
-}
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
-LANGUAGE_CODE = 'vi'
-
-TIME_ZONE = 'Asia/Ho_Chi_Minh'
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
-
-# Supabase S3 Configuration
-AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='your-access-key')
-AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='your-secret-key')
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='your-bucket-name')
-AWS_S3_ENDPOINT_URL = env('AWS_S3_ENDPOINT_URL', default='https://your-project-ref.supabase.co/storage/v1/s3')
-AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='ap-southeast-1')
-AWS_S3_FILE_OVERWRITE = False
-
-SUPABASE_FOLDER = env('SUPABASE_FOLDER', default='media')
-AWS_LOCATION = SUPABASE_FOLDER
-
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-# CKEditor Configuration
-CKEDITOR_UPLOAD_PATH = 'uploads/'
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'full',
-        'height': 600,
-        'width': '100%',
-        'extraPlugins': ','.join(['font', 'colorbutton', 'justify', 'uploadimage', 'image2']),
-    },
-}
-
-from django.urls import reverse_lazy
-
-
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-from django.urls import reverse_lazy
-from django.templatetags.static import static
-
-UNFOLD = {
+unfold_config = """UNFOLD = {
     "SITE_TITLE": "Nha Khoa Minh Sinh",
     "SITE_HEADER": "Nha Khoa Minh Sinh",
-    # "SITE_LOGO": "/static/img/logo.jpg",
-
+    "SITE_LOGO": "/static/img/logo.jpg",
     "STYLES": [
         lambda request: static("css/admin_custom.css"),
     ],
@@ -381,16 +227,11 @@ UNFOLD = {
         ],
     },
 }
+"""
 
-# Email SMTP Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ctt130303@gmail.com'  # Thay bằng email thật
-EMAIL_HOST_PASSWORD = 'ebju xwfb qvja ffrh' # Mật khẩu ứng dụng
-DEFAULT_FROM_EMAIL = 'Nha Khoa Minh Sinh <ctt130303@gmail.com>'
-
-# Điều hướng sau khi Đăng nhập/Đăng xuất
-LOGIN_REDIRECT_URL = '/admin/'
-LOGOUT_REDIRECT_URL = '/admin/login/'
+# Wait, what if there were other configs after UNFOLD? 
+# In previous steps, we always used `content.split("UNFOLD =")[0]` and appended the `UNFOLD` config to the end.
+# So I'll just append it to the end again, making sure we don't lose the EMAIL_BACKEND or LOGIN_REDIRECT_URL!
+# BUT WAIT. In my previous scripts, `content = content.split("UNFOLD =")[0]` actually TRUNCATED the file.
+# Did I lose EMAIL_BACKEND and LOGIN_REDIRECT_URL when I did that previously?
+# Let's check `core/settings.py` for EMAIL_BACKEND and LOGIN_REDIRECT_URL.
