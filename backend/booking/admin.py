@@ -208,10 +208,16 @@ class PriceRangeFilter(admin.SimpleListFilter):
 class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
     resource_classes = [ServiceDetailResource]
     formats = [XLSX, CSV]
-    list_display = ('code', 'name', 'difficulty', 'price', 'category')
+    list_display = ('code', 'name', 'difficulty', 'formatted_price', 'category')
     list_filter = ['category', 'difficulty', PriceRangeFilter]
     search_fields = ['category__name', 'code', 'name', 'difficulty', 'price', 'warranty']
     import_template_name = 'admin/booking/servicedetail/import.html'
+
+    def formatted_price(self, obj):
+        if obj.price is not None:
+            return "{:,.0f}".format(obj.price)
+        return "-"
+    formatted_price.short_description = 'Giá'
 
     def get_export_queryset(self, request):
         qs = super().get_export_queryset(request)
