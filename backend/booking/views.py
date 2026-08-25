@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -60,7 +61,7 @@ class DailyScheduleView(APIView):
             # Lấy tất cả Bookings trong ngày đó của clinic
             bookings = Booking.objects.filter(
                 clinic=clinic, 
-                appointment_time__date=target_date,
+                start_time__date=target_date,
                 status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
             )
             list(bookings) # Force evaluation to catch DB mismatch errors
@@ -72,36 +73,33 @@ class DailyScheduleView(APIView):
         total_chairs = clinic.total_chairs
         matrix = []
         
-        # Calculate start/end for all bookings and assign chairs consistently
         from datetime import datetime, timedelta
         
+        # Build booking spans with estimated_duration
         booking_spans = []
         for b in bookings:
-            start = b.appointment_time.time() if b.appointment_time else None
+            start = timezone.localtime(b.start_time).time() if b.start_time else None
             if not start:
                 continue
-            duration = 30
-            if None:
-                duration = 30
+            duration = b.estimated_duration if b.estimated_duration else 30
             
-            # create dummy datetime to add timedelta
             dummy = datetime.combine(datetime.today(), start)
             end = (dummy + timedelta(minutes=duration)).time()
             booking_spans.append({"booking": b, "start": start, "end": end, "chair": None})
             
         for ts in time_slots:
             ts_start = ts.start_time
-            # find bookings active in this slot
+            
+            # Find all bookings that are active during this timeslot
             active_bookings = []
             for span in booking_spans:
                 if span["start"] <= ts_start < span["end"]:
                     active_bookings.append(span)
                     
-            # assign chairs to those that don't have one
+            # Assign chairs
             used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None)
             for span in active_bookings:
                 if span["chair"] is None:
-                    # find first available chair
                     for c in range(1, total_chairs + 1):
                         if c not in used_chairs:
                             span["chair"] = c
@@ -110,7 +108,6 @@ class DailyScheduleView(APIView):
                             
             chairs = []
             for chair_num in range(1, total_chairs + 1):
-                # find if any active booking has this chair
                 active_span = next((s for s in active_bookings if s["chair"] == chair_num), None)
                 if active_span:
                     b = active_span["booking"]
@@ -156,7 +153,7 @@ class AvailableSlotsView(APIView):
         try:
             bookings = Booking.objects.filter(
                 clinic=clinic, 
-                appointment_time__date=target_date,
+                start_time__date=target_date,
                 status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
             )
             list(bookings)
@@ -166,7 +163,7 @@ class AvailableSlotsView(APIView):
         
         results = []
         for ts in time_slots:
-            booked_count = bookings.filter(appointment_time__time=ts.start_time).count()
+            booked_count = sum(1 for b in bookings if b.start_time and b.end_time and timezone.localtime(b.start_time).time() <= ts.start_time < timezone.localtime(b.end_time).time())
             available = max(0, clinic.total_chairs - booked_count)
             results.append({
                 "time": f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}",
@@ -206,11 +203,13 @@ class BookingCreateView(APIView):
             # Tìm số lượng booking đã có trong ca này
             existing_bookings = Booking.objects.filter(
                 clinic=clinic, 
-                appointment_time__date=target_date, 
-                appointment_time__time=start_time,
+                start_time__date=target_date, 
                 status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
             )
-            occupied_count = existing_bookings.count()
+            from datetime import timedelta, datetime as dt_module
+            # calculate end_time for the new booking (assuming 30min for now, or use actual)
+            # Actually we just want to know if start_time falls into an existing booking
+            occupied_count = sum(1 for b in existing_bookings if b.start_time and b.end_time and timezone.localtime(b.start_time).time() <= start_time < timezone.localtime(b.end_time).time())
         except Exception as e:
             print("BookingCreateView Booking Error:", e)
             occupied_count = 0
@@ -237,9 +236,9 @@ class BookingCreateView(APIView):
                 customer, _ = Customer.objects.get_or_create(
                     phone=phone, 
                     defaults={
-                        'full_name': full_name,
+                        'name': full_name,
                         'email': email,
-                        'dob': parse_date(dob) if dob else None
+                        'customer_dob': parse_date(dob) if dob else None
                     }
                 )
                 
@@ -249,12 +248,14 @@ class BookingCreateView(APIView):
                     
                 from datetime import datetime as dt_module
                 appointment_time_dt = dt_module.combine(target_date, start_time)
+                from datetime import timedelta
+                end_time_dt = appointment_time_dt + timedelta(minutes=30)
                 
                 booking = Booking.objects.create(
                     customer=customer,
                     clinic=clinic,
-                    
-                    appointment_time=appointment_time_dt,
+                    start_time=appointment_time_dt,
+                    end_time=end_time_dt,
                     status='Pending'
                 )
                 

@@ -1,3 +1,5 @@
+from django.utils import timezone
+from datetime import timedelta, datetime, date
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from .models import ManageBooking
@@ -8,7 +10,6 @@ def is_staff(request):
 
 from django.contrib.admin import SimpleListFilter
 from django.shortcuts import redirect, render
-from datetime import date, timedelta
 from booking.models import TimeSlot, Booking, Clinic
 from .models import ManageBooking, DailySchedule, WeeklySchedule
 
@@ -67,89 +68,27 @@ class ManageBookingAdmin(BaseRBACAdmin):
 
     from booking.admin import BookingAdminForm
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'current_status', 'total_paid', 'quick_payment_ui')
+    list_display = ('booking_id', 'get_customer_info', 'clinic', 'start_time', 'status')
     list_editable = ()
-    list_filter = ('appointment_time', 'clinic', 'status')
-    # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
+    list_filter = ('start_time', 'clinic', 'status')
     search_fields = ('customer__name', 'customer__phone', 'notes')
-    date_hierarchy = 'appointment_time'
+    date_hierarchy = 'start_time'
     inlines = [BookingStatusHistoryInline, PaymentInline]
 
     class Media:
-        js = ('admin/js/quick_pay.js', 'admin/js/booking_chained_select.js')
+        js = ('admin/js/booking_chained_select.js',)
 
-    def save_model(self, request, obj, form, change):
-        if not obj.actual_price and obj.service_detail:
-            obj.actual_price = obj.service_detail.price
-        super().save_model(request, obj, form, change)
-
-    @admin.display(description='Thanh toán nhanh')
-    def quick_payment_ui(self, obj):
-        return format_html(
-            '''
-            <div style="display: flex; gap: 5px; align-items: center;">
-                <input type="number" class="quick-amount" id="quick-pay-amount-{0}" placeholder="Nhập số tiền" style="width: 100px; padding: 2px;">
-                <select class="quick-method" id="quick-pay-method-{0}" style="padding: 2px;">
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Card</option>
-                    <option value="QR Code">QR Code</option>
-                </select>
-                <button type="button" class="button quick-pay-btn" data-booking-id="{0}" onclick="handleQuickPay({0})" style="margin:0;">Xác nhận</button>
-            </div>
-            ''',
-            obj.booking_id
-        )
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('quick-pay/', self.admin_site.admin_view(self.quick_pay_view), name='operations_managebooking_quick_pay'),
-            path('bank-config/', self.admin_site.admin_view(self.bank_config_view), name='operations_managebooking_bank_config'),
-        ]
-        return custom_urls + urls
-        
-    def bank_config_view(self, request):
-        from booking.models import TopupInfo
-        try:
-            default_bank = TopupInfo.objects.filter(is_default=True).first()
-            if default_bank:
-                return JsonResponse({
-                    'status': 'success', 
-                    'bank_name': default_bank.bank_name, 
-                    'account_number': default_bank.account_number, 
-                    'account_name': default_bank.account_name
-                })
-            return JsonResponse({'status': 'error', 'message': 'Chưa cấu hình ngân hàng mặc định'}, status=400)
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-    def quick_pay_view(self, request):
-        if request.method == 'POST':
-            try:
-                data = json.loads(request.body)
-                booking_id = data.get('booking_id')
-                amount = data.get('amount')
-                method = data.get('method')
-
-                if not booking_id or not amount or not method:
-                    return JsonResponse({'status': 'error', 'message': 'Thiếu thông tin'}, status=400)
-
-                with transaction.atomic():
-                    booking = ManageBooking.objects.get(pk=booking_id)
-                    Payment.objects.create(
-                        booking=booking,
-                        amount=amount,
-                        payment_method=method
-                    )
-                    BookingStatusHistory.objects.create(
-                        booking=booking,
-                        status='paid',
-                        note='Thanh toán nhanh qua Admin'
-                    )
-                return JsonResponse({'status': 'success'})
-            except Exception as e:
-                return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+    @admin.display(description='Kh?ch h?ng')
+    def get_customer_info(self, obj):
+        if obj.customer:
+            name = getattr(obj.customer, 'name', getattr(obj.customer, 'full_name', ''))
+            phone = getattr(obj.customer, 'phone', '')
+            if name and phone:
+                return f"{name} - {phone}"
+            elif name:
+                return name
+            return phone
+        return "-"
 
 from django.utils.dateparse import parse_date
 
@@ -165,26 +104,37 @@ class DailyScheduleAdmin(BaseRBACAdmin):
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
             import datetime
+            from django.utils.dateparse import parse_date
             qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
-            clinic_id = request.GET.get('clinic_id')
-            date_str = request.GET.get('appointment_time__date')
+            clinic_id_str = request.GET.get('_clinic') or request.GET.get('clinic_id')
+            date_str = request.GET.get('_date') or request.GET.get('start_time__date')
 
+            clinic_id = None
+            if clinic_id_str:
+                try:
+                    clinic_id = int(clinic_id_str)
+                except ValueError:
+                    clinic_id = None
+                    
             if not clinic_id:
                 first_clinic = clinics.first()
-                clinic_id = str(first_clinic.clinic_id) if first_clinic else None
+                clinic_id = first_clinic.clinic_id if first_clinic else None
                 
-            try:
-                selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.date.today()
-            except ValueError:
-                selected_date = datetime.date.today()
+            selected_date = datetime.date.today()
+            if date_str:
+                try:
+                    parsed_date = parse_date(date_str)
+                    if parsed_date:
+                        selected_date = parsed_date
+                except ValueError:
+                    pass
             
-            # Đảm bảo qs luôn được filter theo clinic_id và booking_date nếu thiếu trên URL
-            if not request.GET.get('clinic_id'):
+            if not request.GET.get('_clinic') and not request.GET.get('clinic_id'):
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('appointment_time__date'):
-                qs = qs.filter(appointment_time__date=selected_date)
+            if not request.GET.get('_date') and not request.GET.get('start_time__date'):
+                qs = qs.filter(start_time__date=selected_date)
                 
             qs = qs.exclude(status__iexact='cancelled').select_related('customer')
             
@@ -194,13 +144,37 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             
             time_slots = TimeSlot.objects.all().order_by('start_time')
             
+            booking_spans = []
+            for b in qs:
+                start = timezone.localtime(b.start_time).time() if b.start_time else None
+                if not start: continue
+                duration = b.estimated_duration if b.estimated_duration else 30
+                dummy = datetime.datetime.combine(datetime.date.today(), start)
+                end = (dummy + timedelta(minutes=duration)).time()
+                booking_spans.append({"booking": b, "start": start, "end": end, "chair": None})
+            
             matrix = []
             for ts in time_slots:
                 row = {'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}", 'chairs': {}}
-                ts_bookings = list(qs.filter(appointment_time__time=ts.start_time))
+                
+                active_bookings = []
+                for span in booking_spans:
+                    if span["start"] <= ts.start_time < span["end"]:
+                        active_bookings.append(span)
+                        
+                used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None)
+                for span in active_bookings:
+                    if span["chair"] is None:
+                        for c in chairs:
+                            if c not in used_chairs:
+                                span["chair"] = c
+                                used_chairs.add(c)
+                                break
+                                
                 for c in chairs:
-                    b = ts_bookings[c - 1] if c <= len(ts_bookings) else None
-                    row['chairs'][c] = b
+                    active_span = next((s for s in active_bookings if s["chair"] == c), None)
+                    row['chairs'][c] = active_span["booking"] if active_span else None
+                
                 matrix.append(row)
                 
             response.context_data['matrix'] = matrix
@@ -223,40 +197,56 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
+            from django.utils.dateparse import parse_date
+            import datetime
             qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
-            clinic_id = request.GET.get('clinic_id')
-            start_date_str = request.GET.get('appointment_time__date__gte')
-            end_date_str = request.GET.get('appointment_time__date__lte')
+            clinic_id_str = request.GET.get('_clinic') or request.GET.get('clinic_id')
+            start_date_str = request.GET.get('_start_date') or request.GET.get('start_time__date__gte')
+            end_date_str = request.GET.get('_end_date') or request.GET.get('start_time__date__lte')
+
+            clinic_id = None
+            if clinic_id_str:
+                try:
+                    clinic_id = int(clinic_id_str)
+                except ValueError:
+                    clinic_id = None
 
             if not clinic_id:
                 first_clinic = clinics.first()
-                clinic_id = str(first_clinic.clinic_id) if first_clinic else None
+                clinic_id = first_clinic.clinic_id if first_clinic else None
 
-            start_date = parse_date(start_date_str) if start_date_str else date.today()
+            start_date = parse_date(start_date_str) if start_date_str else datetime.date.today()
             if not start_date:
-                start_date = date.today()
+                start_date = datetime.date.today()
             
             end_date = parse_date(end_date_str) if end_date_str else start_date + timedelta(days=6)
             if not end_date or end_date < start_date:
                 end_date = start_date + timedelta(days=6)
             
-            # Đảm bảo qs được filter nếu thiếu param trên URL
-            if not request.GET.get('clinic_id'):
+            if not request.GET.get('_clinic') and not request.GET.get('clinic_id'):
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('appointment_time__date__gte') or not request.GET.get('appointment_time__date__lte'):
-                qs = qs.filter(appointment_time__date__gte=start_date, appointment_time__date__lte=end_date)
+            if not request.GET.get('_start_date') and not request.GET.get('start_time__date__gte'):
+                qs = qs.filter(start_time__date__gte=start_date, start_time__date__lte=end_date)
                 
             qs = qs.exclude(status__iexact='cancelled').distinct()
             
-            # Tối ưu hóa Database: Đẩy việc đếm tổng (Aggregation) cho cơ sở dữ liệu
-            # Dùng order_by() để xóa các ordering mặc định, đảm bảo GROUP BY đúng
+            time_slots = TimeSlot.objects.all().order_by('start_time')
+            
             counts_map = {}
             for b in qs:
-                if b.appointment_time:
-                    key = (b.appointment_time.date(), b.appointment_time.time())
-                    counts_map[key] = counts_map.get(key, 0) + 1
+                if b.start_time:
+                    b_date = timezone.localtime(b.start_time).date()
+                    start_t = timezone.localtime(b.start_time).time()
+                    duration = b.estimated_duration if b.estimated_duration else 30
+                    dummy = datetime.datetime.combine(datetime.date.today(), start_t)
+                    end_t = (dummy + timedelta(minutes=duration)).time()
+                    
+                    for ts in time_slots:
+                        if start_t <= ts.start_time < end_t:
+                            key = (b_date, ts.start_time)
+                            counts_map[key] = counts_map.get(key, 0) + 1
             
             days = []
             current = start_date
@@ -267,30 +257,28 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             clinic = clinics.filter(clinic_id=clinic_id).first()
             total_chairs = clinic.total_chairs if clinic else 5
             
-            time_slots = TimeSlot.objects.all().order_by('start_time')
-            
-            matrix = []
+            grid_data = []
             for ts in time_slots:
                 row = {'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}", 'days': []}
-                for d in days:
-                    count = counts_map.get((d, ts.start_time), 0)
-                    occupancy = (count / total_chairs) * 100 if total_chairs > 0 else 0
-                    if occupancy < 80:
-                        color = 'green'
-                    elif occupancy < 100:
-                        color = 'orange'
-                    else:
-                        color = 'red'
+                for current_date in days:
+                    booked_count = counts_map.get((current_date, ts.start_time), 0)
+                    percent = (booked_count / total_chairs) * 100 if total_chairs > 0 else 0
                     
+                    if percent >= 100:
+                        color_class = 'bg-red-500 text-white dark:bg-red-600'
+                    elif percent >= 80:
+                        color_class = 'bg-yellow-500 text-white dark:bg-yellow-600'
+                    else:
+                        color_class = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        
                     row['days'].append({
-                        'date': d,
-                        'count': count,
+                        'booked': booked_count,
                         'total': total_chairs,
-                        'color': color
+                        'color': color_class,
                     })
-                matrix.append(row)
+                grid_data.append(row)
                 
-            response.context_data['matrix'] = matrix
+            response.context_data['grid_data'] = grid_data
             response.context_data['days'] = days
             response.context_data['clinic'] = clinic
             response.context_data['clinics'] = clinics

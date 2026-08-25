@@ -95,10 +95,37 @@ class BaseRBACAdmin(ModelAdmin):
             return True
         return False
 
+import urllib.request
+import json
+from django.core.cache import cache
+from django import forms
+
+def get_vietqr_banks():
+    choices = cache.get('vietqr_bank_choices')
+    if choices is None:
+        try:
+            req = urllib.request.Request('https://api.vietqr.io/v2/banks', headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.getcode() == 200:
+                    data = json.loads(response.read().decode('utf-8')).get('data', [])
+                    choices = [(str(bank['bin']), f"{bank['shortName']} - {bank['name']}") for bank in data]
+                    cache.set('vietqr_bank_choices', choices, 86400)
+                else:
+                    choices = [('', 'L?i t?i danh s?ch ng?n h?ng')]
+        except Exception as e:
+            choices = [('', 'Kh?ng th? k?t n?i VietQR')]
+    return choices
+
+class TopupInfoForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['bank_name'].widget = forms.Select(choices=get_vietqr_banks())
+        
 @admin.register(TopupInfo)
 class TopupInfoAdmin(BaseRBACAdmin):
     list_display = ('bank_name', 'account_number', 'account_name', 'is_default')
     list_filter = ('is_default',)
+    form = TopupInfoForm
 
 @admin.register(Clinic)
 class ClinicAdmin(BaseRBACAdmin):
@@ -280,7 +307,7 @@ class TimeSlotAdmin(BaseRBACAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
-    list_display = ('name', 'phone', 'birthday', 'email', 'created_on')
+    list_display = ('name', 'phone', 'customer_dob', 'email', 'created_on')
     search_fields = ('name', 'phone', 'email')
     list_filter = ('created_on',)
 
@@ -359,7 +386,7 @@ class BookingDetailInline(TabularInline):
 class BookingAdmin(BaseRBACAdmin):
     inlines = [BookingDetailInline]
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'appointment_time', 'status')
+    list_display = ('booking_id', 'customer', 'start_time', 'status')
     list_filter = ('clinic', 'status')
     search_fields = ('customer__name', 'customer__phone', 'notes')
     # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
@@ -374,16 +401,16 @@ class BookingAdmin(BaseRBACAdmin):
 
 @admin.register(BookingStatusHistory)
 class BookingStatusHistoryAdmin(BaseRBACAdmin):
-    list_display = ('booking', 'status', 'changed_at')
-    list_filter = ('status', 'changed_at')
+    list_display = ('booking', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
     search_fields = ('booking__customer__name',)
     def has_change_permission(self, request, obj=None):
         return False
 
 @admin.register(Payment)
 class PaymentAdmin(BaseRBACAdmin):
-    list_display = ('booking', 'amount', 'payment_method', 'created_on')
-    list_filter = ('payment_method', 'created_on')
+    list_display = ('booking', 'amount', 'payment_method', 'created_at')
+    list_filter = ('payment_method', 'created_at')
     search_fields = ('booking__customer__name',)
 
 
@@ -413,6 +440,15 @@ from django.utils.safestring import mark_safe
 
 @admin.register(Billing)
 class BillingAdmin(BaseRBACAdmin):
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     list_display = ('booking', 'sub_total', 'discount', 'final_total', 'created_on', 'print_invoice_button')
     readonly_fields = ('sub_total', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
     search_fields = ('booking__booking_id', 'booking__customer__name')
@@ -422,7 +458,7 @@ class BillingAdmin(BaseRBACAdmin):
             'fields': ('booking',)
         }),
         ('Kế toán', {
-            'fields': ('sub_total', 'discount', 'manual_total', 'adjustment', 'final_total')
+            'fields': ('sub_total', 'discount', 'adjustment', 'final_total')
         }),
         ('Thanh toán', {
             'fields': ('payment_qr_code', 'print_invoice_button')

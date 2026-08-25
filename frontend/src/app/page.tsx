@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
@@ -92,7 +92,7 @@ export default function Home() {
   const fetchMatrix = () => {
     if (selectedClinic && selectedDate) {
       axios.get(`http://localhost:8000/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}&t=${new Date().getTime()}`)
-        .then(res => setMatrixData(res.data))
+        .then(res => { console.log('API Matrix Data:', res.data); setMatrixData(res.data); })
         .catch(err => console.error(err));
     }
   };
@@ -468,9 +468,10 @@ export default function Home() {
                   {bookingSuccess && <div className="flex items-center"><div className="w-4 h-4 bg-blue-600 rounded mr-2"></div> Đã đặt thành công</div>}
                 </div>
 
+                <div className="max-h-[400px] overflow-y-auto border border-gray-200 rounded-md relative shadow-sm">
                 <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
                   <div className="min-w-max">
-                    <div className="flex bg-gray-50 border-b border-gray-200">
+                    <div className="flex bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
                       <div className="w-28 shrink-0 p-4 font-bold text-gray-700 border-r border-gray-200 text-center">Khung giờ</div>
                       {Array.from({ length: maxChairs }).map((_, i) => (
                         <div key={i} className="flex-1 p-4 font-bold text-gray-700 text-center border-r border-gray-200 last:border-0 min-w-[150px]">
@@ -621,6 +622,7 @@ export default function Home() {
               )}
             </div>
           </div>
+        </div>
         )}
 
       </div>

@@ -1,0 +1,1 @@
+export default function POSPage() { return ( <div style={{ padding: '20px', backgroundColor: 'white', color: 'black' }}> <h2>Màn hình Thu ngân (POS) đã sẵn sàng!</h2> </div> ); }

@@ -1,12 +1,21 @@
+﻿from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
+
+@staff_member_required
+def pos_embed_view(request):
+    context = admin.site.each_context(request)
+    context['title'] = 'Thanh toán (POS)'
+    return render(request, 'admin/pos_embed.html', context)
 
 urlpatterns = [
     path('admin/password_reset/', auth_views.PasswordResetView.as_view(), name='admin_password_reset'),
     path('admin/password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path('admin/pos-system/', pos_embed_view, name='pos_embed'),
     path('admin/', admin.site.urls),
     path('api/', include('booking.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),

@@ -170,6 +170,8 @@ UNFOLD = {
     "STYLES": [
         lambda request: static("css/admin_custom.css"),
     ],
+    "SCRIPTS": [
+    ],
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
@@ -193,6 +195,23 @@ UNFOLD = {
                         "title": "Chi tiết Bookings",
                         "icon": "list_alt",
                         "link": "/admin/operations/managebooking/",
+                    },
+                ],
+            },
+            {
+                "title": "Giao dịch",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Thanh toán (POS)",
+                        "icon": "point_of_sale",
+                        "link": "/admin/pos-system/",
+                                            },
+                    {
+                        "title": "Danh sách Hóa đơn",
+                        "icon": "receipt_long",
+                        "link": "/admin/booking/billing/",
                     },
                 ],
             },
@@ -233,11 +252,7 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Hóa đơn",
-                        "icon": "receipt_long",
-                        "link": "/admin/booking/billing/",
-                    },
+                    
                     {
                         "title": "Thanh toán",
                         "icon": "payments",
@@ -301,11 +316,7 @@ UNFOLD = {
                         "icon": "article",
                         "link": "/admin/booking/article/",
                     },
-                    {
-                        "title": "Billing (Hóa đơn)",
-                        "icon": "receipt_long",
-                        "link": "/admin/booking/billing/",
-                    },
+                    
                     {
                         "title": "Booking details",
                         "icon": "list",
