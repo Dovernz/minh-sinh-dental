@@ -45,7 +45,7 @@
                                 <div class="p-1.5 rounded-md text-left text-xs bg-blue-50 dark:bg-blue-900/50 dark:text-blue-100">
                                     <strong>{{ b.customer.name }}</strong><br>
                                     {{ b.customer.phone }}<br>
-                                    <span class="text-gray-600 dark:text-gray-400">{{ "Kh?m t?ng qu?t" }}</span>
+                                    <span class="text-gray-600 dark:text-gray-400">{% if b.category %}{{ b.category.name }}{% else %}Chưa chọn dịch vụ{% endif %}</span>
                                 </div>
                             {% else %}
                                 <span class="text-gray-400 dark:text-gray-600">Trống</span>

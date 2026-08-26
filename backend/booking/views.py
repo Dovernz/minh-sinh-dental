@@ -116,7 +116,7 @@ class DailyScheduleView(APIView):
                         "status": "booked",
                         "booking_id": b.booking_id,
                         "customer_name": getattr(b.customer, 'name', getattr(b.customer, 'full_name', '')),
-                        "service_name": "Kh?m t?ng qu?t"
+                        "service_name": b.category.name if getattr(b, "category", None) else "Chưa chọn dịch vụ"
                     })
                 else:
                     chairs.append({
@@ -243,20 +243,25 @@ class BookingCreateView(APIView):
                 )
                 
                 category = None
+                duration_minutes = 30
                 if category_id:
                     category = ServiceCategory.objects.filter(pk=category_id).first()
-                    
+                    if category and category.estimate_time:
+                        duration_minutes = category.estimate_time
+                        
                 from datetime import datetime as dt_module
                 appointment_time_dt = dt_module.combine(target_date, start_time)
                 from datetime import timedelta
-                end_time_dt = appointment_time_dt + timedelta(minutes=30)
+                end_time_dt = appointment_time_dt + timedelta(minutes=duration_minutes)
                 
                 booking = Booking.objects.create(
                     customer=customer,
                     clinic=clinic,
                     start_time=appointment_time_dt,
                     end_time=end_time_dt,
-                    status='Pending'
+                    estimated_duration=duration_minutes,
+                    status='Pending',
+                    category=category
                 )
                 
                 created_booking_ids.append(booking.booking_id)

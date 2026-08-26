@@ -144,14 +144,13 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             
             time_slots = TimeSlot.objects.all().order_by('start_time')
             
+            from django.utils.timezone import localtime
             booking_spans = []
             for b in qs:
-                start = timezone.localtime(b.start_time).time() if b.start_time else None
-                if not start: continue
-                duration = b.estimated_duration if b.estimated_duration else 30
-                dummy = datetime.datetime.combine(datetime.date.today(), start)
-                end = (dummy + timedelta(minutes=duration)).time()
-                booking_spans.append({"booking": b, "start": start, "end": end, "chair": None})
+                if not b.start_time or not b.end_time: continue
+                b_start_local = localtime(b.start_time).time()
+                b_end_local = localtime(b.end_time).time()
+                booking_spans.append({"booking": b, "start": b_start_local, "end": b_end_local, "chair": None})
             
             matrix = []
             for ts in time_slots:
@@ -159,7 +158,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                 
                 active_bookings = []
                 for span in booking_spans:
-                    if span["start"] <= ts.start_time < span["end"]:
+                    if span["start"] < ts.end_time and span["end"] > ts.start_time:
                         active_bookings.append(span)
                         
                 used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None)
@@ -234,17 +233,16 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             
             time_slots = TimeSlot.objects.all().order_by('start_time')
             
+            from django.utils.timezone import localtime
             counts_map = {}
             for b in qs:
-                if b.start_time:
-                    b_date = timezone.localtime(b.start_time).date()
-                    start_t = timezone.localtime(b.start_time).time()
-                    duration = b.estimated_duration if b.estimated_duration else 30
-                    dummy = datetime.datetime.combine(datetime.date.today(), start_t)
-                    end_t = (dummy + timedelta(minutes=duration)).time()
+                if b.start_time and b.end_time:
+                    b_date = localtime(b.start_time).date()
+                    b_start_local = localtime(b.start_time).time()
+                    b_end_local = localtime(b.end_time).time()
                     
                     for ts in time_slots:
-                        if start_t <= ts.start_time < end_t:
+                        if b_start_local < ts.end_time and b_end_local > ts.start_time:
                             key = (b_date, ts.start_time)
                             counts_map[key] = counts_map.get(key, 0) + 1
             

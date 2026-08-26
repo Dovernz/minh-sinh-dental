@@ -115,7 +115,7 @@ class Booking(models.Model):
     booking_id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='bookings')
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='bookings')
-    # Các trường category, service_detail, employee đã được chuyển sang BookingDetail
+    category = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Danh mục")
     start_time = models.DateTimeField(null=True, blank=True, verbose_name="Giờ bắt đầu")
     end_time = models.DateTimeField(null=True, blank=True, verbose_name="Giờ kết thúc")
     status = models.CharField(max_length=20, default='Pending', verbose_name="Trạng thái")
