@@ -101,6 +101,13 @@ class DailyScheduleAdmin(BaseRBACAdmin):
         return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
 
     def changelist_view(self, request, extra_context=None):
+        clinic_id_str = request.GET.get('custom_clinic')
+        date_str = request.GET.get('custom_date')
+        
+        request.GET = request.GET.copy()
+        request.GET.pop('custom_clinic', None)
+        request.GET.pop('custom_date', None)
+
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
             import datetime
@@ -108,8 +115,6 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
-            clinic_id_str = request.GET.get('_clinic') or request.GET.get('clinic_id')
-            date_str = request.GET.get('_date') or request.GET.get('start_time__date')
 
             clinic_id = None
             if clinic_id_str:
@@ -131,10 +136,13 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                 except ValueError:
                     pass
             
-            if not request.GET.get('_clinic') and not request.GET.get('clinic_id'):
+            # apply custom filters manually
+            if clinic_id_str:
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('_date') and not request.GET.get('start_time__date'):
+            if date_str:
                 qs = qs.filter(start_time__date=selected_date)
+            elif not clinic_id_str and not date_str:
+                qs = qs.filter(clinic_id=clinic_id, start_time__date=selected_date)
                 
             qs = qs.exclude(status__iexact='cancelled').select_related('customer')
             
@@ -194,6 +202,15 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
         return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
 
     def changelist_view(self, request, extra_context=None):
+        clinic_id_str = request.GET.get('custom_clinic')
+        start_date_str = request.GET.get('custom_start_date')
+        end_date_str = request.GET.get('custom_end_date')
+        
+        request.GET = request.GET.copy()
+        request.GET.pop('custom_clinic', None)
+        request.GET.pop('custom_start_date', None)
+        request.GET.pop('custom_end_date', None)
+
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:
             from django.utils.dateparse import parse_date
@@ -201,9 +218,6 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             qs = response.context_data['cl'].queryset
             
             clinics = Clinic.objects.all()
-            clinic_id_str = request.GET.get('_clinic') or request.GET.get('clinic_id')
-            start_date_str = request.GET.get('_start_date') or request.GET.get('start_time__date__gte')
-            end_date_str = request.GET.get('_end_date') or request.GET.get('start_time__date__lte')
 
             clinic_id = None
             if clinic_id_str:
@@ -224,10 +238,13 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             if not end_date or end_date < start_date:
                 end_date = start_date + timedelta(days=6)
             
-            if not request.GET.get('_clinic') and not request.GET.get('clinic_id'):
+            # apply custom filters manually
+            if clinic_id_str:
                 qs = qs.filter(clinic_id=clinic_id)
-            if not request.GET.get('_start_date') and not request.GET.get('start_time__date__gte'):
+            if start_date_str or end_date_str:
                 qs = qs.filter(start_time__date__gte=start_date, start_time__date__lte=end_date)
+            elif not clinic_id_str and not start_date_str:
+                qs = qs.filter(clinic_id=clinic_id, start_time__date__gte=start_date, start_time__date__lte=end_date)
                 
             qs = qs.exclude(status__iexact='cancelled').distinct()
             
