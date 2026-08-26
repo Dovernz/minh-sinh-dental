@@ -264,12 +264,17 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
                     booked_count = counts_map.get((current_date, ts.start_time), 0)
                     percent = (booked_count / total_chairs) * 100 if total_chairs > 0 else 0
                     
+                    # 1. Trạng thái Đầy (Đỏ): Nền đỏ nhạt, chữ đỏ đậm (Giao diện sáng) | Nền đỏ/đen mờ, chữ đỏ nhạt (Giao diện tối)
                     if percent >= 100:
-                        color_class = 'bg-red-500 text-white dark:bg-red-600'
+                        color_class = 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400'
+
+                    # 2. Trạng thái Gần đầy (Vàng):
                     elif percent >= 80:
-                        color_class = 'bg-yellow-500 text-white dark:bg-yellow-600'
+                        color_class = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400'
+
+                    # 3. Trạng thái Trống (Xanh) - ĐÃ LÀM DỊU MÀU:
                     else:
-                        color_class = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        color_class = 'bg-green-100 text-green-800 dark:bg-white/30 dark:text-green-400'
                         
                     row['days'].append({
                         'booked': booked_count,
