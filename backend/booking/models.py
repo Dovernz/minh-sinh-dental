@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib import admin
@@ -122,7 +123,7 @@ class Booking(models.Model):
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     created_on = models.DateTimeField(auto_now_add=True)
 
-    estimated_duration = models.IntegerField(null=True, blank=True, help_text='Th?i l??ng d? ki?n (ph?t)')
+    estimated_duration = models.IntegerField(null=True, blank=True, help_text='Thời lượng dự kiến (phút)')
     class Meta:
         db_table = 'db_table_bookings'
 
@@ -132,9 +133,9 @@ class Booking(models.Model):
 class BookingStatusHistory(models.Model):
     status_id = models.AutoField(primary_key=True)
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='status_history')
-    status = models.CharField(max_length=20, verbose_name="Tr?ng th?i")
+    status = models.CharField(max_length=20, verbose_name="Trạng thái")
     created_at = models.DateTimeField(auto_now_add=True)
-    note = models.TextField(blank=True, null=True, verbose_name="Ghi ch?")
+    note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
 
     class Meta:
         db_table = 'db_table_booking_status_history'

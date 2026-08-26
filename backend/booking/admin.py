@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from django.shortcuts import get_object_or_404, render
 from django.utils.html import format_html
