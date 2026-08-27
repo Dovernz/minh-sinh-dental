@@ -5,6 +5,13 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 
 @staff_member_required
+@staff_member_required
+def admin_booking_embed_view(request):
+    context = admin.site.each_context(request)
+    context['title'] = 'Đặt lịch (Tổng đài)'
+    return render(request, 'admin/admin_booking.html', context)
+
+@staff_member_required
 def pos_embed_view(request):
     context = admin.site.each_context(request)
     context['title'] = 'Thanh toán (POS)'
@@ -16,6 +23,7 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path('admin/pos-system/', pos_embed_view, name='pos_embed'),
+    path('admin/booking-embed/', admin_booking_embed_view, name='admin_booking_embed'),
     path('admin/', admin.site.urls),
     path('api/', include('booking.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),

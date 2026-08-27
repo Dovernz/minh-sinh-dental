@@ -201,6 +201,11 @@ UNFOLD = {
                         "icon": "list_alt",
                         "link": "/admin/operations/managebooking/",
                     },
+                    {
+                        "title": "Tạo Booking",
+                        "icon": "add_circle",
+                        "link": "/admin/booking-embed/",
+                    },
                 ],
             },
             {

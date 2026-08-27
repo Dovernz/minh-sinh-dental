@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
 interface Clinic {
@@ -42,7 +43,9 @@ interface MatrixRow {
   chairs: MatrixChair[];
 }
 
-export default function Home() {
+export default function BookingForm() {
+  const searchParams = useSearchParams();
+  const userId = searchParams?.get('user_id');
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   
@@ -156,6 +159,7 @@ export default function Home() {
         clinic_id: selectedClinic,
         date: selectedDate,
         start_time: selectedTime,
+        created_by: userId ? parseInt(userId) : null,
         patients: patients.map(p => ({
           ...p,
           dob: p.dob ? `${p.dob}-01-01` : ''
@@ -654,3 +658,4 @@ export default function Home() {
     </main>
   );
 }
+

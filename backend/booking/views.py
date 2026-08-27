@@ -1,4 +1,4 @@
-from django.utils import timezone
+﻿from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -37,16 +37,16 @@ class DailyScheduleView(APIView):
         try:
             clinic = Clinic.objects.get(pk=clinic_id)
         except Clinic.DoesNotExist:
-            return Response({"error": "Không tìm thấy cơ sở"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Không tìm thấy cơ sá»Ÿ"}, status=status.HTTP_404_NOT_FOUND)
             
         target_date = parse_date(date_str)
         if not target_date:
-            return Response({"error": "Ngày không hợp lệ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Ngày không hợp lá»‡ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
             
         # Lấy tất cả TimeSlots, sắp xếp theo start_time
         time_slots = TimeSlot.objects.all().order_by('start_time')
         
-        # Tự động khởi tạo nếu CSDL chưa có khung giờ nào
+        # Tá»± Ä‘á»™ng khá»Ÿi tạo nếu CSDL chưa có khung giờ nào
         if not time_slots.exists():
             from datetime import time, datetime
             default_times = [
@@ -58,7 +58,7 @@ class DailyScheduleView(APIView):
             time_slots = TimeSlot.objects.all().order_by('start_time')
         
         try:
-            # Lấy tất cả Bookings trong ngày đó của clinic
+            # Lấy tất cả Bookings trong ngày Ä‘ó của clinic
             bookings = Booking.objects.filter(
                 clinic=clinic, 
                 start_time__date=target_date,
@@ -116,7 +116,7 @@ class DailyScheduleView(APIView):
                         "status": "booked",
                         "booking_id": b.booking_id,
                         "customer_name": getattr(b.customer, 'name', getattr(b.customer, 'full_name', '')),
-                        "service_name": b.category.name if getattr(b, "category", None) else "Chưa chọn dịch vụ"
+                        "service_name": b.category.name if getattr(b, "category", None) else "Chưa chọn dá»‹ch vụ"
                     })
                 else:
                     chairs.append({
@@ -145,7 +145,7 @@ class AvailableSlotsView(APIView):
         try:
             clinic = Clinic.objects.get(pk=clinic_id)
         except Clinic.DoesNotExist:
-            return Response({"error": "Không tìm thấy cơ sở"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Không tìm thấy cơ sá»Ÿ"}, status=status.HTTP_404_NOT_FOUND)
             
         target_date = parse_date(date_str)
         
@@ -180,27 +180,28 @@ class BookingCreateView(APIView):
         date_str = data.get('date')
         start_time_str = data.get('start_time')
         patients = data.get('patients', [])
+        created_by_id = data.get('created_by')
         
         if not clinic_id or not date_str or not start_time_str or not patients:
-            return Response({"error": "Thiếu dữ liệu đầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Thiếu dữ liá»‡u Ä‘ầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
             clinic = Clinic.objects.get(pk=clinic_id)
         except Clinic.DoesNotExist:
-            return Response({"error": "Không tìm thấy cơ sở"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Không tìm thấy cơ sá»Ÿ"}, status=status.HTTP_404_NOT_FOUND)
             
         target_date = parse_date(date_str)
         if not target_date:
-            return Response({"error": "Định dạng ngày không hợp lệ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Äá»‹nh dạng ngày không hợp lá»‡ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
             from datetime import datetime
             start_time = datetime.strptime(start_time_str, "%H:%M").time()
         except ValueError:
-            return Response({"error": "Sai định dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Sai Ä‘á»‹nh dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            # Tìm số lượng booking đã có trong ca này
+            # Tìm sá»‘ lượng booking Ä‘ã có trong ca này
             existing_bookings = Booking.objects.filter(
                 clinic=clinic, 
                 start_time__date=target_date, 
@@ -217,7 +218,7 @@ class BookingCreateView(APIView):
         available_count = max(0, clinic.total_chairs - occupied_count)
         
         if len(patients) > available_count:
-            return Response({"error": f"Chỉ còn {available_count} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Chá»‰ còn {available_count} ghế trá»‘ng trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
             
         created_booking_ids = []
         
@@ -261,13 +262,14 @@ class BookingCreateView(APIView):
                     end_time=end_time_dt,
                     estimated_duration=duration_minutes,
                     status='Pending',
-                    category=category
+                    category=category,
+                    created_by_id=created_by_id
                 )
                 
                 created_booking_ids.append(booking.booking_id)
             
         return Response({
-            "message": "Đặt lịch thành công!",
+            "message": "Đặt lá»‹ch thành công!",
             "booking.booking_ids": created_booking_ids
         }, status=status.HTTP_201_CREATED)
 
@@ -289,3 +291,4 @@ class TopupInfoView(APIView):
             'account_name': config.account_name,
             'qr_url': qr_url
         }, status=status.HTTP_200_OK)
+

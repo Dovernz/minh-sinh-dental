@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: 'Dental Clinic',
@@ -16,9 +14,7 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning={true}>
       <body suppressHydrationWarning={true}>
-        <Header />
         {children}
-        <Footer />
       </body>
     </html>
   )
