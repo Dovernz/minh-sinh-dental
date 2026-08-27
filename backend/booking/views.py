@@ -180,7 +180,7 @@ class BookingCreateView(APIView):
         date_str = data.get('date')
         start_time_str = data.get('start_time')
         patients = data.get('patients', [])
-        created_by_id = data.get('created_by')
+        created_user_id = data.get('created_user_id')
         
         if not clinic_id or not date_str or not start_time_str or not patients:
             return Response({"error": "Thiếu dữ liá»‡u Ä‘ầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
@@ -263,7 +263,7 @@ class BookingCreateView(APIView):
                     estimated_duration=duration_minutes,
                     status='Pending',
                     category=category,
-                    created_by_id=created_by_id
+                    created_user_id=created_user_id
                 )
                 
                 created_booking_ids.append(booking.booking_id)
@@ -291,4 +291,5 @@ class TopupInfoView(APIView):
             'account_name': config.account_name,
             'qr_url': qr_url
         }, status=status.HTTP_200_OK)
+
 

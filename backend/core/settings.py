@@ -255,6 +255,11 @@ UNFOLD = {
                         "icon": "schedule",
                         "link": "/admin/booking/timeslot/",
                     },
+                    {
+                        "title": "Khuyến mãi",
+                        "icon": "local_offer",
+                        "link": reverse_lazy("admin:services_menu_catalogdiscount_changelist"),
+                    },
                 ],
             },
             {
@@ -423,4 +428,5 @@ import cloudinary.api
 
 # C?u hình luu tr? file upload (Media) lên Cloudinary
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 

@@ -159,7 +159,7 @@ export default function BookingForm() {
         clinic_id: selectedClinic,
         date: selectedDate,
         start_time: selectedTime,
-        created_by: userId ? parseInt(userId) : null,
+        created_user_id: userId ? parseInt(userId) : null,
         patients: patients.map(p => ({
           ...p,
           dob: p.dob ? `${p.dob}-01-01` : ''
@@ -658,4 +658,5 @@ export default function BookingForm() {
     </main>
   );
 }
+
 
