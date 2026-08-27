@@ -281,11 +281,11 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
                     
                     # 1. Trạng thái Đầy (Đỏ): Nền đỏ nhạt, chữ đỏ đậm (Giao diện sáng) | Nền đỏ/đen mờ, chữ đỏ nhạt (Giao diện tối)
                     if percent >= 100:
-                        color_class = 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400'
+                        color_class = 'bg-red-100 text-red-800 dark:bg-white/30 dark:text-red-400'
 
                     # 2. Trạng thái Gần đầy (Vàng):
                     elif percent >= 80:
-                        color_class = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400'
+                        color_class = 'custom-yellow-badge'
 
                     # 3. Trạng thái Trống (Xanh) - ĐÃ LÀM DỊU MÀU:
                     else:

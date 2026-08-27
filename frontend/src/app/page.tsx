@@ -67,6 +67,8 @@ export default function Home() {
   const [matrixData, setMatrixData] = useState<MatrixRow[]>([]);
   const [myBookingIds, setMyBookingIds] = useState<number[]>([]);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingResult, setBookingResult] = useState<any>(null);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -163,9 +165,32 @@ export default function Home() {
       const res = await axios.post('http://localhost:8000/api/bookings/', payload);
       
       if (res.status === 201) {
-        alert('Đặt lịch thành công!');
-        resetForm();
-        fetchMatrix();
+        let maxDuration = 30;
+        patients.forEach(p => {
+          const s = categories.find(c => (c.category_id || c.id) === p.category_id);
+          if (s && s.estimate_time && s.estimate_time > maxDuration) {
+            maxDuration = s.estimate_time;
+          }
+        });
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        const endDate = new Date(0, 0, 0, hours, minutes + maxDuration);
+        const endTime = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
+        
+        const selectedClinicObj = clinics.find(c => (c.clinic_id || c.id) === selectedClinic);
+        
+        setBookingResult({
+            customerName: patients.map(p => p.fullName).join(', '),
+            serviceName: patients.map(p => {
+                const s = categories.find(c => (c.category_id || c.id) === p.category_id);
+                return s ? s.name : 'Dịch vụ';
+            }).join(', '),
+            date: selectedDate,
+            startTime: selectedTime,
+            endTime: endTime,
+            clinicName: selectedClinicObj?.name || '',
+            clinicAddress: selectedClinicObj?.address || ''
+        });
+        setCurrentStep(4);
       }
     } catch (error: any) {
       alert("Lỗi đặt lịch: " + (error.response?.data?.error || "Vui lòng thử lại"));
