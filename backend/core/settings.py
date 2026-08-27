@@ -30,7 +30,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     
     # Third party
     'rest_framework',
@@ -406,3 +408,11 @@ DEFAULT_FROM_EMAIL = 'Nha Khoa Minh Sinh <ctt130303@gmail.com>'
 # Điều hướng sau khi Đăng nhập/Đăng xuất
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
+
+import os
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# C?u h�nh luu tr? file upload (Media) l�n Cloudinary
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
