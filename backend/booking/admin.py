@@ -11,7 +11,7 @@ from .models import BookingDetail, Billing
 from .models import (
     Clinic, ServiceCategory, ServiceDetail, TimeSlot, Customer, Employee, 
     Booking, BookingStatusHistory, Payment, TopupInfo,
-    InventoryDetail, InventoryUsage, Article
+    InventoryDetail, InventoryUsage, Article, BookingDetail
 )
 
 
@@ -130,7 +130,7 @@ class TopupInfoAdmin(BaseRBACAdmin):
 
 @admin.register(Clinic)
 class ClinicAdmin(BaseRBACAdmin):
-    list_display = ('name', 'hotline', 'created_on')
+    list_display = ('name', 'hotline', 'address', 'total_chairs')
     search_fields = ('name', 'hotline', 'address')
     list_filter = ('created_on',)
 
@@ -184,7 +184,7 @@ class ServiceDetailResource(resources.ModelResource):
 class ServiceCategoryAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
     resource_classes = [ServiceCategoryResource]
     list_display = ('name', 'estimate_time', 'created_on')
-    search_fields = ('name',)
+    search_fields = ('name','estimate_time')
 
 
     def get_urls(self):
@@ -236,10 +236,11 @@ class PriceRangeFilter(admin.SimpleListFilter):
 class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
     resource_classes = [ServiceDetailResource]
     formats = [XLSX, CSV]
-    list_display = ('code', 'name', 'difficulty', 'formatted_price', 'category')
-    list_filter = ['category', 'difficulty', PriceRangeFilter]
+    list_display = ('category','code', 'name', 'difficulty', 'formatted_price', 'warranty')
+    list_filter = ['category', 'difficulty', PriceRangeFilter, 'warranty']
     search_fields = ['category__name', 'code', 'name', 'difficulty', 'price', 'warranty']
     import_template_name = 'admin/booking/servicedetail/import.html'
+    ordering = ['category', 'code']
 
     def formatted_price(self, obj):
         if obj.price is not None:
@@ -304,13 +305,13 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
 
 @admin.register(TimeSlot)
 class TimeSlotAdmin(BaseRBACAdmin):
-    list_display = ('start_time', 'end_time', 'created_on')
+    list_display = ('start_time', 'end_time')
 
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
-    list_display = ('name', 'phone', 'customer_dob', 'email', 'created_on')
-    search_fields = ('name', 'phone', 'email')
-    list_filter = ('created_on',)
+    list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email')
+    search_fields = ('name', 'phone', 'email', 'address')
+    list_filter = ('address', 'gender')
 
 @admin.register(Employee)
 class EmployeeAdmin(BaseRBACAdmin):
@@ -387,9 +388,9 @@ class BookingDetailInline(TabularInline):
 class BookingAdmin(BaseRBACAdmin):
     inlines = [BookingDetailInline]
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'start_time', 'status')
-    list_filter = ('clinic', 'status')
-    search_fields = ('customer__name', 'customer__phone', 'notes')
+    list_display = ('booking_id', 'customer', 'start_time', 'estimated_duration', 'notes')
+    list_filter = ('clinic', 'status', 'estimated_duration')
+    search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration')
     # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
 
     class Media:

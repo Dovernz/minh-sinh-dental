@@ -68,17 +68,17 @@ class ManageBookingAdmin(BaseRBACAdmin):
 
     from booking.admin import BookingAdminForm
     form = BookingAdminForm
-    list_display = ('booking_id', 'get_customer_info', 'clinic', 'start_time', 'status')
+    list_display = ('booking_id', 'get_customer_info', 'clinic', 'start_time', 'category', 'estimated_duration', 'status', 'notes')
     list_editable = ()
-    list_filter = ('start_time', 'clinic', 'status')
-    search_fields = ('customer__name', 'customer__phone', 'notes')
+    list_filter = ('start_time', 'clinic', 'status', 'estimated_duration', 'category')
+    search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration', 'category')
     date_hierarchy = 'start_time'
     inlines = [BookingStatusHistoryInline, PaymentInline]
 
     class Media:
         js = ('admin/js/booking_chained_select.js',)
 
-    @admin.display(description='Kh?ch h?ng')
+    @admin.display(description='Khách hàng')
     def get_customer_info(self, obj):
         if obj.customer:
             name = getattr(obj.customer, 'name', getattr(obj.customer, 'full_name', ''))
