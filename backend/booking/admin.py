@@ -528,3 +528,8 @@ class BillingAdmin(BaseRBACAdmin):
                 return mark_safe(f'<img src="{url}" alt="QR Code" style="max-width: 300px;"/>')
         return "Chưa có thông tin hoặc tổng tiền = 0"
     payment_qr_code.short_description = "QR Thanh Toán"
+
+@admin.register(BookingDetail)
+class BookingDetailAdmin(BaseRBACAdmin):
+    list_display = ('booking', 'service_detail')
+    search_fields = ('booking__booking_id', 'service_detail__name')
