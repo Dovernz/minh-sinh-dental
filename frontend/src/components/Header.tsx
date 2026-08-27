@@ -28,6 +28,9 @@ export default function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </Link>
+            <Link href="/blog" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
+              Tin tức & Blog
+            </Link>
           </nav>
 
           {/* CTA Button */}

@@ -1,9 +1,0 @@
-- `[x]` Create `PaymentConfig` model (with `is_default` save logic)
-- `[x]` Add `doctor` field to `Booking` model
-- `[x]` Run `makemigrations` for `PaymentConfig` and `doctor`
-- `[x]` Create empty migration to DROP and CREATE `db_table_booking_details_view` with `doctor` fields
-- `[x]` Update `BookingDetails` unmanaged model with `doctor_id` and `doctor_name`
-- `[x]` Implement VietQR logic in `PaymentConfigView` endpoint
-- `[x]` Implement Admin RBAC (Staff vs Admin/Superuser) in `admin.py`
-- `[x]` Update `admin.py` to show `doctor` in `BookingDetailsAdmin`
-- `[x]` Run `migrate`
