@@ -1,3 +1,4 @@
+from django.utils import timezone
 # -*- coding: utf-8 -*-
 
 from django.shortcuts import get_object_or_404, render
@@ -435,6 +436,14 @@ class ArticleAdmin(BaseRBACAdmin):
     search_fields = ('title', 'slug')
     list_filter = ('created_on',)
     prepopulated_fields = {'slug': ('title',)}
+    
+    exclude = ('user_id', 'user', 'created_on')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.user = request.user
+            obj.created_on = timezone.now()
+        super().save_model(request, obj, form, change)
 
 
 from booking.models import Billing, TopupInfo

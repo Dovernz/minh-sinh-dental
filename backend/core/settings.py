@@ -1,11 +1,11 @@
-import os
+﻿import os
 from pathlib import Path
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Khởi tạo django-environ
+# Khá»Ÿi tạo django-environ
 env = environ.Env(
     DEBUG=(bool, False)
 )
@@ -149,10 +149,12 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 CKEDITOR_UPLOAD_PATH = 'uploads/'
 CKEDITOR_CONFIGS = {
     'default': {
+        'skin': 'moono-lisa',
         'toolbar': 'full',
-        'height': 600,
+        'height': 500,
         'width': '100%',
-        'extraPlugins': ','.join(['font', 'colorbutton', 'justify', 'uploadimage', 'image2']),
+        'tabSpaces': 4,
+        'extraPlugins': ','.join(['uploadimage', 'codesnippet', 'font', 'colorbutton', 'justify']),
     },
 }
 
@@ -405,7 +407,7 @@ EMAIL_HOST_USER = 'ctt130303@gmail.com'  # Thay bằng email thật
 EMAIL_HOST_PASSWORD = 'ebju xwfb qvja ffrh' # Mật khẩu ứng dụng
 DEFAULT_FROM_EMAIL = 'Nha Khoa Minh Sinh <ctt130303@gmail.com>'
 
-# Điều hướng sau khi Đăng nhập/Đăng xuất
+# Điều hÆ°á»›ng sau khi ÄÄƒng nhập/ÄÄƒng xuất
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
 
@@ -414,5 +416,6 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-# C?u h�nh luu tr? file upload (Media) l�n Cloudinary
+# C?u hình luu tr? file upload (Media) lên Cloudinary
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
