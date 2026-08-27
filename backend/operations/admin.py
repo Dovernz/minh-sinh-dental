@@ -71,7 +71,7 @@ class ManageBookingAdmin(BaseRBACAdmin):
     list_display = ('booking_id', 'get_customer_info', 'clinic', 'start_time', 'category', 'estimated_duration', 'status', 'notes')
     list_editable = ()
     list_filter = ('start_time', 'clinic', 'status', 'estimated_duration', 'category')
-    search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration', 'category')
+    search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration', 'category__name')
     date_hierarchy = 'start_time'
     inlines = [BookingStatusHistoryInline, PaymentInline]
 
