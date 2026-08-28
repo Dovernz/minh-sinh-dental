@@ -18,6 +18,33 @@
 {% endblock %}
 
 {% block search %}
+<style>
+    /* 1. Đổ nền xám nhạt (Dark Mode) cho riêng khối Filter */
+    html.dark .schedule-filter-wrapper {
+        background-color: #1f2937 !important;
+        border-color: #374151 !important;
+    }
+    
+    /* 2. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    html.dark select, html.dark input[type="date"] {
+        background-color: #374151 !important;
+        color: #e5e7eb !important;
+        border-color: #4b5563 !important;
+    }
+
+    /* 3. Đổ màu xám nhạt (Light Mode) cho riêng khối Filter */
+    html:not(.dark) .schedule-filter-wrapper {
+        background-color: #f2f3f3 !important;
+        border-color: #aab4c4 !important;
+    }
+
+    /* 4. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    html:not(.dark) select, html:not(.dark) input[type="date"] {
+        background-color: #f2f3f3 !important;
+        color: #000000 !important;
+        border-color: #aab4c4 !important;  
+    }
+</style>
 <div class="schedule-filter-wrapper p-4 mb-5 rounded-lg border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
     <form method="GET" action="" class="schedule-filter-form flex gap-5 items-center flex-wrap">
         <div class="flex items-center gap-2">
@@ -42,6 +69,22 @@
 {% endblock %}
 
 {% block result_list %}
+<style>
+    /* 1. Trả lại nền gốc của Unfold (Trong suốt hóa bộ lọc và khung bảng) */
+    /* html.dark .bg-white, */
+    html.dark .results,
+    html.dark #result_list {
+        background-color: transparent !important;
+        border-color: #374151 !important;
+    }
+    html.dark select, html.dark input[type="date"] {
+        background-color: transparent !important;
+        color: #e5e7eb !important;
+        border-color: #4b5563 !important;
+    }
+    
+</style>
+
 <div class="results">
     {% if clinic %}
         <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Lịch Tuần - Cơ sở: {{ clinic.name }}</h2>

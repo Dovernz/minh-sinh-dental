@@ -1,6 +1,34 @@
 {% extends "admin/change_list.html" %}
 
 {% block search %}
+<style>
+    /* 1. Đổ nền xám nhạt (Dark Mode) cho riêng khối Filter */
+    html.dark .schedule-filter-wrapper {
+        background-color: #1f2937 !important;
+        border-color: #374151 !important;
+    }
+    
+    /* 2. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    html.dark select, html.dark input[type="date"] {
+        background-color: #374151 !important;
+        color: #e5e7eb !important;
+        border-color: #4b5563 !important;
+    }
+
+    /* 3. Đổ màu xám nhạt (Light Mode) cho riêng khối Filter */
+    html:not(.dark) .schedule-filter-wrapper {
+        background-color: #f2f3f3 !important;
+        border-color: #aab4c4 !important;
+    }
+    
+    /* 4. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    html:not(.dark) select, html:not(.dark) input[type="date"] {
+        background-color: #f2f3f3 !important;
+        color: #000000 !important;
+        border-color: #aab4c4 !important;  
+    }
+</style>
+
 <div class="schedule-filter-wrapper p-4 mb-5 rounded-lg border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
     <form method="GET" action="" class="schedule-filter-form flex gap-5 items-center flex-wrap">
         <div class="flex items-center gap-2">
@@ -21,6 +49,77 @@
 {% endblock %}
 
 {% block result_list %}
+
+<style>
+    /* 1. Trả lại nền gốc của Unfold (Trong suốt hóa bộ lọc và khung bảng) */
+    /* html.dark .bg-white, */
+    html.dark .results,
+    html.dark #result_list {
+        background-color: transparent !important;
+        border-color: #374151 !important;
+    }
+    html.dark select, html.dark input[type="date"] {
+        background-color: transparent !important;
+        color: #e5e7eb !important;
+        border-color: #4b5563 !important;
+    }
+    
+    /* 2. Xử lý các ô Value bị lỗi nền trắng trong Lịch Ngày */
+    /* A. Các ô trống hoặc dính style inline */
+    html.dark table td[style*="background"], 
+    html.dark table td div[style*="background"],
+    html.dark table td [class*="bg-white"] {
+        background-color: #374151 !important;
+        color: #f3f4f6 !important;
+        border: 1px solid #4b5563 !important;
+        border-radius: 4px;
+    }
+    
+    /* B. [THÊM MỚI] Đổi nền các ô ĐÃ CÓ LỊCH (chứa class bg-blue-50) thành Xanh Đậm */
+    html.dark table .bg-blue-50 {
+        background-color: #193696 !important; 
+        border: 1px solid #1e3a8a !important;
+        color: #e0e7ff !important;
+        border-radius: 8px !important; /* Tăng độ bo tròn góc */
+        margin: 10px !important;        /* Tạo khoảng hở (padding) so với viền của ô */
+        padding: 8px !important;       /* Căn chỉnh khoảng cách chữ bên trong */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; /* Thêm chút bóng đổ cho khối nổi lên */
+    }
+    
+    /* C. Ép toàn bộ chữ bên trong các ô hiển thị màu xám/xanh sáng */
+    html.dark table td[style*="background"] *, 
+    html.dark table td div[style*="background"] * {
+        color: #a3a6ac !important;
+    }
+    html.dark table .bg-blue-50 * {
+        color: #e0e7ff !important;
+    }
+
+    /* Đồng bộ form dáng (bo góc, khoảng hở) cho các ô ĐÃ CÓ LỊCH ở chế độ sáng */
+    html:not(.dark) table .bg-blue-50 {
+        background-color: #90c0fa !important; /* Nền xanh nhạt dịu mắt */
+        border: 1px solid #7ea6d6 !important; /* Viền xanh đồng điệu */
+        color: #1e3a8a !important;            /* Chữ xanh đậm sắc nét */
+        border-radius: 8px !important;        /* Bo tròn góc giống Dark Mode */
+        margin: 10px !important;               /* Tạo khoảng hở với khung */
+        padding: 8px !important;              /* Khoảng cách chữ bên trong */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important; /* Bóng đổ cực nhẹ */
+    }
+    
+    /* Ép toàn bộ chữ bên trong hiển thị màu xanh đậm */
+    html:not(.dark) table .bg-blue-50 *,
+    html:not(.dark) table .bg-blue-50 strong,
+    html:not(.dark) table .bg-blue-50 span {
+        color: #000000 !important;
+    }
+
+    /* 3. Tối ưu độ cao bảng Lịch */
+    table tbody tr td, table tbody tr th {
+        height: 75px !important;
+        vertical-align: middle !important;
+    }
+</style>
+
 <div class="results">
     {% if clinic %}
         <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Lịch Ngày - Cơ sở: {{ clinic.name }}</h2>
