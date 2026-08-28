@@ -32,3 +32,5 @@ urlpatterns = [
 admin.site.site_header = "Nha Khoa Minh Sinh"
 admin.site.site_title = "Nha Khoa Minh Sinh"
 admin.site.index_title = "Bảng điều khiển"
+
+import core.admin

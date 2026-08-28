@@ -323,6 +323,7 @@ UNFOLD = {
             {
                 "title": "Database",
                 "icon": "database",
+                "permission": lambda request: request.user.is_superuser,
                 "separator": True,
                 "collapsible": True,
                 "items": [
