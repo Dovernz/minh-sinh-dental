@@ -432,6 +432,9 @@ class InventoryUsageAdmin(BaseRBACAdmin):
 
 @admin.register(Article)
 class ArticleAdmin(BaseRBACAdmin):
+    class Media:
+        js = ('js/parse_docx.js',)
+
     list_display = ('title', 'slug', 'user', 'created_on')
     search_fields = ('title', 'slug')
     list_filter = ('created_on',)

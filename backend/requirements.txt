@@ -32,3 +32,4 @@ six==1.17.0
 sqlparse==0.6.0
 tablib==3.10.0
 urllib3==2.7.0
+python-docx

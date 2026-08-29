@@ -309,3 +309,54 @@ def get_booking_detail(request, pk):
         "category_name": booking.category.name if booking.category else "Dịch vụ nha khoa",
         "start_time": localtime(booking.start_time).strftime("%H:%M - %d/%m/%Y") if booking.start_time else "Chưa xác định",
     })
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin.views.decorators import staff_member_required
+
+@csrf_exempt
+@staff_member_required
+def parse_docx_api(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        uploaded_file = request.FILES['file']
+        try:
+            import docx
+            doc = docx.Document(uploaded_file)
+            
+            title = ""
+            html_content = []
+            
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                if not text:
+                    continue
+                
+                if not title:
+                    title = text
+                    continue
+                
+                # Basic style conversion
+                para_html = ""
+                for run in para.runs:
+                    run_text = run.text.replace('<', '&lt;').replace('>', '&gt;')
+                    if run.bold:
+                        para_html += f"<strong>{run_text}</strong>"
+                    elif run.italic:
+                        para_html += f"<em>{run_text}</em>"
+                    else:
+                        para_html += run_text
+                        
+                if para.style.name.startswith('Heading 1'):
+                    html_content.append(f"<h1>{para_html}</h1>")
+                elif para.style.name.startswith('Heading 2'):
+                    html_content.append(f"<h2>{para_html}</h2>")
+                elif para.style.name.startswith('Heading 3'):
+                    html_content.append(f"<h3>{para_html}</h3>")
+                else:
+                    html_content.append(f"<p>{para_html}</p>")
+            
+            content_html = "\n".join(html_content)
+            return JsonResponse({'status': 'success', 'title': title, 'content': content_html})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)

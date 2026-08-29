@@ -41,6 +41,9 @@ class MarketingArticleForm(forms.ModelForm):
 
 @admin.register(MarketingArticle)
 class MarketingArticleAdmin(ModelAdmin):
+    class Media:
+        js = ('js/parse_docx.js',)
+
     form = MarketingArticleForm
     list_display = ('title', 'slug', 'status', 'user', 'created_on', 'preview_link')
     search_fields = ('title', 'slug', 'focus_keyword')
