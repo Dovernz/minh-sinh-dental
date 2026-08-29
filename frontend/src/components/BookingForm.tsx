@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 
 interface Clinic {
@@ -45,6 +45,7 @@ interface MatrixRow {
 
 export default function BookingForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const userId = searchParams?.get('user_id');
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -155,6 +156,8 @@ export default function BookingForm() {
     }
 
     try {
+      console.log("???? [1/4] B???t ?????u g???i request...");
+      
       const payload = {
         clinic_id: selectedClinic,
         date: selectedDate,
@@ -165,39 +168,41 @@ export default function BookingForm() {
           dob: p.dob ? `${p.dob}-01-01` : ''
         }))
       };
+
+      const response = await fetch('http://localhost:8000/api/bookings/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+      });
       
-      const res = await axios.post('http://localhost:8000/api/bookings/', payload);
+      console.log("???? [2/4] ???? nh???n ph???n h???i HTTP:", response.status);
       
-      if (res.status === 201) {
-        let maxDuration = 30;
-        patients.forEach(p => {
-          const s = categories.find(c => (c.category_id || c.id) === p.category_id);
-          if (s && s.estimate_time && s.estimate_time > maxDuration) {
-            maxDuration = s.estimate_time;
-          }
-        });
-        const [hours, minutes] = selectedTime.split(':').map(Number);
-        const endDate = new Date(0, 0, 0, hours, minutes + maxDuration);
-        const endTime = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
-        
-        const selectedClinicObj = clinics.find(c => (c.clinic_id || c.id) === selectedClinic);
-        
-        setBookingResult({
-            customerName: patients.map(p => p.fullName).join(', '),
-            serviceName: patients.map(p => {
-                const s = categories.find(c => (c.category_id || c.id) === p.category_id);
-                return s ? s.name : 'Dịch vụ';
-            }).join(', '),
-            date: selectedDate,
-            startTime: selectedTime,
-            endTime: endTime,
-            clinicName: selectedClinicObj?.name || '',
-            clinicAddress: selectedClinicObj?.address || ''
-        });
-        setCurrentStep(4);
-      }
+      if (response.ok || response.status === 201) {
+    const rawText = await response.text();
+    console.log("???? Raw Backend Response:", rawText);
+    
+    let successId = "thanh-cong";
+    try {
+        if (rawText) {
+            const data = JSON.parse(rawText);
+            successId = data.booking_id || (data.created_booking_ids && data.created_booking_ids[0]) || data.id || successId;
+        }
+    } catch (parseError) {
+        console.warn("???? L???i Parse JSON:", parseError);
+    }
+    
+    console.log("???? ??ang chuy???n h?????ng c???ng ?????n:", `/booking/success/${successId}`);
+    window.location.href = `/booking/success/${successId}`;
+    return;
+} else {
+    const errorText = await response.text();
+    console.error("???? L???i Server Tr??? v???:", errorText);
+    alert(`L???i h??? th???ng (${response.status}). Vui l??ng xem Console (F12).`);
+    return;
+}
     } catch (error: any) {
-      alert("Lỗi đặt lịch: " + (error.response?.data?.error || "Vui lòng thử lại"));
+      console.error("???? CRASH TR??NH DUY???T (Client-side Error):", error);
+      alert(`L???i v??ng ???ng d???ng: ${error.message}`);
     }
   };
 

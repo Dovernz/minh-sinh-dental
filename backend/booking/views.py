@@ -268,10 +268,10 @@ class BookingCreateView(APIView):
                 
                 created_booking_ids.append(booking.booking_id)
             
-        return Response({
-            "message": "Đặt lá»‹ch thành công!",
-            "booking.booking_ids": created_booking_ids
-        }, status=status.HTTP_201_CREATED)
+        return JsonResponse({
+            "status": "success",
+            "booking_id": created_booking_ids[0] if created_booking_ids else None
+        }, status=201)
 
 class TopupInfoView(APIView):
     def get(self, request):
@@ -293,3 +293,19 @@ class TopupInfoView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import localtime
+from .models import Booking
+
+def get_booking_detail(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    return JsonResponse({
+        "id": booking.booking_id,
+        "customer_name": booking.customer.name if booking.customer else "Khách hàng",
+        "clinic_name": booking.clinic.name if booking.clinic else "Nha Khoa Minh Sinh",
+        "clinic_address": booking.clinic.address if booking.clinic else "Hồ Chí Minh",
+        "category_name": booking.category.name if booking.category else "Dịch vụ nha khoa",
+        "start_time": localtime(booking.start_time).strftime("%H:%M - %d/%m/%Y") if booking.start_time else "Chưa xác định",
+    })

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category
+from .views import ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail
 
 urlpatterns = [
     path('clinics/', ClinicListView.as_view(), name='api-clinics'),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('available-slots/', AvailableSlotsView.as_view(), name='api-available-slots'),
     path('topup-info/', TopupInfoView.as_view(), name='api-topup-info'),
     path('get-services-by-category/', get_services_by_category, name='get-services-by-category'),
+    path('bookings/<int:pk>/detail/', get_booking_detail, name='booking-detail'),
 ]
