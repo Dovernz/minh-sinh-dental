@@ -29,7 +29,7 @@ export default async function ArticlePage(props: any) {
             )}
             <h1 className="text-4xl font-bold mb-6 text-gray-800">{article.title}</h1>
             <div 
-                className="prose prose-lg prose-blue max-w-none text-gray-700" 
+                className="prose prose-lg prose-blue max-w-none text-gray-700 prose-p:leading-relaxed prose-li:marker:text-blue-500" 
                 dangerouslySetInnerHTML={{ __html: article.content }} 
             />
         </div>

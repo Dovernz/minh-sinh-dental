@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Reset cấu hình ảnh cơ bản, giữ bo góc */
+.prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+/* Bắt trực tiếp lệnh Căn Giữa từ TinyMCE */
+.prose p[style*="text-align: center"] img {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Bắt trực tiếp lệnh Căn Phải từ TinyMCE */
+.prose p[style*="text-align: right"] img {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+/* Bắt trực tiếp lệnh Căn Trái từ TinyMCE */
+.prose p[style*="text-align: left"] img {
+    display: block !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
