@@ -16,21 +16,37 @@ export default function Header() {
 
           {/* Navigation (Desktop) */}
           <nav className="hidden md:flex space-x-10 items-center">
-            <Link href="#" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
+            <Link href="#" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors py-4">
               Thông tin phòng khám
               <svg className="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </Link>
-            <Link href="#" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
-              Dịch vụ
-              <svg className="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </Link>
-            <Link href="/blog" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors">
-              Tin tức & Blog
-            </Link>
+            
+            {/* Dropdown Dịch vụ */}
+            <div className="relative group">
+                <button className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors py-4">
+                    Dịch vụ
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {/* Khung Dropdown */}
+                <div className="absolute top-full left-0 w-60 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
+                    <Link href="/dich-vu/nieng-rang" className="block px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition-colors">Niềng răng - Chỉnh nha</Link>
+                    <Link href="/dich-vu/nho-rang" className="block px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">Nhổ răng khôn</Link>
+                </div>
+            </div>
+
+            {/* Dropdown Tin tức & Blog */}
+            <div className="relative group flex items-center">
+                <Link href="/blog" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1 transition-colors py-4">
+                    Tin tức & Blog
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </Link>
+                <div className="absolute top-[100%] left-0 w-56 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
+                    <Link href="/blog?category=kien-thuc" className="block px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition-colors">Kiến thức y khoa</Link>
+                    <Link href="/blog?category=khuyen-mai" className="block px-5 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">Khuyến mại</Link>
+                </div>
+            </div>
           </nav>
 
           {/* CTA Button */}

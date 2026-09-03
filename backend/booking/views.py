@@ -413,3 +413,23 @@ def article_detail_api(request, slug):
         'is_draft': getattr(article, 'status', '') == 'Draft',
     }
     return JsonResponse(data)
+
+
+def articles_list_api(request):
+    queryset = Article.objects.filter(status='Published')
+    
+    category_param = request.GET.get('category')
+    if category_param:
+        queryset = queryset.filter(category=category_param)
+        
+    articles_data = []
+    for article in queryset:
+        articles_data.append({
+            'id': article.article_id,
+            'title': article.title,
+            'slug': article.slug,
+            'category': article.category,
+            'thumbnail': article.thumbnail.url if article.thumbnail else None,
+            # 'created_on': article.created_on.strftime('%d/%m/%Y') if hasattr(article, 'created_on') else ''
+        })
+    return JsonResponse(articles_data, safe=False)

@@ -548,10 +548,99 @@ class ArticleAdmin(BaseRBACAdmin):
             });
         </script>
         """
+
+        js_click_image += """
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<style>
+    /* Giao diện Popup cắt ảnh */
+    #cropModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+    #cropContainer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; text-align: center; }
+    #imageToCrop { max-width: 100%; max-height: 60vh; display: block; margin: 0 auto 15px auto; }
+    .crop-btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    .btn-confirm { background-color: #2563eb; color: white; }
+    .btn-cancel { background-color: #ef4444; color: white; }
+    #cropPreview { display: none; margin-top: 15px; max-width: 250px; border-radius: 8px; border: 2px dashed #2563eb; }
+</style>
+
+<div id="cropModal">
+    <div id="cropContainer">
+        <img id="imageToCrop" src="" alt="Ảnh gốc">
+        <button type="button" class="crop-btn btn-cancel" id="btnCancelCrop">Hủy bỏ</button>
+        <button type="button" class="crop-btn btn-confirm" id="btnConfirmCrop">Cắt & Xác nhận</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let fileInput = document.querySelector('.field-thumbnail input[type="file"]') || document.querySelector('input[name="thumbnail"]');
+    if (!fileInput) return;
+
+    let container = fileInput.parentNode;
+    let previewImg = document.createElement('img');
+    previewImg.id = "cropPreview";
+    container.appendChild(previewImg);
+
+    let cropper;
+    let modal = document.getElementById('cropModal');
+    let imageToCrop = document.getElementById('imageToCrop');
+
+    // Mở popup ngay khi chọn file
+    fileInput.addEventListener('change', function(e) {
+        let files = e.target.files;
+        if (files && files.length > 0) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                imageToCrop.src = event.target.result;
+                modal.style.display = 'block';
+                
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 1.5, // Giữ nguyên tỷ lệ 3:2 của thẻ Blog
+                    viewMode: 2,
+                    autoCropArea: 1
+                });
+            };
+            reader.readAsDataURL(files[0]);
+        }
+    });
+
+    // Nút Hủy
+    document.getElementById('btnCancelCrop').addEventListener('click', function() {
+        modal.style.display = 'none';
+        if (cropper) cropper.destroy();
+        fileInput.value = ""; // Xóa file đã chọn
+    });
+
+    // Nút Xác nhận cắt
+    document.getElementById('btnConfirmCrop').addEventListener('click', function() {
+        if (!cropper) return;
+        cropper.getCroppedCanvas({ width: 900, height: 600 }).toBlob(function(blob) {
+            // Thay thế file gốc bằng file đã cắt
+            let dt = new DataTransfer();
+            let croppedFile = new File([blob], "thumbnail_cropped.jpg", { type: "image/jpeg" });
+            dt.items.add(croppedFile);
+            fileInput.files = dt.files; // Gán lại vào input gốc của Django
+
+            // Hiển thị ảnh xem trước
+            let croppedUrl = URL.createObjectURL(blob);
+            previewImg.src = croppedUrl;
+            previewImg.style.display = 'block';
+
+            // Tắt popup
+            modal.style.display = 'none';
+            cropper.destroy();
+        }, 'image/jpeg', 0.9);
+    });
+});
+</script>
+"""
         if 'title' in form.base_fields:
             if not form.base_fields['title'].help_text:
                 form.base_fields['title'].help_text = ''
             form.base_fields['title'].help_text += mark_safe(js_click_image)
+
         return form
 
 

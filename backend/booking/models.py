@@ -204,7 +204,13 @@ class Article(models.Model):
     thumbnail = CloudinaryField("Ảnh Thumbnail (Tải lên)", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
-    word_file = models.FileField(upload_to='temp/', null=True, blank=True, verbose_name="Tải lên File Word (.docx)")
+    CATEGORY_CHOICES = (
+        ('kien-thuc', 'Kiến thức y khoa'),
+        ('khuyen-mai', 'Khuyến mại'),
+    )
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='kien-thuc', verbose_name='Chuyên mục')
+
+    word_file = CloudinaryField('Tài liệu Word', resource_type='raw', blank=True, null=True)
     
     # SEO fields
     meta_title = models.CharField(max_length=255, blank=True, null=True, verbose_name="SEO Title")

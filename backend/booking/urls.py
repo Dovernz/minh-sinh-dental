@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import parse_docx_api, article_detail_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail
+from .views import parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail
 
 urlpatterns = [
+    path('articles/', articles_list_api, name='article-list'),
     path('articles/<slug:slug>/', article_detail_api, name='article-detail'),
     path('clinics/', ClinicListView.as_view(), name='api-clinics'),
     path('services/', ServiceListView.as_view(), name='api-services'),
