@@ -48,6 +48,7 @@ export default function BookingForm() {
   const router = useRouter();
   const userId = searchParams?.get('user_id');
   const [currentStep, setCurrentStep] = useState(1);
+  const [honeypot, setHoneypot] = useState('');
   const [loading, setLoading] = useState(true);
   
   // Data
@@ -138,6 +139,7 @@ export default function BookingForm() {
   };
 
   const handleBookingSubmit = async () => {
+      if (honeypot) { alert("Lỗi hệ thống"); return; }
     if (!selectedClinic || !selectedDate || !selectedTime) {
       alert("Vui lòng chọn đầy đủ Khung giờ trước khi hoàn tất!");
       return;
@@ -640,7 +642,8 @@ export default function BookingForm() {
                 {bookingSuccess ? 'Quay về trang chủ' : 'Quay lại'}
               </button>
               
-              {!bookingSuccess && (
+              <input type="text" className="hidden" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+                {!bookingSuccess && (
                 <button 
                   onClick={handleBookingSubmit}
                   disabled={!selectedTime}

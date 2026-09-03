@@ -204,9 +204,18 @@ class Article(models.Model):
     thumbnail = CloudinaryField("Ảnh Thumbnail (Tải lên)", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
+    SECTION_CHOICES = (
+        ('dich-vu', 'Dịch vụ'),
+        ('blog', 'Tin tức & Blog'),
+        ('thong-tin', 'Thông tin phòng khám'),
+    )
+    section = models.CharField(max_length=20, choices=SECTION_CHOICES, default='blog', verbose_name='Khu vực (Menu 1)')
+    
     CATEGORY_CHOICES = (
         ('kien-thuc', 'Kiến thức y khoa'),
         ('khuyen-mai', 'Khuyến mại'),
+        ('nieng-rang', 'Niềng răng - Chỉnh nha'),
+        ('nho-rang', 'Nhổ răng khôn'),
     )
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='kien-thuc', verbose_name='Chuyên mục')
 

@@ -1,5 +1,27 @@
 import { notFound } from 'next/navigation';
 
+import { Metadata } from 'next';
+
+export async function generateMetadata(props: any): Promise<Metadata> {
+    const params = await props.params;
+    const res = await fetch(`http://backend:8000/api/articles/${params.slug}/`);
+    if (!res.ok) return { title: 'Bài viết không tồn tại' };
+    const article = await res.json();
+    
+    // Fallback image if thumbnail is empty
+    const imgUrl = article.thumbnail || 'https://placehold.co/600x400/e2e8f0/1e293b?text=Nha+Khoa+Minh+Sinh';
+    
+    return {
+        title: `${article.title} | Nha Khoa Minh Sinh`,
+        description: article.content ? article.content.replace(/<[^>]+>/g, '').substring(0, 160) + '...' : '',
+        openGraph: {
+            title: article.title,
+            images: [imgUrl],
+        },
+    };
+}
+
+
 async function getArticle(slug: string) {
     const res = await fetch(`http://backend:8000/api/articles/${slug}/`);
     if (!res.ok) {

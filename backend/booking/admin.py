@@ -490,7 +490,54 @@ class ArticleAdminForm(forms.ModelForm):
             
         }
 
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        js_script = """
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const section = document.getElementById("id_section");
+            const category = document.getElementById("id_category");
+            if (!section || !category) return;
+            
+            // Lưu trữ toàn bộ các thẻ option ban đầu
+            const options = Array.from(category.options);
+            
+            // Bản đồ liên kết Khu vực -> Chuyên mục
+            const mapping = {
+                'blog': ['kien-thuc', 'khuyen-mai'],
+                'dich-vu': ['nieng-rang', 'nho-rang'],
+                'thong-tin': [] // Thêm category nếu có
+            };
+            
+            function updateCategories() {
+                const val = section.value;
+                const allowed = mapping[val] || [];
+                
+                // Xóa list hiện tại và nạp lại tùy chọn hợp lệ
+                category.innerHTML = '';
+                options.forEach(opt => {
+                    if (opt.value === '' || allowed.includes(opt.value)) {
+                        category.appendChild(opt);
+                    }
+                });
+                
+                // Reset ô chọn nếu dữ liệu cũ không còn phù hợp
+                if (!allowed.includes(category.value) && category.value !== '') {
+                    category.value = '';
+                }
+            }
+            
+            section.addEventListener("change", updateCategories);
+            updateCategories(); // Quét ngay khi tải trang
+        });
+        </script>
+        """
+        if 'category' in self.fields:
+            self.fields['category'].help_text = mark_safe((self.fields['category'].help_text or '') + js_script)
+
 @admin.register(Article)
+
 
 class ArticleAdmin(BaseRBACAdmin):
     form = ArticleAdminForm
@@ -644,7 +691,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return form
 
 
-    list_display = ('title', 'slug', 'user', 'created_on')
+    list_display = ('title', 'section', 'category', 'slug', 'user', 'created_on')
     search_fields = ('title', 'slug')
     list_filter = ('created_on',)
     prepopulated_fields = {'slug': ('title',)}
