@@ -36,9 +36,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                     // Set slug if prepopulated field JS is not triggering
                     var slugInput = document.getElementById('id_slug');
-                    if (slugInput && !slugInput.value && typeof URLify !== 'undefined') {
-                        slugInput.value = URLify(data.title, 50, true);
-                    }
+                    if (slugInput && !slugInput.value && data.slug) { slugInput.value = data.slug; }
 
                     // Set content in Rich Text Editor
                     const contentHtml = data.content;

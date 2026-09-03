@@ -2,7 +2,7 @@ from django.utils import timezone
 # -*- coding: utf-8 -*-
 
 from django.shortcuts import get_object_or_404, render
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.core.exceptions import PermissionDenied
@@ -101,6 +101,7 @@ import urllib.request
 import json
 from django.core.cache import cache
 from django import forms
+from tinymce.widgets import TinyMCE
 
 def get_vietqr_banks():
     choices = cache.get('vietqr_bank_choices')
@@ -143,7 +144,7 @@ from import_export.admin import ImportExportModelAdmin, ImportExportActionModelA
 from import_export.formats.base_formats import XLSX, CSV
 from django.urls import path
 from django.shortcuts import get_object_or_404, render
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.http import HttpResponse
 
 class ServiceCategoryResource(resources.ModelResource):
@@ -340,6 +341,7 @@ class EmployeeAdmin(BaseRBACAdmin):
         super().save_model(request, obj, form, change)
 
 from django import forms
+from tinymce.widgets import TinyMCE
 
 class BookingAdminForm(forms.ModelForm):
     custom_service_code = forms.ChoiceField(
@@ -361,6 +363,9 @@ class BookingAdminForm(forms.ModelForm):
     class Meta:
         model = Booking
         fields = '__all__'
+        widgets = {
+            
+        }
 
     def clean_actual_price(self):
         val = self.cleaned_data.get('actual_price')
@@ -370,11 +375,15 @@ class BookingAdminForm(forms.ModelForm):
         return val
 
 from django import forms
+from tinymce.widgets import TinyMCE
 
 class BookingDetailInlineForm(forms.ModelForm):
     class Meta:
         model = BookingDetail
         fields = '__all__'
+        widgets = {
+            
+        }
         widgets = {
             'actual_price': forms.TextInput(attrs={'class': 'formatted-price', 'type': 'text'}),
         }
@@ -430,10 +439,121 @@ class InventoryUsageAdmin(BaseRBACAdmin):
     list_filter = ('created_on',)
     search_fields = ('booking__customer__name', 'item__item_name', 'employee__full_name')
 
+
+from django.contrib.admin.widgets import AdminFileWidget
+from django.utils.safestring import mark_safe
+
+class CustomCloudinaryWidget(AdminFileWidget):
+    def render(self, name, value, attrs=None, renderer=None):
+        output = []
+        
+        # 1. Nếu có ảnh đã lưu: Hiện ảnh (click để phóng to) và Tên file
+        if value and hasattr(value, 'url'):
+            # Trích xuất tên file từ Cloudinary ID
+            file_name = str(value).split('/')[-1] if value else 'Đã tải lên'
+            
+            output.append(f'''
+                <div style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px dashed #4b5563; width: fit-content;">
+                    <a href="{value.url}" target="_blank" style="display: block; cursor: zoom-in; border-radius: 4px; overflow: hidden; margin-bottom: 8px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                        <img src="{value.url}" style="max-height: 200px; display: block;" title="Nhấn để phóng to ảnh" />
+                    </a>
+                    <div style="font-size: 13px; color: #9ca3af; display: flex; align-items: center; gap: 6px;">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"></path></svg>
+                        {file_name}
+                    </div>
+                </div>
+            ''')
+            
+        # 2. Render input chọn file (thêm CSS class để đồng bộ theme Unfold)
+        output.append(super().render(name, value, attrs, renderer))
+        
+        return mark_safe(''.join(output))
+
+class ArticleAdminForm(forms.ModelForm):
+    thumbnail = forms.FileField(
+        widget=CustomCloudinaryWidget(),
+        required=False,
+        label="Ảnh Thumbnail (Tải lên)"
+    )
+    content = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}), 
+        label="Nội dung",
+        required=False
+    )
+
+    class Meta:
+        model = Article
+        fields = '__all__'
+        widgets = {
+        }
+        widgets = {
+            
+        }
+
 @admin.register(Article)
+
 class ArticleAdmin(BaseRBACAdmin):
+    form = ArticleAdminForm
     class Media:
-        js = ('js/parse_docx.js',)
+        js = (
+            'js/parse_docx.js',
+            'js/preview_cloudinary.js',
+            'tinymce/tinymce.min.js',
+            'django_tinymce/init_tinymce.js',
+        )
+    def get_form(self, request, obj=None, **kwargs):
+        css_style = """
+<style>
+    .field-thumbnail input[type="file"] {
+        color: transparent;
+    }
+    .field-thumbnail input[type="file"]::-webkit-file-upload-button {
+        visibility: hidden;
+    }
+    .field-thumbnail input[type="file"]::before {
+        content: 'Tải ảnh lên (Upload)';
+        display: inline-block;
+        background: #1e293b;
+        color: white;
+        border: 1px solid #999;
+        border-radius: 6px;
+        padding: 8px 16px;
+        outline: none;
+        white-space: nowrap;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    .field-thumbnail input[type="file"]:hover::before {
+        background: #334155;
+    }
+</style>
+<script src="https://media-library.cloudinary.com/global/all.js"></script>
+"""
+        from django.utils.safestring import mark_safe
+        form = super().get_form(request, obj, **kwargs)
+        js_click_image = """
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                setTimeout(function() {
+                    let images = document.querySelectorAll('.form-row img');
+                    images.forEach(function(img) {
+                        img.style.cursor = 'zoom-in';
+                        img.title = 'Click để xem kích thước đầy đủ';
+                        img.addEventListener('click', function() {
+                            window.open(img.src, '_blank');
+                        });
+                    });
+                }, 1000);
+            });
+        </script>
+        """
+        if 'title' in form.base_fields:
+            if not form.base_fields['title'].help_text:
+                form.base_fields['title'].help_text = ''
+            form.base_fields['title'].help_text += mark_safe(js_click_image)
+        return form
+
 
     list_display = ('title', 'slug', 'user', 'created_on')
     search_fields = ('title', 'slug')

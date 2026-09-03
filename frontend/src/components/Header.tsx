@@ -35,9 +35,9 @@ export default function Header() {
 
           {/* CTA Button */}
           <div className="flex items-center">
-            <Link 
-              href="/booking" 
-              className="px-6 py-2.5 bg-[#1a3636] hover:bg-[#254d4d] text-white font-semibold rounded-full transition-all shadow-md hover:shadow-lg"
+            <Link
+              href="/booking"
+              className="px-6 py-2.5 bg-[rgb(37,99,235)] hover:bg-[rgb(29,78,216)] text-white font-semibold rounded-full transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-[0_8px_20px_rgb(37,99,235,0.4)]"
             >
               Đặt lịch ngay
             </Link>

@@ -39,8 +39,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'storages',
     'import_export',
-    'ckeditor',
-    'ckeditor_uploader',
+    'tinymce',
     
     # Local apps
     'booking',
@@ -150,7 +149,7 @@ CKEDITOR_UPLOAD_PATH = 'uploads/'
 CKEDITOR_CONFIGS = {
     'default': {
         'skin': 'moono-lisa',
-        'toolbar': 'full',
+        'toolbar': '|f|u|l|l|',
         'height': 500,
         'width': '100%',
         'tabSpaces': 4,
@@ -425,7 +424,18 @@ LOGOUT_REDIRECT_URL = '/admin/login/'
 import os
 import cloudinary
 import cloudinary.uploader
+
+import cloudinary
+import cloudinary.uploader
 import cloudinary.api
+
+cloudinary.config(
+    cloud_name = env('CLOUDINARY_CLOUD_NAME', default='ocsxoyvj'),
+    api_key = env('CLOUDINARY_API_KEY', default='232447424347271'),
+    api_secret = env('CLOUDINARY_API_SECRET', default='tHlaDqFUGSsD49K6nF35ViZSpk8'),
+    secure = True
+)
+
 
 # C?u hình luu tr? file upload (Media) lên Cloudinary
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -433,3 +443,26 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+
+TINYMCE_DEFAULT_CONFIG = {
+    'height': 600,
+    'menubar': 'file edit view insert format tools table help',
+    'plugins': 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
+    'toolbar': 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | removeformat | fullscreen preview',
+    'paste_data_images': True,
+    'images_upload_url': '/tinymce/upload/', 
+    'file_picker_callback': f'''function (cb, value, meta) {{
+        window.cloudinary.createMediaLibrary({{
+            cloud_name: '{env("CLOUDINARY_CLOUD_NAME", default="ocsxoyvj")}',
+            api_key: '{env("CLOUDINARY_API_KEY", default="232447424347271")}',
+            multiple: false
+        }}, {{
+            insertHandler: function (data) {{
+                data.assets.forEach(asset => {{
+                    cb(asset.secure_url, {{ title: asset.public_id }});
+                }});
+            }}
+        }}).show();
+    }}''',
+}

@@ -1,5 +1,7 @@
+import requests
 # -*- coding: utf-8 -*-
 from django.db import models
+from cloudinary.models import CloudinaryField
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib import admin
@@ -188,7 +190,7 @@ class InventoryUsage(models.Model):
     class Meta:
         db_table = 'db_table_inventory_usage'
 
-from ckeditor_uploader.fields import RichTextUploadingField
+from tinymce.models import HTMLField
 
 class Article(models.Model):
     article_id = models.AutoField(primary_key=True)
@@ -198,8 +200,8 @@ class Article(models.Model):
     ]
     title = models.CharField(max_length=255, verbose_name="Tiêu đề")
     slug = models.SlugField(max_length=255, unique=True)
-    content = RichTextUploadingField(verbose_name="Nội dung")
-    thumbnail_url = models.TextField(blank=True, null=True)
+    content = HTMLField(verbose_name="Nội dung")
+    thumbnail = CloudinaryField("Ảnh Thumbnail (Tải lên)", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
     word_file = models.FileField(upload_to='temp/', null=True, blank=True, verbose_name="Tải lên File Word (.docx)")
@@ -210,6 +212,11 @@ class Article(models.Model):
     focus_keyword = models.CharField(max_length=255, blank=True, null=True, verbose_name="Focus Keyword")
     
     created_on = models.DateTimeField(auto_now_add=True)
+    def get_absolute_url(self):
+        if getattr(self, 'status', '') == 'Draft':
+            return f"http://localhost:3000/blog-demo/{self.slug}?preview=admin_secret_123"
+        return f"http://localhost:3000/blog/{self.slug}"
+
 
     class Meta:
         db_table = 'db_table_articles'

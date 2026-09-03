@@ -1,4 +1,6 @@
-﻿from django.utils import timezone
+from unidecode import unidecode
+from django.utils.text import slugify
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -356,7 +358,58 @@ def parse_docx_api(request):
                     html_content.append(f"<p>{para_html}</p>")
             
             content_html = "\n".join(html_content)
-            return JsonResponse({'status': 'success', 'title': title, 'content': content_html})
+            clean_title = unidecode(title)
+            slug = slugify(clean_title)
+            return JsonResponse({'status': 'success', 'title': title, 'slug': slug, 'content': content_html})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import cloudinary.uploader
+import traceback
+
+@csrf_exempt
+def tinymce_upload(request):
+    if request.method == "POST":
+        upload_file = request.FILES.get('file')
+        if not upload_file:
+            return JsonResponse({'error': 'Lỗi: Request không có chứa tệp nào (Missing File)'}, status=400)
+        
+        try:
+            result = cloudinary.uploader.upload(upload_file)
+            return JsonResponse({'location': result['secure_url']})
+        except Exception as e:
+            # IN TOÀN BỘ LỖI RA TERMINAL ĐỂ DEBUG
+            print("=== LỖI UPLOAD TINYMCE ===")
+            print(traceback.format_exc())
+            print("==========================")
+            return JsonResponse({'error': f'Server Crash: {str(e)}'}, status=500)
+            
+    return JsonResponse({'error': 'Sai method'}, status=400)
+
+from django.shortcuts import get_object_or_404
+from .models import Article
+
+def article_detail_api(request, slug):
+    article = get_object_or_404(Article, slug=slug)
+    
+    preview_token = request.GET.get('preview')
+    
+    if hasattr(article, 'status'):
+        if article.status == 'Draft':
+            # Check if preview token is present
+            if preview_token != 'admin_secret_123' and not request.user.is_staff:
+                return JsonResponse({'error': 'Not found'}, status=404)
+                
+    data = {
+        'id': article.article_id,
+        'title': article.title,
+        'slug': article.slug,
+        'content': article.content,
+        'thumbnail': article.thumbnail.url if getattr(article, 'thumbnail', None) else None,
+        'is_draft': getattr(article, 'status', '') == 'Draft',
+    }
+    return JsonResponse(data)

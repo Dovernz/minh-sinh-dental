@@ -2,6 +2,7 @@
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import admin
 from django.urls import path, include
+from booking.views import tinymce_upload
 from django.contrib.auth import views as auth_views
 
 @staff_member_required
@@ -26,7 +27,8 @@ urlpatterns = [
     path('admin/booking-embed/', admin_booking_embed_view, name='admin_booking_embed'),
     path('admin/', admin.site.urls),
     path('api/', include('booking.urls')),
-    path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('tinymce/', include('tinymce.urls')),
+    path('tinymce/upload/', tinymce_upload, name='tinymce-upload'),
 ]
 
 admin.site.site_header = "Nha Khoa Minh Sinh"
@@ -34,3 +36,4 @@ admin.site.site_title = "Nha Khoa Minh Sinh"
 admin.site.index_title = "Bảng điều khiển"
 
 import core.admin
+
