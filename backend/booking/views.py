@@ -1,3 +1,5 @@
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
 from django.db.models import Q
 from django.conf import settings
 from unidecode import unidecode
@@ -511,3 +513,41 @@ class ArticleDetailView(View):
                 except Exception: pass
             return JsonResponse({"id": article.pk, "title": getattr(article, 'title', ''), "content": getattr(article, 'content', ''), "thumbnail": thumb_url, "category_name": article.category.title if getattr(article, 'category', None) else ""})
         except Exception as e: return JsonResponse({"error": str(e)}, status=404)
+
+
+def send_booking_email(booking):
+    try:
+        from django.utils import timezone
+        patient = getattr(booking, 'customer', None)
+        if not patient or not getattr(patient, 'email', None): return
+        
+        subject = f"Xác nhận lịch hẹn tại Nha Khoa Minh Sinh - {getattr(patient, 'name', '')}"
+        
+        local_time = timezone.localtime(booking.start_time) if booking.start_time else None
+        time_str = local_time.strftime('%H:%M') if local_time else '...'
+        date_str = local_time.strftime('%d/%m/%Y') if local_time else '...'
+        clinic_name = booking.clinic.name if hasattr(booking, 'clinic') and booking.clinic else 'Nha Khoa Minh Sinh'
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #1e3a8a; margin: 0;">Xác nhận đặt lịch khám</h2>
+                <p style="color: #64748b; margin-top: 5px;">Nha Khoa Minh Sinh</p>
+            </div>
+            <p>Chào <b>{getattr(patient, 'name', '')}</b>,</p>
+            <p>Cảm ơn bạn đã tin tưởng và đặt lịch. Dưới đây là thông tin chi tiết lịch hẹn của bạn:</p>
+            <div style="background: #f8fafc; padding: 15px 25px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 8px 0;"><b>Mã số khám (Booking ID):</b> <span style="color: #2563eb;">#{booking.booking_id}</span></p>
+                <p style="margin: 8px 0;"><b>Thời gian:</b> {time_str} | Ngày {date_str}</p>
+                <p style="margin: 8px 0;"><b>Cơ sở:</b> {clinic_name}</p>
+            </div>
+            <p>Vui lòng đến trước 10 phút để đội ngũ lễ tân chuẩn bị đón tiếp bạn được chu đáo nhất.</p>
+            <p style="margin-top: 30px;">Trân trọng,<br><b style="color: #1e3a8a;">Nha Khoa Minh Sinh</b></p>
+        </div>
+        """
+        text_content = strip_tags(html_content)
+        msg = EmailMultiAlternatives(subject, text_content, None, [patient.email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send(fail_silently=True)
+    except Exception as e:
+        print("Lỗi gửi mail xác nhận:", e)

@@ -486,4 +486,4 @@ TINYMCE_DEFAULT_CONFIG = {
     }}''',
 }
 # Default password for auto-created employee accounts
-DEFAULT_EMPLOYEE_PASSWORD = env('DEFAULT_EMPLOYEE_PASSWORD', default='password123')
+DEFAULT_EMPLOYEE_PASSWORD = env('DEFAULT_EMPLOYEE_PASSWORD', default='')
