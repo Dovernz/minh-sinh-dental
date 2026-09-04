@@ -1,3 +1,5 @@
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 # -*- coding: utf-8 -*-
 
@@ -9,6 +11,11 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from .models import BookingDetail, Billing
+
+from django import forms
+from django.db.models import Max
+from .models import MenuLink, SiteSettings, ClinicBranch, SocialLink
+
 from .models import (
     Clinic, ServiceCategory, ServiceDetail, TimeSlot, Customer, Employee, 
     Booking, BookingStatusHistory, Payment, TopupInfo,
@@ -491,50 +498,92 @@ class ArticleAdminForm(forms.ModelForm):
         }
 
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        js_script = """
+        if 'category' not in self.fields: return
+
+        from .models import MenuLink
+        mapping = {}
+        parents = {}
+        for child in MenuLink.objects.filter(parent__isnull=False).select_related('parent'):
+            pid = str(child.parent_id)
+            if pid not in mapping: 
+                mapping[pid] = []
+                parents[pid] = child.parent.title
+            mapping[pid].append({'id': child.id, 'title': child.title})
+
+        parent_options = '<option value="">-- Bước 1: Chọn Danh mục Cha --</option>'
+        for pid, ptitle in parents.items():
+            parent_options += f'<option value="{pid}">{ptitle}</option>'
+
+        initial_parent = self.instance.category.parent_id if self.instance and hasattr(self.instance, 'category') and self.instance.category else ''
+
+        js = f"""
+        
+        <style>
+            /* Ép màu nền tối và chữ sáng cho các mục xổ xuống */
+            #custom_parent_filter option, select[name="category"] option {{
+                background-color: #1e293b !important;
+                color: #f8fafc !important;
+            }}
+        
+            /* Xóa mũi tên SVG trôi nổi */
+            .field-category .pointer-events-none {{{{ display: none !important; }}}}
+            /* Trả lại mũi tên mặc định */
+            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
+
+</style>
+        <div id="custom_parent_filter_wrapper" style="margin-bottom: 12px;">
+            
+            <select id="custom_parent_filter" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #374151; background-color: transparent; color: inherit; appearance: none;">
+                {parent_options}
+            </select>
+        </div>
         <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const section = document.getElementById("id_section");
-            const category = document.getElementById("id_category");
-            if (!section || !category) return;
-            
-            // Lưu trữ toàn bộ các thẻ option ban đầu
-            const options = Array.from(category.options);
-            
-            // Bản đồ liên kết Khu vực -> Chuyên mục
-            const mapping = {
-                'blog': ['kien-thuc', 'khuyen-mai'],
-                'dich-vu': ['nieng-rang', 'nho-rang'],
-                'thong-tin': [] // Thêm category nếu có
-            };
-            
-            function updateCategories() {
-                const val = section.value;
-                const allowed = mapping[val] || [];
-                
-                // Xóa list hiện tại và nạp lại tùy chọn hợp lệ
-                category.innerHTML = '';
-                options.forEach(opt => {
-                    if (opt.value === '' || allowed.includes(opt.value)) {
-                        category.appendChild(opt);
-                    }
-                });
-                
-                // Reset ô chọn nếu dữ liệu cũ không còn phù hợp
-                if (!allowed.includes(category.value) && category.value !== '') {
-                    category.value = '';
-                }
-            }
-            
-            section.addEventListener("change", updateCategories);
-            updateCategories(); // Quét ngay khi tải trang
-        });
+        document.addEventListener("DOMContentLoaded", function() {{
+            var mapping = {json.dumps(mapping)};
+            var initialParent = "{initial_parent}";
+            var filterDiv = document.getElementById("custom_parent_filter_wrapper");
+            var parentSel = document.getElementById("custom_parent_filter");
+            var childSel = document.querySelector('select[name="category"]');
+
+            if (!parentSel || !childSel || !filterDiv) return;
+
+            childSel.parentNode.insertBefore(filterDiv, childSel);
+            // Ép ẩn cụm nút công cụ liên kết
+            if (childSel.parentNode) {{
+                var links = childSel.parentNode.querySelectorAll("a");
+                links.forEach(function(l) {{ l.style.display = "none"; }});
+            }}
+    
+            if (initialParent) parentSel.value = initialParent;
+
+            function update() {{
+                var pid = parentSel.value;
+                var currentChildVal = childSel.value;
+                childSel.innerHTML = '<option value="">-- Bước 2: Chọn Danh mục Con --</option>';
+                if (pid && mapping[pid]) {{
+                    mapping[pid].forEach(function(c) {{
+                        var opt = document.createElement("option");
+                        opt.value = c.id;
+                        opt.textContent = c.title;
+                        if (c.id == currentChildVal) opt.selected = true;
+                        childSel.appendChild(opt);
+                    }});
+                }}
+            }}
+
+            parentSel.addEventListener("change", function() {{
+                childSel.value = "";
+                update();
+            }});
+            setTimeout(update, 50);
+        }});
         </script>
         """
-        if 'category' in self.fields:
-            self.fields['category'].help_text = mark_safe((self.fields['category'].help_text or '') + js_script)
+        self.fields['category'].help_text = mark_safe(js)
+
 
 @admin.register(Article)
 
@@ -551,13 +600,13 @@ class ArticleAdmin(BaseRBACAdmin):
     def get_form(self, request, obj=None, **kwargs):
         css_style = """
 <style>
-    .field-thumbnail input[type="file"] {
+    .field-thumbnail input[type="file"] {{
         color: transparent;
-    }
-    .field-thumbnail input[type="file"]::-webkit-file-upload-button {
+    }}
+    .field-thumbnail input[type="file"]::-webkit-file-upload-button {{
         visibility: hidden;
-    }
-    .field-thumbnail input[type="file"]::before {
+    }}
+    .field-thumbnail input[type="file"]::before {{
         content: 'Tải ảnh lên (Upload)';
         display: inline-block;
         background: #1e293b;
@@ -570,10 +619,16 @@ class ArticleAdmin(BaseRBACAdmin):
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
-    }
-    .field-thumbnail input[type="file"]:hover::before {
+    }}
+    .field-thumbnail input[type="file"]:hover::before {{
         background: #334155;
-    }
+    }}
+
+            /* Xóa mũi tên SVG trôi nổi */
+            .field-category .pointer-events-none {{{{ display: none !important; }}}}
+            /* Trả lại mũi tên mặc định */
+            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
+
 </style>
 <script src="https://media-library.cloudinary.com/global/all.js"></script>
 """
@@ -602,13 +657,19 @@ class ArticleAdmin(BaseRBACAdmin):
 
 <style>
     /* Giao diện Popup cắt ảnh */
-    #cropModal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
-    #cropContainer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; text-align: center; }
-    #imageToCrop { max-width: 100%; max-height: 60vh; display: block; margin: 0 auto 15px auto; }
-    .crop-btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-    .btn-confirm { background-color: #2563eb; color: white; }
-    .btn-cancel { background-color: #ef4444; color: white; }
-    #cropPreview { display: none; margin-top: 15px; max-width: 250px; border-radius: 8px; border: 2px dashed #2563eb; }
+    #cropModal {{ display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }}
+    #cropContainer {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; text-align: center; }}
+    #imageToCrop {{ max-width: 100%; max-height: 60vh; display: block; margin: 0 auto 15px auto; }}
+    .crop-btn {{ padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }}
+    .btn-confirm {{ background-color: #2563eb; color: white; }}
+    .btn-cancel {{ background-color: #ef4444; color: white; }}
+    #cropPreview {{ display: none; margin-top: 15px; max-width: 250px; border-radius: 8px; border: 2px dashed #2563eb; }}
+
+            /* Xóa mũi tên SVG trôi nổi */
+            .field-category .pointer-events-none {{{{ display: none !important; }}}}
+            /* Trả lại mũi tên mặc định */
+            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
+
 </style>
 
 <div id="cropModal">
@@ -691,7 +752,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return form
 
 
-    list_display = ('title', 'section', 'category', 'slug', 'user', 'created_on')
+    list_display = ('title', 'category', 'slug', 'user', 'created_on')
     search_fields = ('title', 'slug')
     list_filter = ('created_on',)
     prepopulated_fields = {'slug': ('title',)}
@@ -710,6 +771,7 @@ from django.utils.safestring import mark_safe
 
 @admin.register(Billing)
 class BillingAdmin(BaseRBACAdmin):
+
     def has_add_permission(self, request):
         return False
 
@@ -801,3 +863,106 @@ class BillingAdmin(BaseRBACAdmin):
 class BookingDetailAdmin(BaseRBACAdmin):
     list_display = ('booking', 'service_detail')
     search_fields = ('booking__booking_id', 'service_detail__name')
+class MenuLinkInline(TabularInline):
+    model = MenuLink
+    fk_name = 'parent'
+    extra = 0
+    ordering_field = 'order'
+    hide_ordering_field = True
+    fields = ('title', 'url', 'is_active')
+    verbose_name = "Menu con"
+    verbose_name_plural = "Danh sách Menu con"
+
+@admin.register(MenuLink)
+class MenuLinkAdmin(ModelAdmin):
+    list_display = ('title', 'url', 'order', 'is_active')
+    search_fields = ('title',)
+    inlines = [MenuLinkInline]
+    exclude = ('parent',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(parent__isnull=True)
+
+class ClinicBranchInline(TabularInline):
+    model = ClinicBranch
+    extra = 0
+    ordering_field = 'order'
+    hide_ordering_field = True
+
+class SocialLinkInline(TabularInline):
+    model = SocialLink
+    extra = 0
+    ordering_field = 'order'
+    hide_ordering_field = True
+
+class SiteSettingsAdminForm(forms.ModelForm):
+    class Meta:
+        model = SiteSettings
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        js_script = """
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof django !== 'undefined' && django.jQuery) {
+                django.jQuery(document).on('formset:added', function(event, $row, formsetName) {
+                    var $orderInput = $row.find('input[name$="-order"]');
+                    if ($orderInput.length) {
+                        var maxOrder = -1;
+                        django.jQuery('input[name^="' + formsetName + '-"][name$="-order"]').not($orderInput).each(function() {
+                            var val = parseInt(django.jQuery(this).val(), 10);
+                            if (!isNaN(val) && val > maxOrder) {
+                                maxOrder = val;
+                            }
+                        });
+                        $orderInput.val(maxOrder + 1);
+                    }
+                });
+            }
+        });
+        </script>
+        """
+        if 'email' in self.fields:
+            self.fields['email'].help_text = mark_safe((self.fields['email'].help_text or '') + js_script)
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(ModelAdmin):
+    form = SiteSettingsAdminForm
+    inlines = [ClinicBranchInline, SocialLinkInline]
+    list_display = ('__str__', 'email')
+    
+    fieldsets = (
+        ("Thông tin liên hệ chính", {
+            "fields": ("email", "working_hours")
+        }),
+        ("Cài đặt Tiêu đề Footer", {
+            "fields": ("branch_section_title", "social_section_title"),
+            "description": "Các tiêu đề này sẽ hiển thị ngay phía trên danh sách Cơ sở và Mạng xã hội tương ứng."
+        }),
+    )
+
+    def changelist_view(self, request, extra_context=None):
+        obj = self.model.objects.first()
+        if obj:
+            url = reverse('admin:%s_%s_change' % (self.model._meta.app_label, self.model._meta.model_name), args=[obj.id])
+            return redirect(url)
+        return super().changelist_view(request, extra_context)
+
+    def has_add_permission(self, request):
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in formset.deleted_objects:
+            obj.delete()
+        for instance in instances:
+            if getattr(instance, 'pk', None) is None and getattr(instance, 'order', None) == 0:
+                model_class = type(instance)
+                max_order = model_class.objects.filter(settings=instance.settings).aggregate(Max('order'))['order__max'] or 0
+                instance.order = max_order + 1
+            instance.save()
+        formset.save_m2m()

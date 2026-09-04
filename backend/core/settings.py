@@ -180,6 +180,24 @@ UNFOLD = {
         "show_search": True,
         "show_all_applications": False,
         "navigation": [
+        {
+            "title": "Cấu hình Web",
+            "icon": "settings",
+            "collapsible": True,
+            "items": [
+                {
+                    "title": "Cấu hình Footer",
+                    "icon": "info",
+                    "link": reverse_lazy("admin:booking_sitesettings_changelist"),
+                },
+                {
+                    "title": "Cấu hình Header",
+                    "icon": "menu",
+                    "link": reverse_lazy("admin:booking_menulink_changelist"),
+                },
+            ],
+        },
+        
             {
                 "title": "Quản lý Booking",
                 "separator": True,

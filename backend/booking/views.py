@@ -1,3 +1,5 @@
+from django.db.models import Q
+from django.conf import settings
 from unidecode import unidecode
 from django.utils.text import slugify
 from django.utils import timezone
@@ -433,3 +435,60 @@ def articles_list_api(request):
             # 'created_on': article.created_on.strftime('%d/%m/%Y') if hasattr(article, 'created_on') else ''
         })
     return JsonResponse(articles_data, safe=False)
+
+from .models import SiteSettings, MenuLink
+from .serializers import SiteSettingsSerializer, MenuLinkSerializer
+
+class SiteSettingsAPIView(APIView):
+    def get(self, request):
+        settings = SiteSettings.objects.first()
+        if not settings:
+            settings = SiteSettings.objects.create()
+        serializer = SiteSettingsSerializer(settings)
+        return Response(serializer.data)
+
+class MenuLinkListAPIView(generics.ListAPIView):
+    queryset = MenuLink.objects.filter(is_active=True, parent__isnull=True).order_by('order')
+    serializer_class = MenuLinkSerializer
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+
+from django.http import JsonResponse
+from django.views import View
+
+from django.http import JsonResponse
+from django.views import View
+from booking.models import Article
+
+
+class ArticleByCategoryUrlView(View):
+    def get(self, request):
+        try:
+            target_url = request.GET.get('url', '')
+            articles = Article.objects.filter(Q(category__url=target_url) | Q(category__parent__url=target_url)).order_by('-pk').distinct()
+            data = []
+            for a in articles:
+                thumb_url = None
+                if getattr(a, 'thumbnail', None):
+                    try:
+                        url = str(a.thumbnail.url) if hasattr(a.thumbnail, 'url') else str(a.thumbnail)
+                        thumb_url = f'https://res.cloudinary.com/{getattr(settings, "CLOUDINARY_STORAGE", {}).get("CLOUD_NAME", "ocsxoyvj")}/{url}' if not url.startswith('http') and ('upload' in url) else (url if url.startswith('http') else request.build_absolute_uri(url))
+                    except Exception: pass
+                data.append({"id": a.pk, "title": getattr(a, 'title', ''), "slug": getattr(a, 'slug', str(a.pk)), "thumbnail": thumb_url, "category_name": a.category.title if getattr(a, 'category', None) else ""})
+            return JsonResponse(data, safe=False)
+        except Exception as e: return JsonResponse([{"id": 999, "title": f"LỖI API: {str(e)}"}], safe=False)
+
+class ArticleDetailView(View):
+    def get(self, request, slug):
+        try:
+            article = Article.objects.get(slug=slug)
+            thumb_url = None
+            if getattr(article, 'thumbnail', None):
+                try:
+                    url = str(article.thumbnail.url) if hasattr(article.thumbnail, 'url') else str(article.thumbnail)
+                    thumb_url = f'https://res.cloudinary.com/{getattr(settings, "CLOUDINARY_STORAGE", {}).get("CLOUD_NAME", "ocsxoyvj")}/{url}' if not url.startswith('http') and ('upload' in url) else (url if url.startswith('http') else request.build_absolute_uri(url))
+                except Exception: pass
+            return JsonResponse({"id": article.pk, "title": getattr(article, 'title', ''), "content": getattr(article, 'content', ''), "thumbnail": thumb_url, "category_name": article.category.title if getattr(article, 'category', None) else ""})
+        except Exception as e: return JsonResponse({"error": str(e)}, status=404)

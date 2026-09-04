@@ -28,3 +28,31 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
+
+from .models import SiteSettings, MenuLink, ClinicBranch, SocialLink
+
+class ClinicBranchSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = ClinicBranch
+        fields = '__all__'
+
+class SocialLinkSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = SocialLink
+        fields = '__all__'
+
+class SiteSettingsSerializer(serializers.ModelSerializer):
+    branches = ClinicBranchSerializer(many=True, read_only=True)
+    social_links = SocialLinkSerializer(many=True, read_only=True)
+    class Meta: 
+        model = SiteSettings
+        fields = '__all__'
+
+class MenuLinkSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+    class Meta:
+        model = MenuLink
+        fields = ['id', 'title', 'url', 'order', 'parent', 'children']
+    def get_children(self, obj):
+        children = obj.children.filter(is_active=True).order_by('order')
+        return MenuLinkSerializer(children, many=True).data

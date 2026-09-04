@@ -204,20 +204,7 @@ class Article(models.Model):
     thumbnail = CloudinaryField("Ảnh Thumbnail (Tải lên)", blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
-    SECTION_CHOICES = (
-        ('dich-vu', 'Dịch vụ'),
-        ('blog', 'Tin tức & Blog'),
-        ('thong-tin', 'Thông tin phòng khám'),
-    )
-    section = models.CharField(max_length=20, choices=SECTION_CHOICES, default='blog', verbose_name='Khu vực (Menu 1)')
-    
-    CATEGORY_CHOICES = (
-        ('kien-thuc', 'Kiến thức y khoa'),
-        ('khuyen-mai', 'Khuyến mại'),
-        ('nieng-rang', 'Niềng răng - Chỉnh nha'),
-        ('nho-rang', 'Nhổ răng khôn'),
-    )
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='kien-thuc', verbose_name='Chuyên mục')
+    category = models.ForeignKey('MenuLink', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'parent__isnull': False}, verbose_name="Chuyên mục (Menu gốc)")
 
     word_file = CloudinaryField('Tài liệu Word', resource_type='raw', blank=True, null=True)
     
@@ -344,3 +331,50 @@ class Billing(models.Model):
 
     def __str__(self):
         return f"Bill #{self.billing_id} - Booking {self.booking.booking_id}"
+
+class MenuLink(models.Model):
+    title = models.CharField(max_length=100, verbose_name="Tiêu đề Menu")
+    url = models.CharField(max_length=255, verbose_name="Đường dẫn (URL)")
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children', verbose_name="Menu Cha (Để trống nếu là Menu gốc)")
+    order = models.IntegerField(default=0, verbose_name="Thứ tự")
+    is_active = models.BooleanField(default=True, verbose_name="Hiển thị")
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Cấu hình Header"
+        verbose_name_plural = "Cấu hình Header"
+
+    def __str__(self):
+        return f"{self.parent.title} > {self.title}" if self.parent else self.title
+
+class SiteSettings(models.Model):
+    email = models.EmailField(default="contact@minhsinhdental.com", verbose_name="Email")
+    working_hours = models.CharField(max_length=255, default="08:00 - 18:00 (Thứ 2 - CN)", verbose_name="Giờ làm việc")
+    branch_section_title = models.CharField(max_length=100, default="HỆ THỐNG CƠ SỞ", verbose_name="Tiêu đề Cột Cơ sở")
+    social_section_title = models.CharField(max_length=100, default="KẾT NỐI VỚI CHÚNG TÔI", verbose_name="Tiêu đề Cột MXH")
+    
+    class Meta:
+        verbose_name = "Cấu hình Footer"
+        verbose_name_plural = "Cấu hình Footer"
+        
+    def __str__(self):
+        return "Chi tiết Cấu hình Footer"
+
+class ClinicBranch(models.Model):
+    settings = models.ForeignKey(SiteSettings, on_delete=models.CASCADE, related_name='branches')
+    name = models.CharField(max_length=100, default="Cơ sở 1", verbose_name="Tên cơ sở (VD: Trụ sở chính)")
+    address = models.CharField(max_length=255, verbose_name="Địa chỉ")
+    hotline = models.CharField(max_length=20, verbose_name="Hotline")
+    order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
+    
+    class Meta: 
+        ordering = ['order']
+
+class SocialLink(models.Model):
+    settings = models.ForeignKey(SiteSettings, on_delete=models.CASCADE, related_name='social_links')
+    name = models.CharField(max_length=50, verbose_name="Tên MXH (VD: Facebook, Zalo)")
+    url = models.URLField(verbose_name="Đường dẫn")
+    order = models.IntegerField(default=0, verbose_name="Thứ tự")
+    
+    class Meta: 
+        ordering = ['order']
