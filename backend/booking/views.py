@@ -463,18 +463,29 @@ from django.views import View
 from booking.models import Article
 
 
+
 class ArticleByCategoryUrlView(View):
     def get(self, request):
         try:
-            target_url = request.GET.get('url', '')
-            articles = Article.objects.filter(Q(category__url=target_url) | Q(category__parent__url=target_url)).order_by('-pk').distinct()
+            target_url = request.GET.get('url', '').rstrip('/')
+            if not target_url:
+                target_url = '/'
+
+            # Lọc bài viết thuộc mục hiện tại HOẶC mục con, bao trùm cả trường hợp có/không có dấu '/'
+            articles = Article.objects.filter(
+                Q(category__url=target_url) | 
+                Q(category__url=target_url + '/') |
+                Q(category__parent__url=target_url) |
+                Q(category__parent__url=target_url + '/')
+            ).order_by('-pk').distinct()
+            
             data = []
             for a in articles:
                 thumb_url = None
                 if getattr(a, 'thumbnail', None):
                     try:
                         url = str(a.thumbnail.url) if hasattr(a.thumbnail, 'url') else str(a.thumbnail)
-                        thumb_url = f'https://res.cloudinary.com/{getattr(settings, "CLOUDINARY_STORAGE", {}).get("CLOUD_NAME", "ocsxoyvj")}/{url}' if not url.startswith('http') and ('upload' in url) else (url if url.startswith('http') else request.build_absolute_uri(url))
+                        thumb_url = f"https://res.cloudinary.com/{getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', 'ocsxoyvj')}/{url}" if not url.startswith('http') and 'upload' in url else (url if url.startswith('http') else request.build_absolute_uri(url))
                     except Exception: pass
                 data.append({"id": a.pk, "title": getattr(a, 'title', ''), "slug": getattr(a, 'slug', str(a.pk)), "thumbnail": thumb_url, "category_name": a.category.title if getattr(a, 'category', None) else ""})
             return JsonResponse(data, safe=False)
