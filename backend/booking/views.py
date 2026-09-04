@@ -464,19 +464,17 @@ from booking.models import Article
 
 
 
+
 class ArticleByCategoryUrlView(View):
     def get(self, request):
         try:
             target_url = request.GET.get('url', '').rstrip('/')
-            if not target_url:
-                target_url = '/'
-
-            # Lọc bài viết thuộc mục hiện tại HOẶC mục con, bao trùm cả trường hợp có/không có dấu '/'
+            if not target_url: target_url = '/'
+                
+            from django.db.models import Q
             articles = Article.objects.filter(
-                Q(category__url=target_url) | 
-                Q(category__url=target_url + '/') |
-                Q(category__parent__url=target_url) |
-                Q(category__parent__url=target_url + '/')
+                Q(category__url=target_url) | Q(category__url=target_url + '/') |
+                Q(category__parent__url=target_url) | Q(category__parent__url=target_url + '/')
             ).order_by('-pk').distinct()
             
             data = []
@@ -485,11 +483,21 @@ class ArticleByCategoryUrlView(View):
                 if getattr(a, 'thumbnail', None):
                     try:
                         url = str(a.thumbnail.url) if hasattr(a.thumbnail, 'url') else str(a.thumbnail)
+                        from django.conf import settings
                         thumb_url = f"https://res.cloudinary.com/{getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', 'ocsxoyvj')}/{url}" if not url.startswith('http') and 'upload' in url else (url if url.startswith('http') else request.build_absolute_uri(url))
                     except Exception: pass
                 data.append({"id": a.pk, "title": getattr(a, 'title', ''), "slug": getattr(a, 'slug', str(a.pk)), "thumbnail": thumb_url, "category_name": a.category.title if getattr(a, 'category', None) else ""})
-            return JsonResponse(data, safe=False)
-        except Exception as e: return JsonResponse([{"id": 999, "title": f"LỖI API: {str(e)}"}], safe=False)
+            
+            # Khởi tạo Tiêu đề rỗng, truy xuất Database Cấu hình Header
+            page_title = ""
+            try:
+                from booking.models import MenuLink
+                menu = MenuLink.objects.filter(Q(url=target_url) | Q(url=target_url + '/')).first()
+                if menu: page_title = getattr(menu, 'title', '')
+            except Exception: pass
+            
+            return JsonResponse({"page_title": page_title, "articles": data}, safe=False)
+        except Exception as e: return JsonResponse({"error": str(e), "articles": []}, status=500)
 
 class ArticleDetailView(View):
     def get(self, request, slug):

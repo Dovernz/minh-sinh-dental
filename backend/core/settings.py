@@ -179,28 +179,9 @@ UNFOLD = {
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
-        "navigation": [
-        {
-            "title": "Cấu hình Web",
-            "icon": "settings",
-            "collapsible": True,
-            "items": [
-                {
-                    "title": "Cấu hình Footer",
-                    "icon": "info",
-                    "link": reverse_lazy("admin:booking_sitesettings_changelist"),
-                },
-                {
-                    "title": "Cấu hình Header",
-                    "icon": "menu",
-                    "link": reverse_lazy("admin:booking_menulink_changelist"),
-                },
-            ],
-        },
-        
+        "navigation": [       
             {
                 "title": "Quản lý Booking",
-                "separator": True,
                 "collapsible": True,
                 "items": [
                     {
@@ -303,12 +284,45 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Bài viết & Marketing",
+                "icon": "campaign",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Bài viết",
+                        "icon": "article",
+                        "link": "/admin/booking/article/",
+                    },
+                ],
+            },
+            {
+                "title": "Cấu hình Web",
+                "icon": "settings",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Cấu hình Header",
+                        "icon": "info",
+                        "link": reverse_lazy("admin:booking_menulink_changelist"),
+                    },
+
+                    {
+                        "title": "Cấu hình Footer",
+                        "icon": "info",
+                        "link": reverse_lazy("admin:booking_sitesettings_changelist"),
+                    },
+
+                ],
+            },
+            {
                 "title": "Hệ thống & Quản trị User",
                 "separator": True,
                 "collapsible": True,
                 "items": [
                     {
-                        "title": "Quản trị viên (Users)",
+                        "title": "Quản trị Users (Users)",
                         "icon": "manage_accounts",
                         "link": "/admin/auth/user/",
                     },
@@ -321,19 +335,6 @@ UNFOLD = {
                         "title": "Nhân viên",
                         "icon": "badge",
                         "link": "/admin/booking/employee/",
-                    },
-                ],
-            },
-            {
-                "title": "Marketing",
-                "icon": "campaign",
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Bài viết",
-                        "icon": "article",
-                        "link": "/admin/booking/article/",
                     },
                 ],
             },
@@ -431,9 +432,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ctt130303@gmail.com'  # Thay bằng email thật
-EMAIL_HOST_PASSWORD = 'ebju xwfb qvja ffrh' # Mật khẩu ứng dụng
-DEFAULT_FROM_EMAIL = 'Nha Khoa Minh Sinh <ctt130303@gmail.com>'
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')  # Thay bằng email thật
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='') # Mật khẩu ứng dụng
+DEFAULT_FROM_EMAIL = f'Nha Khoa Minh Sinh <{EMAIL_HOST_USER}>'
 
 # Điều hÆ°á»›ng sau khi ÄÄƒng nhập/ÄÄƒng xuất
 LOGIN_REDIRECT_URL = '/admin/'
@@ -448,9 +449,9 @@ import cloudinary.uploader
 import cloudinary.api
 
 cloudinary.config(
-    cloud_name = env('CLOUDINARY_CLOUD_NAME', default='ocsxoyvj'),
-    api_key = env('CLOUDINARY_API_KEY', default='232447424347271'),
-    api_secret = env('CLOUDINARY_API_SECRET', default='tHlaDqFUGSsD49K6nF35ViZSpk8'),
+    cloud_name = env('CLOUDINARY_CLOUD_NAME', default=''),
+    api_key = env('CLOUDINARY_API_KEY', default=''),
+    api_secret = env('CLOUDINARY_API_SECRET', default=''),
     secure = True
 )
 
@@ -472,8 +473,8 @@ TINYMCE_DEFAULT_CONFIG = {
     'images_upload_url': '/tinymce/upload/', 
     'file_picker_callback': f'''function (cb, value, meta) {{
         window.cloudinary.createMediaLibrary({{
-            cloud_name: '{env("CLOUDINARY_CLOUD_NAME", default="ocsxoyvj")}',
-            api_key: '{env("CLOUDINARY_API_KEY", default="232447424347271")}',
+            cloud_name: '{env("CLOUDINARY_CLOUD_NAME", default="")}',
+            api_key: '{env("CLOUDINARY_API_KEY", default="")}',
             multiple: false
         }}, {{
             insertHandler: function (data) {{
@@ -484,3 +485,5 @@ TINYMCE_DEFAULT_CONFIG = {
         }}).show();
     }}''',
 }
+# Default password for auto-created employee accounts
+DEFAULT_EMPLOYEE_PASSWORD = env('DEFAULT_EMPLOYEE_PASSWORD', default='password123')

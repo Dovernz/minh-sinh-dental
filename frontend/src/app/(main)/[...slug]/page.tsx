@@ -3,17 +3,29 @@ import Link from 'next/link';
 export default async function GlobalDynamicPage({ params }: { params: Promise<{ slug: string[] }> }) {
     const resolvedParams = await params;
     const currentUrl = '/' + resolvedParams.slug.join('/');
-    const pageName = resolvedParams.slug[resolvedParams.slug.length - 1].replace(/-/g, ' ');
 
     const res = await fetch(`http://backend:8000/api/articles/by-url/?url=${currentUrl}`, { cache: 'no-store' });
-    const articles = res.ok ? await res.json() : [];
+    let data = { page_title: "", articles: [] };
+    if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json)) data.articles = json;
+        else data = json;
+    }
+
+    const articles = data.articles || [];
+
+    // Ưu tiên Tiêu đề từ Cấu hình Header, nếu không có mới tự động dịch từ URL
+    let pageName = data.page_title;
+    if (!pageName) {
+        pageName = resolvedParams.slug[resolvedParams.slug.length - 1].replace(/-/g, ' ');
+    }
 
     return (
         <div className="container mx-auto py-12 px-4 max-w-6xl">
-            <h1 className="text-3xl font-bold mb-8 text-blue-900 uppercase capitalize">{pageName}</h1>
-
+            <h1 className="text-3xl md:text-4xl font-bold mb-12 text-blue-900 uppercase text-center tracking-wide">{pageName}</h1>
+            
             {articles.length === 0 ? (
-                <p className="text-gray-500">Nội dung chuyên mục này đang được cập nhật...</p>
+                <p className="text-gray-500 text-center">Nội dung chuyên mục này đang được cập nhật...</p>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {articles.map((article: any) => (

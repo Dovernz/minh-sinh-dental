@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -335,7 +336,7 @@ class EmployeeAdmin(BaseRBACAdmin):
             
         if not change:
             username = obj.phone or obj.email or f"user_{obj.employee_id}"
-            new_user = User.objects.create_user(username=username, password='password123')
+            new_user = User.objects.create_user(username=username, password=getattr(settings, 'DEFAULT_EMPLOYEE_PASSWORD', 'password123'))
             obj.user = new_user
             
         if obj.user and obj.role:
