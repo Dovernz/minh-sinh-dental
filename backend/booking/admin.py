@@ -522,19 +522,7 @@ class ArticleAdminForm(forms.ModelForm):
 
         js = f"""
         
-        <style>
-            /* Ép màu nền tối và chữ sáng cho các mục xổ xuống */
-            #custom_parent_filter option, select[name="category"] option {{
-                background-color: #1e293b !important;
-                color: #f8fafc !important;
-            }}
         
-            /* Xóa mũi tên SVG trôi nổi */
-            .field-category .pointer-events-none {{{{ display: none !important; }}}}
-            /* Trả lại mũi tên mặc định */
-            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
-
-</style>
         <div id="custom_parent_filter_wrapper" style="margin-bottom: 12px;">
             
             <select id="custom_parent_filter" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #374151; background-color: transparent; color: inherit; appearance: none;">
@@ -600,37 +588,7 @@ class ArticleAdmin(BaseRBACAdmin):
         )
     def get_form(self, request, obj=None, **kwargs):
         css_style = """
-<style>
-    .field-thumbnail input[type="file"] {{
-        color: transparent;
-    }}
-    .field-thumbnail input[type="file"]::-webkit-file-upload-button {{
-        visibility: hidden;
-    }}
-    .field-thumbnail input[type="file"]::before {{
-        content: 'Tải ảnh lên (Upload)';
-        display: inline-block;
-        background: #1e293b;
-        color: white;
-        border: 1px solid #999;
-        border-radius: 6px;
-        padding: 8px 16px;
-        outline: none;
-        white-space: nowrap;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 14px;
-    }}
-    .field-thumbnail input[type="file"]:hover::before {{
-        background: #334155;
-    }}
 
-            /* Xóa mũi tên SVG trôi nổi */
-            .field-category .pointer-events-none {{{{ display: none !important; }}}}
-            /* Trả lại mũi tên mặc định */
-            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
-
-</style>
 <script src="https://media-library.cloudinary.com/global/all.js"></script>
 """
         from django.utils.safestring import mark_safe
@@ -656,22 +614,7 @@ class ArticleAdmin(BaseRBACAdmin):
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-<style>
-    /* Giao diện Popup cắt ảnh */
-    #cropModal {{ display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }}
-    #cropContainer {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; text-align: center; }}
-    #imageToCrop {{ max-width: 100%; max-height: 60vh; display: block; margin: 0 auto 15px auto; }}
-    .crop-btn {{ padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }}
-    .btn-confirm {{ background-color: #2563eb; color: white; }}
-    .btn-cancel {{ background-color: #ef4444; color: white; }}
-    #cropPreview {{ display: none; margin-top: 15px; max-width: 250px; border-radius: 8px; border: 2px dashed #2563eb; }}
 
-            /* Xóa mũi tên SVG trôi nổi */
-            .field-category .pointer-events-none {{{{ display: none !important; }}}}
-            /* Trả lại mũi tên mặc định */
-            select[name="category"], #custom_parent_filter {{{{ appearance: auto !important; }}}}
-
-</style>
 
 <div id="cropModal">
     <div id="cropContainer">

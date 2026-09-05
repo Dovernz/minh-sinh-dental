@@ -1,29 +1,33 @@
-/* Mở rộng toàn bộ khung chọn quyền */
-.selector {
-    width: 100% !important;
-    display: flex !important;
-    gap: 15px;
+/* 1. ẨN TÀN DƯ WIDGET CẮT ẢNH Ở TIÊU ĐỀ */
+.field-title img,
+.field-title button,
+.field-title a,
+.field-title .jcrop-holder {
+    display: none !important;
 }
 
-/* Chia đều không gian cho 2 cột trái - phải */
-.selector-available, .selector-chosen {
-    width: 100% !important;
-    flex: 1 !important;
+/* 2. SỬA LỖI MŨI TÊN DROPDOWN CHUYÊN MỤC */
+.field-category .pointer-events-none,
+.field-parent .pointer-events-none {
+    display: none !important;
 }
 
-/* Tăng chiều cao của hộp danh sách và chỉnh font chữ dễ nhìn hơn */
-.selector select {
-    height: 500px !important;
-    min-height: 500px !important;
-    font-size: 14px !important;
-    padding: 10px !important;
+.field-category select,
+.field-parent select {
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+    background-image: none !important;
 }
 
-/* Căn chỉnh lại cột chứa nút mũi tên ở giữa */
-.selector > ul.selector-chooser {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: transparent !important;
-    border: none !important;
+/* 3. ĐỒNG BỘ MÀU NỀN CHO TẤT CẢ DROPDOWN THEO THEME */
+/* Giao diện Sáng (Light Mode - Mặc định) */
+select option {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+/* Giao diện Tối (Dark Mode - Unfold tự động thêm class "dark" vào thẻ html) */
+html.dark select option {
+    background-color: #111827 !important;
+    color: #f9fafb !important;
 }
