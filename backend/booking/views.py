@@ -529,3 +529,57 @@ class ArticleDetailView(View):
             })
         except Exception as e: return JsonResponse({"error": str(e)}, status=404)
 
+
+
+from django.views import View
+from django.http import JsonResponse
+
+class POSBookingAPIView(View):
+    def get(self, request):
+        try:
+            date_str = request.GET.get('date')
+            from datetime import datetime
+            if not date_str: date_str = datetime.today().strftime('%Y-%m-%d')
+            
+            from booking.models import Booking
+            from django.utils import timezone
+            import pytz
+            
+            bookings = Booking.objects.filter(start_time__date=date_str).exclude(status__in=['Completed', 'Cancelled', 'Hoàn thành', 'Đã hủy']).select_related('customer')
+            data = []
+            local_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            for b in bookings:
+                name = getattr(b.customer, 'name', '') if getattr(b, 'customer', None) else 'Khách Vãng Lai'
+                phone = getattr(b.customer, 'phone', '') if getattr(b, 'customer', None) else ''
+                
+                if b.start_time:
+                    local_time = timezone.localtime(b.start_time, local_tz)
+                    time = local_time.strftime('%H:%M')
+                else:
+                    time = '--:--'
+                    
+                data.append({'id': b.booking_id, 'display': f"[{time}] {name} - {phone} (ID: {b.booking_id})"})
+            return JsonResponse({'bookings': data})
+        except Exception as e: return JsonResponse({'error': str(e)}, status=500)
+
+
+class POSMasterDataAPIView(View):
+    def get(self, request):
+        try:
+            from booking.models import ServiceCategory, ServiceDetail, Employee, Discount
+            
+            categories = list(ServiceCategory.objects.values('category_id', 'name'))
+            services = list(ServiceDetail.objects.values('service_id', 'name', 'price', 'category_id'))
+            
+            doctors = list(Employee.objects.filter(role='Doctor').values('employee_id', 'full_name'))
+            
+            discounts = []
+            for d in Discount.objects.filter(is_active=True):
+                discounts.append({
+                    'id': d.discount_id, 'code': d.code, 
+                    'type': d.discount_type, 
+                    'value': float(getattr(d, 'value', 0)), 'desc': getattr(d, 'description', '')
+                })
+                
+            return JsonResponse({'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts})
+        except Exception as e: return JsonResponse({'error': str(e)}, status=500)

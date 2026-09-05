@@ -1,0 +1,130 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="pos-container bg-gray-50 p-6 rounded-lg shadow-sm font-sans text-gray-800">
+    <h2 class="text-2xl font-bold mb-6 text-blue-900">Màn hình Thu ngân (POS)</h2>
+
+    <!-- Khối Thông tin Booking -->
+    <div class="bg-white p-4 rounded border mb-6 shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">1. Thông tin Khách hàng & Lịch hẹn</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm text-gray-500">Mã Booking ID</label>
+            <input type="text" id="booking_id" class="w-full border rounded p-2" placeholder="Nhập ID Lịch khám..." onblur="fetchBookingData()"></div>
+            <div><label class="block text-sm text-gray-500">Khách hàng</label>
+            <input type="text" id="customer_name" class="w-full border rounded p-2 bg-gray-100" readonly></div>
+        </div>
+    </div>
+
+    <!-- Khối Dịch vụ Chi tiết -->
+    <div class="bg-white p-4 rounded border mb-6 shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">2. Chi tiết Dịch vụ Thực hiện</h3>
+        <div id="services_list">
+            <!-- Dòng dịch vụ mẫu -->
+            <div class="service-row grid grid-cols-12 gap-2 mb-2 items-center">
+                <div class="col-span-3"><input type="text" placeholder="Tên dịch vụ..." class="w-full border rounded p-2"></div>
+                <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11, 48)" class="w-full border rounded p-2"></div>
+                <div class="col-span-3"><input type="text" placeholder="Bác sĩ thực hiện" class="w-full border rounded p-2"></div>
+                <div class="col-span-3"><input type="text" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
+                <div class="col-span-1 text-center"><button class="text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100" onclick="this.parentElement.parentElement.remove(); calculateTotal()">X</button></div>
+            </div>
+        </div>
+        <button class="mt-2 text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded" onclick="addServiceRow()">+ Thêm dịch vụ</button>
+    </div>
+
+    <!-- Khối Tính toán Thanh toán -->
+    <div class="bg-white p-4 rounded border shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">3. Thanh toán</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="text-right pt-2 font-medium">Tổng tiền gốc:</div>
+            <div><input type="text" id="subtotal" class="w-full border rounded p-2 text-right bg-gray-100 font-bold" readonly value="0"></div>
+
+            <div class="text-right pt-2 font-medium text-blue-600">Mã giảm giá (% hoặc VNĐ):</div>
+            <div><input type="text" id="discount_val" class="w-full border rounded p-2 text-right border-blue-300" placeholder="VD: 10% hoặc 500,000" oninput="formatCurrencyIfFlat(this); calculateTotal()"></div>
+
+            <div class="text-right pt-2 font-medium text-orange-600">Điều chỉnh (+ / -):</div>
+            <div><input type="text" id="adjustment" class="w-full border rounded p-2 text-right border-orange-300" placeholder="+300,000 hoặc -100,000" oninput="formatAdjustment(this); calculateTotal()"></div>
+
+            <div class="text-right pt-2 text-xl font-bold text-green-700 mt-2 border-t">THÀNH TIỀN:</div>
+            <div class="mt-2 border-t pt-2"><input type="text" id="final_total" class="w-full border rounded p-2 text-right bg-green-50 text-green-700 text-xl font-bold" readonly value="0"></div>
+        </div>
+        <div class="mt-6 text-right">
+            <button class="bg-blue-600 text-white font-bold py-3 px-8 rounded shadow hover:bg-blue-700 transition-colors" onclick="submitPOS()">LƯU HÓA ĐƠN & HỒ SƠ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Hàm định dạng số có dấu phẩy (VD: 1,000,000)
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // Lấy số nguyên từ chuỗi định dạng (VD: "1,000,000" -> 1000000)
+    function parseNumber(str) {
+        return parseInt(str.replace(/[^\d-]/g, '')) || 0;
+    }
+
+    // Tự động thêm dấu phẩy khi gõ vào ô giá tiền
+    function formatCurrency(input) {
+        let val = parseNumber(input.value);
+        input.value = val === 0 ? '' : formatNumber(val);
+    }
+
+    // Xử lý ô điều chỉnh cho phép gõ dấu + hoặc - ở đầu
+    function formatAdjustment(input) {
+        let raw = input.value;
+        let sign = '';
+        if (raw.startsWith('+')) sign = '+ ';
+        if (raw.startsWith('-')) sign = '- ';
+
+        let val = parseNumber(raw);
+        input.value = val === 0 ? sign : sign + formatNumber(Math.abs(val));
+    }
+
+    function formatCurrencyIfFlat(input) {
+        if (!input.value.includes('%')) {
+            formatCurrency(input);
+        }
+    }
+
+    // Core Engine: Tính toán real-time
+    function calculateTotal() {
+        let subtotal = 0;
+        document.querySelectorAll('.service-price').forEach(input => {
+            subtotal += parseNumber(input.value);
+        });
+        document.getElementById('subtotal').value = formatNumber(subtotal);
+
+        let discountInput = document.getElementById('discount_val').value;
+        let discountAmt = 0;
+        if (discountInput.includes('%')) {
+            let pct = parseFloat(discountInput.replace('%', '')) || 0;
+            discountAmt = subtotal * (pct / 100);
+        } else {
+            discountAmt = parseNumber(discountInput);
+        }
+
+        let afterDiscount = subtotal - discountAmt;
+
+        let adjStr = document.getElementById('adjustment').value;
+        let adjustmentAmt = parseNumber(adjStr);
+        if (adjStr.startsWith('-')) adjustmentAmt = -Math.abs(adjustmentAmt);
+
+        let finalTotal = afterDiscount + adjustmentAmt;
+
+        document.getElementById('final_total').value = formatNumber(finalTotal > 0 ? finalTotal : 0);
+    }
+
+    function addServiceRow() {
+        let row = document.createElement('div');
+        row.className = 'service-row grid grid-cols-12 gap-2 mb-2 items-center';
+        row.innerHTML = `
+            <div class="col-span-3"><input type="text" placeholder="Tên dịch vụ..." class="w-full border rounded p-2"></div>
+            <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11, 48)" class="w-full border rounded p-2"></div>
+            <div class="col-span-3"><input type="text" placeholder="Bác sĩ thực hiện" class="w-full border rounded p-2"></div>
+            <div class="col-span-3"><input type="text" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
+            <div class="col-span-1 text-center"><button class="text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100" onclick="this.parentElement.parentElement.remove(); calculateTotal()">X</button></div>
+        `;
+        document.getElementById('services_list').appendChild(row);
+    }
+</script>
+{% endblock %}

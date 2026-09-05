@@ -1,13 +1,212 @@
 {% extends "admin/base_site.html" %}
-
+{% load static %}
 {% block content %}
-<div style="margin: -20px; height: calc(100vh - 60px);">
-    <iframe 
-        src="http://localhost:3000/pos" 
-        width="100%" 
-        height="100%" 
-        style="border: none; display: block;"
-        title="POS Interface">
-    </iframe>
+<style>
+/* Ép màu nền và màu chữ cơ bản cho toàn bộ khu vực POS bất chấp Dark Mode */
+.pos-container { background-color: #f9fafb !important; color: #111827 !important; }
+.pos-container * { color: #111827 !important; }
+.pos-container .text-blue-900 { color: #1e3a8a !important; }
+.pos-container .text-blue-600 { color: #2563eb !important; }
+.pos-container .text-orange-600 { color: #ea580c !important; }
+.pos-container .text-green-700 { color: #15803d !important; }
+.pos-container .text-red-500 { color: #ef4444 !important; }
+.pos-container .bg-white { background-color: #ffffff !important; }
+.pos-container .bg-gray-50 { background-color: #f9fafb !important; }
+.pos-container .bg-gray-100 { background-color: #f3f4f6 !important; }
+.pos-container .bg-green-50 { background-color: #f0fdf4 !important; }
+.pos-container .bg-blue-50 { background-color: #eff6ff !important; }
+.pos-container .bg-blue-600 { background-color: #2563eb !important; }
+.pos-container .bg-red-50 { background-color: #fef2f2 !important; }
+.pos-container input, .pos-container select { 
+    color: #111827 !important; background-color: #ffffff !important; border: 1px solid #d1d5db !important; 
+}
+.pos-container input::placeholder { color: #9ca3af !important; }
+.pos-container input[readonly] { background-color: #f3f4f6 !important; }
+</style>
+
+<div class="pos-container bg-gray-50 p-6 rounded-lg shadow-sm font-sans">
+    <h2 class="text-2xl font-bold mb-6 text-blue-900">Màn hình Thu ngân (POS)</h2>
+
+    <div class="bg-white p-4 rounded border mb-6 shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">1. Thông tin Khách hàng & Lịch hẹn</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm">1. Chọn Ngày Khám</label>
+            <input type="date" id="search_date" class="w-full border rounded p-2 mt-1" onchange="loadBookings()"></div>
+            <div><label class="block text-sm">2. Tìm Khách hàng (Đã loại trừ lịch Xong/Hủy)</label>
+            <input list="booking_list" id="booking_input" class="w-full border rounded p-2 mt-1" placeholder="Gõ để tìm nhanh..." autocomplete="off">
+            <datalist id="booking_list"></datalist></div>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded border mb-6 shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">2. Chi tiết Dịch vụ Thực hiện</h3>
+        <div id="services_list"></div>
+        <button class="mt-4 text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded" onclick="addServiceRow()">+ Thêm dịch vụ</button>
+    </div>
+
+    <div class="bg-white p-4 rounded border shadow-sm">
+        <h3 class="font-bold mb-4 border-b pb-2">3. Thanh toán</h3>
+        <div class="grid grid-cols-2 gap-4 items-center">
+            <div class="text-right font-medium">Tổng tiền gốc:</div>
+            <div><input type="text" id="subtotal" class="w-full border rounded p-2 text-right bg-gray-100 font-bold" readonly value="0"></div>
+            
+            <div class="text-right font-medium text-blue-600">Áp dụng Mã giảm giá:</div>
+            <div><select id="discount_select" class="w-full border rounded p-2 text-right border-blue-300" onchange="calculateTotal()"><option value="">-- Không áp dụng --</option></select></div>
+
+            <div class="text-right font-medium text-orange-600">Điều chỉnh (+ / -):</div>
+            <div><input type="text" id="adjustment" class="w-full border rounded p-2 text-right border-orange-300" placeholder="+300,000 hoặc -100,000" oninput="formatAdjustment(this); calculateTotal()"></div>
+
+            <div class="text-right text-xl font-bold text-green-700 mt-2 border-t pt-2">THÀNH TIỀN:</div>
+            <div class="mt-2 border-t pt-2"><input type="text" id="final_total" class="w-full border rounded p-2 text-right bg-green-50 text-green-700 text-xl font-bold" readonly value="0"></div>
+        </div>
+        <div class="mt-6 text-right">
+            <button class="bg-blue-600 text-white font-bold py-3 px-8 rounded shadow hover:bg-blue-700 transition-colors" onclick="alert('Đã sẵn sàng API Backend')">LƯU HÓA ĐƠN & HỒ SƠ</button>
+        </div>
+    </div>
 </div>
+
+<script>
+let posMasterData = { categories: [], services: [], doctors: [], discounts: [] };
+
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function parseNumber(str) {
+    return parseInt(str.replace(/[^\d-]/g, '')) || 0;
+}
+function formatCurrency(input) {
+    let val = parseNumber(input.value);
+    input.value = val === 0 ? '' : formatNumber(val);
+}
+function formatAdjustment(input) {
+    let raw = input.value;
+    let sign = '';
+    if (raw.startsWith('+')) sign = '+ ';
+    if (raw.startsWith('-')) sign = '- ';
+    let val = parseNumber(raw);
+    input.value = val === 0 ? sign : sign + formatNumber(Math.abs(val));
+}
+
+function loadBookings() {
+    let date = document.getElementById('search_date').value;
+    fetch('/api/pos/bookings/?date=' + date)
+        .then(res => res.json())
+        .then(data => {
+            let datalist = document.getElementById('booking_list');
+            datalist.innerHTML = '';
+            if(data.bookings) {
+                data.bookings.forEach(b => {
+                    let option = document.createElement('option');
+                    option.value = b.display;
+                    datalist.appendChild(option);
+                });
+            }
+        }).catch(e => console.log('Lỗi API booking:', e));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    let dateInput = document.getElementById('search_date');
+    if(dateInput) {
+        let localTime = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        dateInput.value = localTime;
+        loadBookings();
+    }
+    
+    fetch('/api/pos/master-data/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.categories) posMasterData = data;
+            populateDiscounts();
+            addServiceRow();
+        }).catch(e => console.log('Lỗi API master:', e));
+});
+
+function populateDiscounts() {
+    let select = document.getElementById('discount_select');
+    if (!posMasterData.discounts) return;
+    posMasterData.discounts.forEach(d => {
+        let opt = document.createElement('option');
+        opt.value = d.id;
+        opt.dataset.type = d.type;
+        opt.dataset.val = d.value;
+        let valStr = d.type.toLowerCase().includes('percent') ? d.value + '%' : formatNumber(d.value) + 'đ';
+        opt.textContent = `${d.code} - Giảm ${valStr}`;
+        select.appendChild(opt);
+    });
+}
+
+function addServiceRow() {
+    let rowId = Date.now();
+    let row = document.createElement('div');
+    row.className = 'service-row grid grid-cols-12 gap-2 mb-2 items-center';
+    
+    let catOptions = '<option value="">Chọn Danh mục...</option>' + posMasterData.categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
+    let docOptions = '<option value="">Chọn Bác sĩ...</option>' + posMasterData.doctors.map(d => `<option value="${d.employee_id}">${d.full_name}</option>`).join('');
+    
+    row.innerHTML = `
+        <div class="col-span-2"><select class="w-full border rounded p-2" onchange="filterServices(this, ${rowId})">${catOptions}</select></div>
+        <div class="col-span-3"><select class="w-full border rounded p-2 srv-select" id="srv_${rowId}" onchange="setPrice(this, ${rowId})"><option value="">Chọn Dịch vụ...</option></select></div>
+        <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11)" class="w-full border rounded p-2"></div>
+        <div class="col-span-2"><select class="w-full border rounded p-2 doc-select">${docOptions}</select></div>
+        <div class="col-span-2"><input type="text" id="price_${rowId}" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
+        <div class="col-span-1 text-center"><button class="text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100 border border-red-200" onclick="this.parentElement.parentElement.remove(); calculateTotal()">Xóa</button></div>
+    `;
+    document.getElementById('services_list').appendChild(row);
+}
+
+function filterServices(catSelect, rowId) {
+    let catId = parseInt(catSelect.value);
+    let srvSelect = document.getElementById('srv_' + rowId);
+    srvSelect.innerHTML = '<option value="">Chọn Dịch vụ...</option>';
+    posMasterData.services.filter(s => s.category_id === catId).forEach(s => {
+        let opt = document.createElement('option');
+        opt.value = s.service_id;
+        opt.dataset.price = s.price;
+        opt.textContent = s.name;
+        srvSelect.appendChild(opt);
+    });
+    document.getElementById('price_' + rowId).value = '';
+    calculateTotal();
+}
+
+function setPrice(srvSelect, rowId) {
+    let opt = srvSelect.options[srvSelect.selectedIndex];
+    let priceInput = document.getElementById('price_' + rowId);
+    if(opt && opt.dataset.price) {
+        priceInput.value = formatNumber(parseInt(opt.dataset.price));
+    } else {
+        priceInput.value = '';
+    }
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    document.querySelectorAll('.service-price').forEach(input => {
+        subtotal += parseNumber(input.value);
+    });
+    document.getElementById('subtotal').value = formatNumber(subtotal);
+
+    let discountSelect = document.getElementById('discount_select');
+    let discountAmt = 0;
+    if (discountSelect.selectedIndex > 0) {
+        let opt = discountSelect.options[discountSelect.selectedIndex];
+        let dType = opt.dataset.type.toLowerCase();
+        let dVal = parseFloat(opt.dataset.val);
+        if (dType.includes('percent')) {
+            discountAmt = subtotal * (dVal / 100);
+        } else {
+            discountAmt = dVal;
+        }
+    }
+
+    let afterDiscount = subtotal - discountAmt;
+    let adjStr = document.getElementById('adjustment').value;
+    let adjustmentAmt = parseNumber(adjStr);
+    if (adjStr.startsWith('-')) adjustmentAmt = -Math.abs(adjustmentAmt);
+
+    let finalTotal = afterDiscount + adjustmentAmt;
+    document.getElementById('final_total').value = formatNumber(finalTotal > 0 ? finalTotal : 0);
+}
+</script>
 {% endblock %}

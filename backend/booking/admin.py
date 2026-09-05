@@ -317,8 +317,19 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
 class TimeSlotAdmin(BaseRBACAdmin):
     list_display = ('start_time', 'end_time')
 
+class BookingInlineForCustomer(admin.TabularInline):
+    model = Booking
+    fields = ('start_time', 'end_time', 'clinic', 'status')
+    readonly_fields = ('start_time', 'end_time', 'clinic', 'status')
+    can_delete = False
+    extra = 0
+    verbose_name = "Lịch sử Khám & Dịch vụ"
+    verbose_name_plural = "Lịch sử Khám & Dịch vụ"
+    classes = ['collapse']
+
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
+    inlines = [BookingInlineForCustomer]
     list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email')
     search_fields = ('name', 'phone', 'email', 'address')
     list_filter = ('address', 'gender')
@@ -725,8 +736,8 @@ class BillingAdmin(BaseRBACAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    list_display = ('booking', 'sub_total', 'discount', 'final_total', 'created_on', 'print_invoice_button')
-    readonly_fields = ('sub_total', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
+    list_display = ('booking', 'subtotal', 'discount', 'final_total', 'created_at', 'print_invoice_button')
+    readonly_fields = ('subtotal', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
     search_fields = ('booking__booking_id', 'booking__customer__name')
     
     fieldsets = (
@@ -734,7 +745,7 @@ class BillingAdmin(BaseRBACAdmin):
             'fields': ('booking',)
         }),
         ('Kế toán', {
-            'fields': ('sub_total', 'discount', 'adjustment', 'final_total')
+            'fields': ('subtotal', 'discount', 'adjustment', 'final_total')
         }),
         ('Thanh toán', {
             'fields': ('payment_qr_code', 'print_invoice_button')

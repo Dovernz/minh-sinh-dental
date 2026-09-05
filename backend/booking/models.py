@@ -283,6 +283,7 @@ class BookingDetail(models.Model):
     doctor = models.ForeignKey("Employee", on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'Doctor'}, verbose_name="Bác sĩ khám")
     actual_price = models.IntegerField(null=True, blank=True, verbose_name="Đơn giá")
     quantity = models.PositiveIntegerField(default=1, verbose_name="Số lượng")
+    tooth_position = models.CharField(max_length=50, null=True, blank=True, verbose_name="Vị trí răng")
 
     class Meta:
         db_table = "db_table_booking_details"
@@ -300,11 +301,12 @@ class BookingDetail(models.Model):
 class Billing(models.Model):
     billing_id = models.AutoField(primary_key=True)
     booking = models.OneToOneField("Booking", on_delete=models.CASCADE, related_name="billing", verbose_name="Lịch khám")
-    sub_total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Tổng tiền gốc (Hệ thống tính)")
-    discount = models.ForeignKey(Discount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Khuyến mãi")
-    adjustment = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Số tiền điều chỉnh")
-    final_total = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Số tiền cuối cùng")
-    created_on = models.DateTimeField(auto_now_add=True)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền gốc")
+    discount = models.ForeignKey('Discount', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Mã giảm giá")
+    adjustment = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Điều chỉnh (+/-)")
+    final_total = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Thành tiền")
+    notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú thu ngân")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "db_table_billing"
