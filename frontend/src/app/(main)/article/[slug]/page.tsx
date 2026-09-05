@@ -22,9 +22,10 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
             .tinymce-content p { margin-bottom: 1.2rem !important; }
             .tinymce-content img { max-width: 100% !important; height: auto !important; border-radius: 0.75rem !important; margin: 2rem auto !important; display: block !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
         `}} />
-            {article.thumbnail && (
-                <div className="w-full md:h-[500px] h-[300px] relative bg-gray-100">
-                    <img src={article.thumbnail} alt={article.title} className="w-full h-full object-cover" />
+            {/* Banner: Bật/Tắt theo Admin, Ẩn trên Mobile, Chống cắt ảnh */}
+            {article.show_banner && article.banner_image && (
+                <div className="hidden md:flex w-full h-[500px] relative bg-gray-100 justify-center items-center overflow-hidden">
+                    <img src={article.banner_image} alt={article.title} className="w-full h-full object-contain" />
                 </div>
             )}
             <div className="container mx-auto px-4 max-w-4xl -mt-20 relative z-10">

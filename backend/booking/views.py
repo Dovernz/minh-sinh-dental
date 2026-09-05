@@ -505,49 +505,27 @@ class ArticleDetailView(View):
     def get(self, request, slug):
         try:
             article = Article.objects.get(slug=slug)
-            thumb_url = None
-            if getattr(article, 'thumbnail', None):
+
+            # Hàm phụ trợ parse link Cloudinary
+            def get_cloud_url(img_obj):
+                if not img_obj: return None
                 try:
-                    url = str(article.thumbnail.url) if hasattr(article.thumbnail, 'url') else str(article.thumbnail)
-                    thumb_url = f'https://res.cloudinary.com/{getattr(settings, "CLOUDINARY_STORAGE", {}).get("CLOUD_NAME", "ocsxoyvj")}/{url}' if not url.startswith('http') and ('upload' in url) else (url if url.startswith('http') else request.build_absolute_uri(url))
-                except Exception: pass
-            return JsonResponse({"id": article.pk, "title": getattr(article, 'title', ''), "content": getattr(article, 'content', ''), "thumbnail": thumb_url, "category_name": article.category.title if getattr(article, 'category', None) else ""})
+                    url = str(img_obj.url) if hasattr(img_obj, 'url') else str(img_obj)
+                    from django.conf import settings
+                    return f"https://res.cloudinary.com/{getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', 'ocsxoyvj')}/{url}" if not url.startswith('http') and 'upload' in url else (url if url.startswith('http') else request.build_absolute_uri(url))
+                except Exception: return None
+
+            show_banner = getattr(article, 'show_banner', True)
+            banner_source = getattr(article, 'banner_image', None) or getattr(article, 'thumbnail', None)
+
+            return JsonResponse({
+                "id": article.pk, 
+                "title": getattr(article, 'title', ''), 
+                "content": getattr(article, 'content', ''), 
+                "thumbnail": get_cloud_url(getattr(article, 'thumbnail', None)), 
+                "banner_image": get_cloud_url(banner_source) if show_banner else None,
+                "show_banner": show_banner,
+                "category_name": article.category.title if getattr(article, 'category', None) else ""
+            })
         except Exception as e: return JsonResponse({"error": str(e)}, status=404)
 
-
-def send_booking_email(booking):
-    try:
-        from django.utils import timezone
-        patient = getattr(booking, 'customer', None)
-        if not patient or not getattr(patient, 'email', None): return
-        
-        subject = f"Xác nhận lịch hẹn tại Nha Khoa Minh Sinh - {getattr(patient, 'name', '')}"
-        
-        local_time = timezone.localtime(booking.start_time) if booking.start_time else None
-        time_str = local_time.strftime('%H:%M') if local_time else '...'
-        date_str = local_time.strftime('%d/%m/%Y') if local_time else '...'
-        clinic_name = booking.clinic.name if hasattr(booking, 'clinic') and booking.clinic else 'Nha Khoa Minh Sinh'
-        
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: #1e3a8a; margin: 0;">Xác nhận đặt lịch khám</h2>
-                <p style="color: #64748b; margin-top: 5px;">Nha Khoa Minh Sinh</p>
-            </div>
-            <p>Chào <b>{getattr(patient, 'name', '')}</b>,</p>
-            <p>Cảm ơn bạn đã tin tưởng và đặt lịch. Dưới đây là thông tin chi tiết lịch hẹn của bạn:</p>
-            <div style="background: #f8fafc; padding: 15px 25px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 8px 0;"><b>Mã số khám (Booking ID):</b> <span style="color: #2563eb;">#{booking.booking_id}</span></p>
-                <p style="margin: 8px 0;"><b>Thời gian:</b> {time_str} | Ngày {date_str}</p>
-                <p style="margin: 8px 0;"><b>Cơ sở:</b> {clinic_name}</p>
-            </div>
-            <p>Vui lòng đến trước 10 phút để đội ngũ lễ tân chuẩn bị đón tiếp bạn được chu đáo nhất.</p>
-            <p style="margin-top: 30px;">Trân trọng,<br><b style="color: #1e3a8a;">Nha Khoa Minh Sinh</b></p>
-        </div>
-        """
-        text_content = strip_tags(html_content)
-        msg = EmailMultiAlternatives(subject, text_content, None, [patient.email])
-        msg.attach_alternative(html_content, "text/html")
-        msg.send(fail_silently=True)
-    except Exception as e:
-        print("Lỗi gửi mail xác nhận:", e)

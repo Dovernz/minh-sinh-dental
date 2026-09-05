@@ -202,6 +202,8 @@ class Article(models.Model):
     slug = models.SlugField(max_length=255, unique=True)
     content = HTMLField(verbose_name="Nội dung")
     thumbnail = CloudinaryField("Ảnh Thumbnail (Tải lên)", blank=True, null=True)
+    show_banner = models.BooleanField(default=True, verbose_name="Hiển thị Banner bài viết")
+    banner_image = models.FileField(upload_to="raw/upload/", null=True, blank=True, verbose_name="Ảnh Banner riêng (Trống = dùng Thumbnail)")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Draft', verbose_name="Trạng thái")
     category = models.ForeignKey('MenuLink', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'parent__isnull': False}, verbose_name="Chuyên mục (Menu gốc)")
