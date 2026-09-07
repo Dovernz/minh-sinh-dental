@@ -22,6 +22,8 @@
 }
 .pos-container input::placeholder { color: #9ca3af !important; }
 .pos-container input[readonly] { background-color: #f3f4f6 !important; }
+/* Đảm bảo dropdown options có nền trắng chữ đen */
+.pos-container select option { background-color: #ffffff !important; color: #111827 !important; }
 </style>
 
 <div class="pos-container bg-gray-50 p-6 rounded-lg shadow-sm font-sans">
@@ -32,9 +34,10 @@
         <div class="grid grid-cols-2 gap-4">
             <div><label class="block text-sm">1. Chọn Ngày Khám</label>
             <input type="date" id="search_date" class="w-full border rounded p-2 mt-1" onchange="loadBookings()"></div>
-            <div><label class="block text-sm">2. Tìm Khách hàng (Đã loại trừ lịch Xong/Hủy)</label>
-            <input list="booking_list" id="booking_input" class="w-full border rounded p-2 mt-1" placeholder="Gõ để tìm nhanh..." autocomplete="off">
-            <datalist id="booking_list"></datalist></div>
+            <div><label class="block text-sm">2. Chọn Khách hàng (Đã loại trừ lịch Xong/Hủy)</label>
+            <select id="booking_select" class="w-full border rounded p-2 mt-1 text-gray-900">
+                <option value="">-- Chọn Khách hàng (Click để xem) --</option>
+            </select></div>
         </div>
     </div>
 
@@ -92,13 +95,14 @@ function loadBookings() {
     fetch('/api/pos/bookings/?date=' + date)
         .then(res => res.json())
         .then(data => {
-            let datalist = document.getElementById('booking_list');
-            datalist.innerHTML = '';
+            let select = document.getElementById('booking_select');
+            select.innerHTML = '<option value="">-- Chọn Khách hàng (Click để xem) --</option>';
             if(data.bookings) {
                 data.bookings.forEach(b => {
                     let option = document.createElement('option');
-                    option.value = b.display;
-                    datalist.appendChild(option);
+                    option.value = b.id; // Store ID for backend API submission later
+                    option.textContent = b.display;
+                    select.appendChild(option);
                 });
             }
         }).catch(e => console.log('Lỗi API booking:', e));
