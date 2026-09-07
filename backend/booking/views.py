@@ -538,31 +538,38 @@ class POSBookingAPIView(View):
     def get(self, request):
         try:
             date_str = request.GET.get('date')
-            from datetime import datetime
-            if not date_str: date_str = datetime.today().strftime('%Y-%m-%d')
-            
             from booking.models import Booking
             from django.utils import timezone
             import pytz
+            from datetime import datetime
+            if not date_str: date_str = datetime.today().strftime('%Y-%m-%d')
             
-            bookings = Booking.objects.filter(start_time__date=date_str).exclude(status__in=['Completed', 'Cancelled', 'Hoàn thành', 'Đã hủy']).select_related('customer')
+            # Dùng __date để Supabase/PostgreSQL tự động map đúng TimeZone
+            bookings = Booking.objects.filter(start_time__date=date_str).exclude(status__in=['COMPLETED', 'CANCELLED', 'Completed', 'Cancelled', 'Hoàn thành', 'Đã hủy']).select_related('customer')
             data = []
             local_tz = pytz.timezone('Asia/Ho_Chi_Minh')
             for b in bookings:
-                name = getattr(b.customer, 'name', '') if getattr(b, 'customer', None) else 'Khách Vãng Lai'
-                phone = getattr(b.customer, 'phone', '') if getattr(b, 'customer', None) else ''
-                
+                c = getattr(b, 'customer', None)
                 if b.start_time:
                     local_time = timezone.localtime(b.start_time, local_tz)
                     time = local_time.strftime('%H:%M')
                 else:
                     time = '--:--'
                     
-                data.append({'id': b.booking_id, 'display': f"[{time}] {name} - {phone} (ID: {b.booking_id})"})
+                name = getattr(c, 'name', 'Khách chưa tên') if c else 'Khách chưa tên'
+                phone = getattr(c, 'phone', '') if c else ''
+                data.append({
+                    'id': b.booking_id, 
+                    'display': f"[{time}] {name} - {phone} (ID: {b.booking_id})",
+                    'customer': {
+                        'name': name, 'phone': phone,
+                        'gender': getattr(c, 'gender', 'OTHER') if c else 'OTHER',
+                        'dob': str(c.customer_dob) if c and getattr(c, 'customer_dob', None) else '',
+                        'email': getattr(c, 'email', '') if c else '', 'address': getattr(c, 'address', '') if c else ''
+                    }
+                })
             return JsonResponse({'bookings': data})
         except Exception as e: return JsonResponse({'error': str(e)}, status=500)
-
-
 class POSMasterDataAPIView(View):
     def get(self, request):
         try:
@@ -583,3 +590,76 @@ class POSMasterDataAPIView(View):
                 
             return JsonResponse({'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts})
         except Exception as e: return JsonResponse({'error': str(e)}, status=500)
+
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.db import transaction
+
+@method_decorator(csrf_exempt, name='dispatch')
+class POSSubmitAPIView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            from booking.models import Booking, Customer, BookingDetail, Billing, Clinic
+            from datetime import datetime
+            
+            with transaction.atomic():
+                cust_data = data.get('customer', {})
+                customer = None
+                
+                # 1. Update Existing OR Create New Customer (Khách Vãng Lai)
+                if data.get('booking_id'):
+                    booking = Booking.objects.get(booking_id=data['booking_id'])
+                    customer = booking.customer
+                    if customer:
+                        customer.name = cust_data.get('name', customer.name)
+                        customer.phone = cust_data.get('phone', customer.phone)
+                        customer.gender = cust_data.get('gender', customer.gender)
+                        customer.email = cust_data.get('email', customer.email)
+                        customer.address = cust_data.get('address', customer.address)
+                        if cust_data.get('dob'): customer.customer_dob = cust_data['dob']
+                        customer.save()
+                else:
+                    customer = Customer.objects.create(
+                        name=cust_data.get('name', 'Khách Vãng Lai'),
+                        phone=cust_data.get('phone', ''),
+                        gender=cust_data.get('gender', 'OTHER'),
+                        email=cust_data.get('email', ''),
+                        address=cust_data.get('address', '')
+                    )
+                    if cust_data.get('dob'):
+                        customer.customer_dob = cust_data['dob']
+                        customer.save()
+                        
+                    clinic = Clinic.objects.first()
+                    booking = Booking.objects.create(
+                        customer=customer, clinic=clinic,
+                        start_time=datetime.now(), status='Completed',
+                        notes="Khách vãng lai tạo từ POS"
+                    )
+                
+                booking.status = 'Completed'
+                booking.save()
+
+                # 2. Xử lý Hóa đơn & Dịch vụ chi tiết
+                billing_data = data.get('billing', {})
+                Billing.objects.create(
+                    booking=booking, subtotal=billing_data.get('subtotal', 0),
+                    discount_id=billing_data.get('discount_id') or None,
+                    adjustment=billing_data.get('adjustment', 0),
+                    final_total=billing_data.get('final_total', 0)
+                )
+
+                BookingDetail.objects.filter(booking=booking).delete()
+                for srv in data.get('services', []):
+                    if srv.get('service_id'):
+                        BookingDetail.objects.create(
+                            booking=booking, service_detail_id=srv['service_id'],
+                            doctor_id=srv.get('doctor_id') or None, tooth_position=srv.get('tooth', ''),
+                            quantity=1, actual_price=srv.get('price', 0)
+                        )
+                
+            return JsonResponse({'status': 'success', 'booking_id': booking.booking_id})
+        except Exception as e: return JsonResponse({'error': str(e)}, status=400)

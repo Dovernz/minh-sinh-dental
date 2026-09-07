@@ -18,8 +18,9 @@ def pos_embed_view(request):
     context['title'] = 'Thanh toán (POS)'
     return render(request, 'admin/pos_embed.html', context)
 
-from booking.views import POSBookingAPIView, POSMasterDataAPIView
+from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView
 urlpatterns = [
+    path("api/pos/submit/", POSSubmitAPIView.as_view(), name="pos-submit"),
     path("api/pos/master-data/", POSMasterDataAPIView.as_view(), name="pos-master"),
     path("api/pos/bookings/", POSBookingAPIView.as_view(), name="pos-bookings"),
     path('admin/password_reset/', auth_views.PasswordResetView.as_view(), name='admin_password_reset'),

@@ -2,74 +2,99 @@
 {% load static %}
 {% block content %}
 <style>
-/* Ép màu nền và màu chữ cơ bản cho toàn bộ khu vực POS bất chấp Dark Mode */
 .pos-container { background-color: #f9fafb !important; color: #111827 !important; }
 .pos-container * { color: #111827 !important; }
 .pos-container .text-blue-900 { color: #1e3a8a !important; }
+.pos-container .text-blue-800 { color: #1e40af !important; }
 .pos-container .text-blue-600 { color: #2563eb !important; }
 .pos-container .text-orange-600 { color: #ea580c !important; }
 .pos-container .text-green-700 { color: #15803d !important; }
 .pos-container .text-red-500 { color: #ef4444 !important; }
+.pos-container .text-white { color: #ffffff !important; }
 .pos-container .bg-white { background-color: #ffffff !important; }
 .pos-container .bg-gray-50 { background-color: #f9fafb !important; }
 .pos-container .bg-gray-100 { background-color: #f3f4f6 !important; }
 .pos-container .bg-green-50 { background-color: #f0fdf4 !important; }
+.pos-container .bg-green-600 { background-color: #16a34a !important; }
+.pos-container .bg-green-700 { background-color: #15803d !important; }
 .pos-container .bg-blue-50 { background-color: #eff6ff !important; }
 .pos-container .bg-blue-600 { background-color: #2563eb !important; }
+.pos-container .bg-blue-700 { background-color: #1d4ed8 !important; }
 .pos-container .bg-red-50 { background-color: #fef2f2 !important; }
 .pos-container input, .pos-container select { 
     color: #111827 !important; background-color: #ffffff !important; border: 1px solid #d1d5db !important; 
 }
 .pos-container input::placeholder { color: #9ca3af !important; }
 .pos-container input[readonly] { background-color: #f3f4f6 !important; }
-/* Đảm bảo dropdown options có nền trắng chữ đen */
 .pos-container select option { background-color: #ffffff !important; color: #111827 !important; }
+    .cust-input:disabled { background-color: #f3f4f6 !important; color: #9ca3af !important; cursor: not-allowed; }
+    .cust-input:not(:disabled) { background-color: #ffffff !important; color: #111827 !important; }
 </style>
 
 <div class="pos-container bg-gray-50 p-6 rounded-lg shadow-sm font-sans">
     <h2 class="text-2xl font-bold mb-6 text-blue-900">Màn hình Thu ngân (POS)</h2>
 
+    <!-- KHỐI 1: KHÁCH HÀNG -->
     <div class="bg-white p-4 rounded border mb-6 shadow-sm">
-        <h3 class="font-bold mb-4 border-b pb-2">1. Thông tin Khách hàng & Lịch hẹn</h3>
-        <div class="grid grid-cols-2 gap-4">
-            <div><label class="block text-sm">1. Chọn Ngày Khám</label>
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="font-bold text-blue-800">1. Lịch hẹn & Hồ sơ Khách hàng</h3>
+            <button id="btn_walkin" class="bg-green-600 text-white font-bold py-1 px-4 rounded shadow hover:bg-green-700 text-sm transition-colors" onclick="toggleWalkIn()">+ Tạo Khách Vãng Lai</button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4" style="background-color: #eff6ff !important; padding: 12px; border-radius: 6px;">
+            <div><label class="block text-sm font-bold">Chọn Ngày Khám</label>
             <input type="date" id="search_date" class="w-full border rounded p-2 mt-1" onchange="loadBookings()"></div>
-            <div><label class="block text-sm">2. Chọn Khách hàng (Đã loại trừ lịch Xong/Hủy)</label>
-            <select id="booking_select" class="w-full border rounded p-2 mt-1 text-gray-900">
+            
+            <div><label class="block text-sm font-bold">Tìm Khách hàng (Đã loại trừ lịch Xong/Hủy)</label>
+            <select id="booking_select" class="w-full border rounded p-2 mt-1" onchange="fillCustomerData()">
                 <option value="">-- Chọn Khách hàng (Click để xem) --</option>
             </select></div>
         </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+            <div><label class="font-bold text-sm">Họ và Tên *</label><input type="text" id="cust_name" class="cust-input w-full rounded p-2 mt-1" disabled></div>
+            <div><label class="font-bold text-sm">Số điện thoại *</label><input type="text" id="cust_phone" class="cust-input w-full rounded p-2 mt-1" disabled></div>
+            <div><label class="font-bold text-sm">Giới tính</label><select id="cust_gender" class="cust-input w-full rounded p-2 mt-1" disabled>
+                <option value="OTHER">Khác</option><option value="MALE">Nam</option><option value="FEMALE">Nữ</option>
+            </select></div>
+            <div><label class="font-bold text-sm">Ngày sinh</label><input type="date" id="cust_dob" class="cust-input w-full rounded p-2 mt-1" disabled></div>
+            <div><label class="font-bold text-sm">Email</label><input type="email" id="cust_email" class="cust-input w-full rounded p-2 mt-1" disabled></div>
+            <div><label class="font-bold text-sm">Địa chỉ</label><input type="text" id="cust_address" class="cust-input w-full rounded p-2 mt-1" disabled></div>
+        </div>
     </div>
 
+    <!-- KHỐI 2: DỊCH VỤ -->
     <div class="bg-white p-4 rounded border mb-6 shadow-sm">
-        <h3 class="font-bold mb-4 border-b pb-2">2. Chi tiết Dịch vụ Thực hiện</h3>
+        <h3 class="font-bold mb-4 border-b pb-2 text-blue-800">2. Chi tiết Dịch vụ Thực hiện</h3>
         <div id="services_list"></div>
-        <button class="mt-4 text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded" onclick="addServiceRow()">+ Thêm dịch vụ</button>
+        <button class="mt-4 text-sm font-bold px-4 py-2 rounded" style="background-color: #eff6ff !important; color: #2563eb !important; border: 1px solid #bfdbfe !important;" onclick="addServiceRow()">+ Thêm dịch vụ</button>
     </div>
 
+    <!-- KHỐI 3: THANH TOÁN -->
     <div class="bg-white p-4 rounded border shadow-sm">
-        <h3 class="font-bold mb-4 border-b pb-2">3. Thanh toán</h3>
+        <h3 class="font-bold mb-4 border-b pb-2 text-blue-800">3. Thanh toán</h3>
         <div class="grid grid-cols-2 gap-4 items-center">
-            <div class="text-right font-medium">Tổng tiền gốc:</div>
-            <div><input type="text" id="subtotal" class="w-full border rounded p-2 text-right bg-gray-100 font-bold" readonly value="0"></div>
+            <div class="text-right font-bold">Tổng tiền gốc:</div>
+            <div><input type="text" id="subtotal" class="w-full rounded p-2 text-right font-bold" style="background-color: #f3f4f6 !important;" readonly value="0"></div>
             
-            <div class="text-right font-medium text-blue-600">Áp dụng Mã giảm giá:</div>
-            <div><select id="discount_select" class="w-full border rounded p-2 text-right border-blue-300" onchange="calculateTotal()"><option value="">-- Không áp dụng --</option></select></div>
-
-            <div class="text-right font-medium text-orange-600">Điều chỉnh (+ / -):</div>
-            <div><input type="text" id="adjustment" class="w-full border rounded p-2 text-right border-orange-300" placeholder="+300,000 hoặc -100,000" oninput="formatAdjustment(this); calculateTotal()"></div>
-
+            <div class="text-right font-bold text-blue-600">Áp dụng Mã giảm giá:</div>
+            <div><select id="discount_select" class="w-full rounded p-2 text-right" style="border-color: #93c5fd !important;" onchange="calculateTotal()"><option value="">-- Không áp dụng --</option></select></div>
+            
+            <div class="text-right font-bold text-orange-600">Điều chỉnh (+ / -):</div>
+            <div><input type="text" id="adjustment" class="w-full rounded p-2 text-right" style="border-color: #fdba74 !important;" placeholder="+300,000 hoặc -100,000" oninput="formatAdjustment(this); calculateTotal()"></div>
+            
             <div class="text-right text-xl font-bold text-green-700 mt-2 border-t pt-2">THÀNH TIỀN:</div>
-            <div class="mt-2 border-t pt-2"><input type="text" id="final_total" class="w-full border rounded p-2 text-right bg-green-50 text-green-700 text-xl font-bold" readonly value="0"></div>
+            <div class="mt-2 border-t pt-2"><input type="text" id="final_total" class="w-full rounded p-2 text-right text-xl font-bold" style="background-color: #f0fdf4 !important; color: #15803d !important;" readonly value="0"></div>
         </div>
         <div class="mt-6 text-right">
-            <button class="bg-blue-600 text-white font-bold py-3 px-8 rounded shadow hover:bg-blue-700 transition-colors" onclick="alert('Đã sẵn sàng API Backend')">LƯU HÓA ĐƠN & HỒ SƠ</button>
+            <button class="bg-blue-600 text-white font-bold py-3 px-8 rounded shadow hover:bg-blue-700" onclick="submitPOS()">LƯU HÓA ĐƠN & HOÀN TẤT KHÁM</button>
         </div>
     </div>
 </div>
 
 <script>
 let posMasterData = { categories: [], services: [], doctors: [], discounts: [] };
+let currentBookings = [];
 
 function formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -95,17 +120,66 @@ function loadBookings() {
     fetch('/api/pos/bookings/?date=' + date)
         .then(res => res.json())
         .then(data => {
+            currentBookings = data.bookings || [];
             let select = document.getElementById('booking_select');
             select.innerHTML = '<option value="">-- Chọn Khách hàng (Click để xem) --</option>';
-            if(data.bookings) {
-                data.bookings.forEach(b => {
-                    let option = document.createElement('option');
-                    option.value = b.id; // Store ID for backend API submission later
-                    option.textContent = b.display;
-                    select.appendChild(option);
-                });
-            }
+            currentBookings.forEach(b => {
+                let option = document.createElement('option');
+                option.value = b.id;
+                option.textContent = b.display;
+                select.appendChild(option);
+            });
+            disableCustomerInputs();
         }).catch(e => console.log('Lỗi API booking:', e));
+}
+
+
+function enableCustomerInputs() {
+    document.querySelectorAll('.cust-input').forEach(el => el.disabled = false);
+}
+
+function disableCustomerInputs() {
+    document.querySelectorAll('.cust-input').forEach(el => { el.disabled = true; el.value = ''; });
+    document.getElementById('cust_gender').value = 'OTHER';
+}
+
+let isWalkInMode = false;
+function toggleWalkIn() {
+    isWalkInMode = !isWalkInMode;
+    let btn = document.getElementById('btn_walkin');
+    let select = document.getElementById('booking_select');
+
+    if (isWalkInMode) {
+        btn.innerHTML = "Hủy Tạo Mới (Tắt)";
+        btn.classList.replace('bg-green-600', 'bg-red-500');
+        btn.classList.replace('hover:bg-green-700', 'hover:bg-red-600');
+        select.value = "";
+        select.disabled = true; // Khóa dropdown
+        enableCustomerInputs();
+        document.getElementById('cust_name').focus();
+    } else {
+        btn.innerHTML = "+ Tạo Khách Vãng Lai";
+        btn.classList.replace('bg-red-500', 'bg-green-600');
+        btn.classList.replace('hover:bg-red-600', 'hover:bg-green-700');
+        select.disabled = false; // Mở lại dropdown
+        fillCustomerData(); // Tự động load lại Form theo lựa chọn Dropdown (sẽ tự khóa nếu Dropdown rỗng)
+    }
+}
+
+function fillCustomerData() {
+    let bId = document.getElementById('booking_select').value;
+    if(!bId) { disableCustomerInputs(); return; }
+
+    enableCustomerInputs();
+    let bk = currentBookings.find(x => x.id == bId);
+    if(bk && bk.customer) {
+        document.getElementById('cust_name').value = bk.customer.name || '';
+        document.getElementById('cust_phone').value = bk.customer.phone || '';
+        document.getElementById('cust_gender').value = bk.customer.gender || 'OTHER';
+        document.getElementById('cust_dob').value = bk.customer.dob || '';
+        document.getElementById('cust_email').value = bk.customer.email || '';
+        document.getElementById('cust_address').value = bk.customer.address || '';
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -150,8 +224,8 @@ function addServiceRow() {
     row.innerHTML = `
         <div class="col-span-2"><select class="w-full border rounded p-2" onchange="filterServices(this, ${rowId})">${catOptions}</select></div>
         <div class="col-span-3"><select class="w-full border rounded p-2 srv-select" id="srv_${rowId}" onchange="setPrice(this, ${rowId})"><option value="">Chọn Dịch vụ...</option></select></div>
-        <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11)" class="w-full border rounded p-2"></div>
-        <div class="col-span-2"><select class="w-full border rounded p-2 doc-select">${docOptions}</select></div>
+        <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11)" class="w-full border rounded p-2 srv-tooth"></div>
+        <div class="col-span-2"><select class="w-full border rounded p-2 srv-doc">${docOptions}</select></div>
         <div class="col-span-2"><input type="text" id="price_${rowId}" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
         <div class="col-span-1 text-center"><button class="text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100 border border-red-200" onclick="this.parentElement.parentElement.remove(); calculateTotal()">Xóa</button></div>
     `;
@@ -211,6 +285,44 @@ function calculateTotal() {
 
     let finalTotal = afterDiscount + adjustmentAmt;
     document.getElementById('final_total').value = formatNumber(finalTotal > 0 ? finalTotal : 0);
+}
+
+function submitPOS() {
+    let payload = {
+        booking_id: document.getElementById('booking_select').value,
+        customer: {
+            name: document.getElementById('cust_name').value, phone: document.getElementById('cust_phone').value,
+            gender: document.getElementById('cust_gender').value, dob: document.getElementById('cust_dob').value,
+            email: document.getElementById('cust_email').value, address: document.getElementById('cust_address').value
+        },
+        services: [],
+        billing: {
+            subtotal: parseNumber(document.getElementById('subtotal').value),
+            discount_id: document.getElementById('discount_select').value,
+            adjustment: document.getElementById('adjustment').value.startsWith('-') ? -Math.abs(parseNumber(document.getElementById('adjustment').value)) : parseNumber(document.getElementById('adjustment').value),
+            final_total: parseNumber(document.getElementById('final_total').value)
+        }
+    };
+
+    if(!payload.customer.name || !payload.customer.phone) return alert("Vui lòng nhập Họ Tên và Số Điện Thoại!");
+
+    document.querySelectorAll('.service-row').forEach(row => {
+        let srvId = row.querySelector('.srv-select').value;
+        if(srvId) {
+            payload.services.push({
+                service_id: srvId, doctor_id: row.querySelector('.srv-doc').value,
+                tooth: row.querySelector('.srv-tooth').value, price: parseNumber(row.querySelector('.service-price').value)
+            });
+        }
+    });
+
+    if(payload.services.length === 0) return alert("Vui lòng chọn ít nhất 1 dịch vụ!");
+
+    fetch('/api/pos/submit/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(r => r.json()).then(res => {
+            if(res.status === 'success') { alert('Lưu Hóa đơn thành công!'); window.location.reload(); }
+            else { alert('Lỗi: ' + res.error); }
+        });
 }
 </script>
 {% endblock %}
