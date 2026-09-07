@@ -538,29 +538,40 @@ class POSBookingAPIView(View):
     def get(self, request):
         try:
             date_str = request.GET.get('date')
+            from datetime import datetime, timedelta, timezone as dt_timezone
             from booking.models import Booking
-            from django.utils import timezone
-            import pytz
-            from datetime import datetime
-            if not date_str: date_str = datetime.today().strftime('%Y-%m-%d')
-            
-            # Dùng __date để Supabase/PostgreSQL tự động map đúng TimeZone
-            bookings = Booking.objects.filter(start_time__date=date_str).exclude(status__in=['COMPLETED', 'CANCELLED', 'Completed', 'Cancelled', 'Hoàn thành', 'Đã hủy']).select_related('customer')
+
+            if not date_str: 
+                # Lấy ngày hiện tại + 7 tiếng để ra chuẩn giờ VN
+                date_str = (datetime.now(dt_timezone.utc) + timedelta(hours=7)).strftime('%Y-%m-%d')
+
+            # Tạo mốc 0h và 23h59 theo giờ VN
+            target_date = datetime.strptime(date_str, '%Y-%m-%d')
+            start_vn = target_date
+            end_vn = target_date.replace(hour=23, minute=59, second=59)
+
+            # Trừ 7 tiếng để ép về chuẩn UTC tuyệt đối khi query DB
+            start_utc = (start_vn - timedelta(hours=7)).replace(tzinfo=dt_timezone.utc)
+            end_utc = (end_vn - timedelta(hours=7)).replace(tzinfo=dt_timezone.utc)
+
+            bookings = Booking.objects.filter(start_time__range=(start_utc, end_utc)).exclude(status__in=['COMPLETED', 'CANCELLED', 'Completed', 'Cancelled', 'Hoàn thành', 'Đã hủy']).select_related('customer')
+
             data = []
-            local_tz = pytz.timezone('Asia/Ho_Chi_Minh')
             for b in bookings:
                 c = getattr(b, 'customer', None)
-                if b.start_time:
-                    local_time = timezone.localtime(b.start_time, local_tz)
-                    time = local_time.strftime('%H:%M')
-                else:
-                    time = '--:--'
-                    
+
+                # Ép giờ hiển thị: Cộng 7 tiếng vào start_time của DB
+                time_str = '--:--'
+                if getattr(b, 'start_time', None):
+                    time_str = (b.start_time + timedelta(hours=7)).strftime('%H:%M')
+
                 name = getattr(c, 'name', 'Khách chưa tên') if c else 'Khách chưa tên'
                 phone = getattr(c, 'phone', '') if c else ''
+                b_id = getattr(b, 'booking_id', getattr(b, 'id', ''))
+
                 data.append({
-                    'id': b.booking_id, 
-                    'display': f"[{time}] {name} - {phone} (ID: {b.booking_id})",
+                    'id': b_id, 
+                    'display': f"[{time_str}] {name} - {phone} (ID: {b_id})",
                     'customer': {
                         'name': name, 'phone': phone,
                         'gender': getattr(c, 'gender', 'OTHER') if c else 'OTHER',
@@ -569,7 +580,9 @@ class POSBookingAPIView(View):
                     }
                 })
             return JsonResponse({'bookings': data})
-        except Exception as e: return JsonResponse({'error': str(e)}, status=500)
+        except Exception as e: 
+            return JsonResponse({'error': str(e)}, status=500)
+
 class POSMasterDataAPIView(View):
     def get(self, request):
         try:
