@@ -586,7 +586,7 @@ class POSBookingAPIView(View):
 class POSMasterDataAPIView(View):
     def get(self, request):
         try:
-            from booking.models import ServiceCategory, ServiceDetail, Employee, Discount
+            from booking.models import TopupInfo, ServiceCategory, ServiceDetail, Employee, Discount
             
             categories = list(ServiceCategory.objects.values('category_id', 'name'))
             services = list(ServiceDetail.objects.values('service_id', 'name', 'price', 'category_id'))
@@ -601,7 +601,16 @@ class POSMasterDataAPIView(View):
                     'value': float(getattr(d, 'value', 0)), 'desc': getattr(d, 'description', '')
                 })
                 
-            return JsonResponse({'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts})
+            bank_info = {}
+            topup = TopupInfo.objects.filter(is_default=True).first()
+            if not topup: topup = TopupInfo.objects.first()
+            if topup:
+                b_code = getattr(topup, 'bank_name', 'MB')
+                a_no = getattr(topup, 'account_number', '')
+                a_name = getattr(topup, 'account_name', '')
+                bank_info = {'bank_code': b_code, 'account_number': a_no, 'account_name': a_name}
+
+            return JsonResponse({'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts, 'bank_info': bank_info})
         except Exception as e: return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -614,15 +623,14 @@ from django.db import transaction
 class POSSubmitAPIView(View):
     def post(self, request):
         try:
+            import json
             data = json.loads(request.body)
             from booking.models import Booking, Customer, BookingDetail, Billing, Clinic
             from datetime import datetime
+            from django.db import transaction
             
             with transaction.atomic():
                 cust_data = data.get('customer', {})
-                customer = None
-                
-                # 1. Update Existing OR Create New Customer (Khách Vãng Lai)
                 if data.get('booking_id'):
                     booking = Booking.objects.get(booking_id=data['booking_id'])
                     customer = booking.customer
@@ -636,43 +644,38 @@ class POSSubmitAPIView(View):
                         customer.save()
                 else:
                     customer = Customer.objects.create(
-                        name=cust_data.get('name', 'Khách Vãng Lai'),
-                        phone=cust_data.get('phone', ''),
-                        gender=cust_data.get('gender', 'OTHER'),
-                        email=cust_data.get('email', ''),
-                        address=cust_data.get('address', '')
+                        name=cust_data.get('name', 'Khách Vãng Lai'), phone=cust_data.get('phone', ''),
+                        gender=cust_data.get('gender', 'OTHER'), email=cust_data.get('email', ''), address=cust_data.get('address', '')
                     )
                     if cust_data.get('dob'):
                         customer.customer_dob = cust_data['dob']
                         customer.save()
-                        
-                    clinic = Clinic.objects.first()
                     booking = Booking.objects.create(
-                        customer=customer, clinic=clinic,
-                        start_time=datetime.now(), status='Completed',
-                        notes="Khách vãng lai tạo từ POS"
+                        customer=customer, clinic=Clinic.objects.first(),
+                        start_time=datetime.now(), status='Completed', notes="Khách vãng lai POS"
                     )
                 
                 booking.status = 'Completed'
                 booking.save()
 
-                # 2. Xử lý Hóa đơn & Dịch vụ chi tiết
                 billing_data = data.get('billing', {})
                 Billing.objects.create(
-                    booking=booking, subtotal=billing_data.get('subtotal', 0),
+                    booking=booking,
+                    subtotal=billing_data.get('subtotal', 0),
                     discount_id=billing_data.get('discount_id') or None,
                     adjustment=billing_data.get('adjustment', 0),
-                    final_total=billing_data.get('final_total', 0)
+                    final_total=billing_data.get('final_total', 0),
+                    payment_method=billing_data.get('payment_method', 'CASH')
                 )
 
                 BookingDetail.objects.filter(booking=booking).delete()
                 for srv in data.get('services', []):
                     if srv.get('service_id'):
                         BookingDetail.objects.create(
-                            booking=booking, service_detail_id=srv['service_id'],
-                            doctor_id=srv.get('doctor_id') or None, tooth_position=srv.get('tooth', ''),
-                            quantity=1, actual_price=srv.get('price', 0)
+                            booking=booking, service_detail_id=srv['service_id'], doctor_id=srv.get('doctor_id') or None,
+                            tooth_position=srv.get('tooth', ''), quantity=1, actual_price=srv.get('price', 0)
                         )
-                
             return JsonResponse({'status': 'success', 'booking_id': booking.booking_id})
-        except Exception as e: return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e: 
+            return JsonResponse({'error': str(e)}, status=400)
+
