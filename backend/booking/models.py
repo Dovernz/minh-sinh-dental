@@ -306,6 +306,8 @@ class Billing(models.Model):
     adjustment = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Điều chỉnh (+/-)")
     final_total = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Thành tiền")
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú thu ngân")
+    payment_method = models.CharField(max_length=20, choices=[('CASH', 'Tiền mặt'), ('QR', 'Chuyển khoản QR'), ('CREDIT', 'Quẹt thẻ')], default='CASH', verbose_name="Phương thức")
+    status = models.CharField(max_length=20, choices=[('UNPAID', 'Chưa thanh toán'), ('PAID', 'Đã thanh toán')], default='UNPAID', verbose_name="Trạng thái")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -317,11 +319,11 @@ class Billing(models.Model):
         discount_amount = 0
         if self.discount and self.discount.is_active:
             if self.discount.discount_type == "Percent":
-                discount_amount = (self.sub_total * self.discount.value) / 100
+                discount_amount = (self.subtotal * self.discount.value) / 100
             else:
                 discount_amount = self.discount.value
 
-        calculated_total = self.sub_total - discount_amount
+        calculated_total = self.subtotal - discount_amount
         if calculated_total < 0:
             calculated_total = 0
 

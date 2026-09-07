@@ -659,13 +659,14 @@ class POSSubmitAPIView(View):
                 booking.save()
 
                 billing_data = data.get('billing', {})
-                Billing.objects.create(
+                billing = Billing.objects.create(
                     booking=booking,
                     subtotal=billing_data.get('subtotal', 0),
                     discount_id=billing_data.get('discount_id') or None,
                     adjustment=billing_data.get('adjustment', 0),
                     final_total=billing_data.get('final_total', 0),
-                    payment_method=billing_data.get('payment_method', 'CASH')
+                    payment_method=billing_data.get('payment_method', 'CASH'),
+                    status='UNPAID'
                 )
 
                 BookingDetail.objects.filter(booking=booking).delete()
@@ -675,7 +676,22 @@ class POSSubmitAPIView(View):
                             booking=booking, service_detail_id=srv['service_id'], doctor_id=srv.get('doctor_id') or None,
                             tooth_position=srv.get('tooth', ''), quantity=1, actual_price=srv.get('price', 0)
                         )
-            return JsonResponse({'status': 'success', 'booking_id': booking.booking_id})
+            return JsonResponse({'status': 'success', 'booking_id': booking.booking_id, 'billing_id': billing.billing_id})
         except Exception as e: 
             return JsonResponse({'error': str(e)}, status=400)
 
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class POSConfirmPaymentAPIView(View):
+    def post(self, request):
+        try:
+            import json
+            from booking.models import Billing
+            data = json.loads(request.body)
+            billing = Billing.objects.get(billing_id=data.get('billing_id'))
+            billing.status = 'PAID'
+            billing.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

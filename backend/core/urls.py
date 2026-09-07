@@ -1,11 +1,10 @@
-﻿from django.shortcuts import render
+from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import admin
 from django.urls import path, include
 from booking.views import tinymce_upload
 from django.contrib.auth import views as auth_views
 
-@staff_member_required
 @staff_member_required
 def admin_booking_embed_view(request):
     context = admin.site.each_context(request)
@@ -18,8 +17,9 @@ def pos_embed_view(request):
     context['title'] = 'Thanh toán (POS)'
     return render(request, 'admin/pos_embed.html', context)
 
-from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView
+from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView
 urlpatterns = [
+    path("api/pos/confirm-payment/", POSConfirmPaymentAPIView.as_view(), name="pos-confirm-payment"),
     path("api/pos/submit/", POSSubmitAPIView.as_view(), name="pos-submit"),
     path("api/pos/master-data/", POSMasterDataAPIView.as_view(), name="pos-master"),
     path("api/pos/bookings/", POSBookingAPIView.as_view(), name="pos-bookings"),
@@ -40,4 +40,3 @@ admin.site.site_title = "Nha Khoa Minh Sinh"
 admin.site.index_title = "Bảng điều khiển"
 
 import core.admin
-
