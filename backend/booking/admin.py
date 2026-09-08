@@ -1,3 +1,4 @@
+from django.utils.html import format_html
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -434,15 +435,22 @@ class BookingAdmin(BaseRBACAdmin):
 class BookingStatusHistoryAdmin(BaseRBACAdmin):
     list_display = ('booking', 'status', 'created_at')
     list_filter = ('status', 'created_at')
-    search_fields = ('booking__customer__name',)
+    search_fields = ('billing__booking__customer__name',)
     def has_change_permission(self, request, obj=None):
         return False
 
 @admin.register(Payment)
 class PaymentAdmin(BaseRBACAdmin):
-    list_display = ('booking', 'amount', 'payment_method', 'created_at')
+    list_display = ('payment_id', 'get_customer', 'amount', 'payment_method', 'amount_remain', 'created_at')
     list_filter = ('payment_method', 'created_at')
-    search_fields = ('booking__customer__name',)
+    search_fields = ('billing__booking__customer__name', 'billing__booking__customer__phone')
+
+    def get_customer(self, obj):
+        if obj.billing and obj.billing.booking and obj.billing.booking.customer:
+            return f"{obj.billing.booking.customer.name} - {obj.billing.booking.customer.phone}"
+        return "N/A"
+    get_customer.short_description = 'Khách hàng'
+
 
 
 
@@ -736,7 +744,8 @@ class BillingAdmin(BaseRBACAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    list_display = ('booking', 'subtotal', 'discount', 'final_total', 'created_at', 'print_invoice_button')
+    list_display = ('booking', 'subtotal', 'discount', 'final_total', 'status', 'created_at', 'print_invoice_button')
+    list_filter = ('status', 'created_at')
     readonly_fields = ('subtotal', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
     search_fields = ('booking__booking_id', 'booking__customer__name')
     

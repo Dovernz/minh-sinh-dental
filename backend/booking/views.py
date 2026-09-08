@@ -687,11 +687,33 @@ class POSConfirmPaymentAPIView(View):
     def post(self, request):
         try:
             import json
-            from booking.models import Billing
+            from django.db.models import Sum
+            from booking.models import Billing, Payment
+            from django.db import transaction
+            
             data = json.loads(request.body)
-            billing = Billing.objects.get(billing_id=data.get('billing_id'))
-            billing.status = 'PAID'
-            billing.save()
-            return JsonResponse({'status': 'success'})
+            pay_amount = float(data.get('amount', 0))
+            
+            with transaction.atomic():
+                billing = Billing.objects.get(billing_id=data.get('billing_id'))
+                
+                prev_payments = Payment.objects.filter(billing=billing).aggregate(Sum('amount'))['amount__sum'] or 0
+                
+                total = float(billing.final_total)
+                remain = total - float(prev_payments) - pay_amount
+                if remain < 0: remain = 0
+                
+                Payment.objects.create(
+                    billing=billing,
+                    amount=pay_amount,
+                    payment_method=data.get('payment_method', 'CASH'),
+                    total_billing=total,
+                    amount_remain=remain
+                )
+                
+                billing.status = 'PAID' if remain <= 0 else 'INSTALLMENT'
+                billing.save()
+                
+            return JsonResponse({'status': 'success', 'remain': remain, 'bill_status': billing.status})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)

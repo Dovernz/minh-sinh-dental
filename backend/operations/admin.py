@@ -73,7 +73,7 @@ class ManageBookingAdmin(BaseRBACAdmin):
     list_filter = ('start_time', 'clinic', 'status', 'estimated_duration', 'category')
     search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration', 'category__name')
     date_hierarchy = 'start_time'
-    inlines = [BookingStatusHistoryInline, PaymentInline]
+    inlines = [BookingStatusHistoryInline]
 
     class Media:
         js = ('admin/js/booking_chained_select.js',)

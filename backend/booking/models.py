@@ -149,21 +149,16 @@ class BookingStatusHistory(models.Model):
 
 class Payment(models.Model):
     payment_id = models.AutoField(primary_key=True)
-    PAYMENT_METHOD_CHOICES = [
-        ('QR Code', 'QR Code'),
-        ('Cash', 'Cash'),
-        ('Card', 'Card'),
-    ]
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
-    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Số tiền")
-    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, default='QR Code', verbose_name="Phương thức")
+    billing = models.ForeignKey('Billing', on_delete=models.CASCADE, related_name='payments', null=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Số tiền thanh toán")
+    payment_method = models.CharField(max_length=20, choices=[('CASH', 'Tiền mặt'), ('QR', 'Chuyển khoản QR'), ('CREDIT', 'Quẹt thẻ')], default='CASH')
+    total_billing = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Tổng tiền Hóa đơn", default=0)
+    amount_remain = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="Dư nợ còn lại", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'db_table_payments'
 
-    def __str__(self):
-        return f"{self.booking.id} - {self.amount}"
 
 class InventoryDetail(models.Model):
     item_id = models.AutoField(primary_key=True)
@@ -307,7 +302,7 @@ class Billing(models.Model):
     final_total = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Thành tiền")
     notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú thu ngân")
     payment_method = models.CharField(max_length=20, choices=[('CASH', 'Tiền mặt'), ('QR', 'Chuyển khoản QR'), ('CREDIT', 'Quẹt thẻ')], default='CASH', verbose_name="Phương thức")
-    status = models.CharField(max_length=20, choices=[('UNPAID', 'Chưa thanh toán'), ('PAID', 'Đã thanh toán')], default='UNPAID', verbose_name="Trạng thái")
+    status = models.CharField(max_length=20, choices=[('UNPAID', 'Chưa thanh toán'), ('INSTALLMENT', 'Trả góp/Còn nợ'), ('PAID', 'Đã thanh toán hoàn tất')], default='UNPAID', verbose_name="Trạng thái")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
