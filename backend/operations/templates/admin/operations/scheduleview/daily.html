@@ -12,7 +12,7 @@
         <div style="margin-bottom: 30px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #fff;">
             <h3 style="margin-top: 0; color: #417690;">Khung giờ: {{ row.time }}</h3>
             {% if row.bookings %}
-                <table style="width: 100%; border-collapse: collapse;">
+                <div class="overflow-x-auto w-full pb-4 scroll-smooth"><table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
                             <th style="border-bottom: 2px solid #ddd; padding: 8px; text-align: left;">Tên Khách Hàng</th>
@@ -29,7 +29,7 @@
                             </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
             {% else %}
                 <p style="color: #888;">Không có ca khám nào.</p>
             {% endif %}

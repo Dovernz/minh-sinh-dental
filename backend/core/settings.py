@@ -171,6 +171,7 @@ UNFOLD = {
     # "SITE_LOGO": "/static/img/logo.jpg",
 
     "STYLES": [
+        lambda request: static("css/admin_mobile.css"),
         lambda request: static("css/admin_custom.css"),
     ],
     "SCRIPTS": [

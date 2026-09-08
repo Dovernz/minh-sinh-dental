@@ -6,7 +6,7 @@
 </div>
 
 <h2>{{ title }}</h2>
-<table style="width: 100%; border-collapse: collapse; text-align: center;">
+<div class="overflow-x-auto w-full pb-4 scroll-smooth"><table style="width: 100%; border-collapse: collapse; text-align: center;">
     <thead>
         <tr>
             <th style="border: 1px solid #ccc; padding: 10px;">Time \ Date</th>
@@ -29,5 +29,5 @@
             </tr>
         {% endfor %}
     </tbody>
-</table>
+</table></div>
 {% endblock %}

@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <table>
+    <div class="overflow-x-auto w-full pb-4 scroll-smooth"><table>
         <thead>
             <tr>
                 <th>STT</th>
@@ -68,10 +68,10 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 
     <div class="totals">
-        <table>
+        <div class="overflow-x-auto w-full pb-4 scroll-smooth"><table>
             <tr>
                 <th>Tổng tạm tính:</th>
                 <td>{{ billing.sub_total|floatformat:0 }} ₫</td>
@@ -88,7 +88,7 @@
                 <th style="font-size: 1.2em; color: #d9534f;">TỔNG THANH TOÁN:</th>
                 <td style="font-size: 1.2em; color: #d9534f;">{{ billing.final_total|floatformat:0 }} ₫</td>
             </tr>
-        </table>
+        </table></div>
     </div>
 
     {% if qr_url %}
