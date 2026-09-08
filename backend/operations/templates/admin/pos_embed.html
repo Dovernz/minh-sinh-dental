@@ -36,12 +36,12 @@
 
     <!-- KHỐI 1: KHÁCH HÀNG -->
     <div class="bg-white p-4 rounded border mb-6 shadow-sm">
-        <div class="flex justify-between items-center mb-4 border-b pb-2">
+        <div class="flex justify-between items-start md:items-center mb-4 border-b pb-2">
             <h3 class="font-bold text-blue-800">1. Lịch hẹn & Hồ sơ Khách hàng</h3>
             <button id="btn_walkin" class="bg-green-600 text-white font-bold py-1 px-4 rounded shadow hover:bg-green-700 text-sm transition-colors" onclick="toggleWalkIn()">+ Tạo Khách Vãng Lai</button>
         </div>
         
-        <div class="grid grid-cols-2 gap-4 mb-4" style="background-color: #eff6ff !important; padding: 12px; border-radius: 6px;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" style="background-color: #eff6ff !important; padding: 12px; border-radius: 6px;">
             <div><label class="block text-sm font-bold">Chọn Ngày Khám</label>
             <input type="date" id="search_date" class="w-full border rounded p-2 mt-1" onchange="loadBookings()"></div>
             
@@ -60,7 +60,7 @@
             <div><label class="font-bold text-sm">Ngày sinh</label><input type="date" id="cust_dob" class="cust-input w-full rounded p-2 mt-1" disabled></div>
             <div><label class="font-bold text-sm">Email</label><input type="email" id="cust_email" class="cust-input w-full rounded p-2 mt-1" disabled></div>
             <div><label class="font-bold text-sm">Địa chỉ</label><input type="text" id="cust_address" class="cust-input w-full rounded p-2 mt-1" disabled></div>
-        <div class="mt-4 col-span-2">
+        <div class="mt-4 col-span-1 md:col-span-2">
             <label class="block text-sm font-bold text-gray-700 mb-1">Cơ sở khám (Chi nhánh)</label>
             <select id="pos_clinic" class="w-full rounded p-2 border bg-gray-100 font-bold text-blue-900" disabled>
                 <option value="">-- Chọn Cơ sở --</option>
@@ -79,7 +79,7 @@
     <!-- KHỐI 3: THANH TOÁN -->
     <div class="bg-white p-4 rounded border shadow-sm">
         <h3 class="font-bold mb-4 border-b pb-2 text-blue-800">3. Thanh toán</h3>
-        <div class="grid grid-cols-2 gap-4 items-center">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start md:items-center">
             <div class="text-right font-bold">Tổng tiền gốc:</div>
             <div><input type="text" id="subtotal" class="w-full rounded p-2 text-right font-bold" style="background-color: #f3f4f6 !important;" readonly value="0"></div>
             
@@ -112,7 +112,7 @@
 <div id="success_modal" class="hidden mt-8 pb-10">
     <div class="bg-green-50 rounded-xl shadow-md border-2 border-green-500 p-8 text-center max-w-3xl mx-auto">
         <div class="text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <div class="mx-auto flex items-start md:items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
                 <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h3 class="text-lg leading-6 font-bold text-gray-900">Tạo Hóa Đơn Thành Công</h3>
@@ -123,7 +123,7 @@
         </div>
         </div>
         
-        <div id="modal_qr_container" class="hidden mt-4 flex flex-col items-center justify-center bg-gray-50 p-4 rounded border">
+        <div id="modal_qr_container" class="hidden mt-4 flex flex-col items-start md:items-center justify-center bg-gray-50 p-4 rounded border">
             <p class="text-sm font-bold text-gray-700 mb-2">Mã VietQR Thanh Toán</p>
             <img id="modal_qr_image" src="" alt="Mã VietQR" class="w-56 h-auto object-contain p-2 rounded shadow border">
             <p id="modal_qr_text" class="text-xs text-gray-500 mt-2 text-center"></p>
@@ -265,17 +265,17 @@ function populateDiscounts() {
 function addServiceRow() {
     let rowId = Date.now();
     let row = document.createElement('div');
-    row.className = 'service-row grid grid-cols-12 gap-2 mb-2 items-center';
+    row.className = 'service-row grid grid-cols-1 md:grid-cols-12 gap-2 mb-2 items-start md:items-center';
     
     let catOptions = '<option value="">Chọn Danh mục...</option>' + posMasterData.categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
     let docOptions = '<option value="">Chọn Bác sĩ...</option>' + posMasterData.doctors.map(d => `<option value="${d.employee_id}">${d.full_name}</option>`).join('');
     
     row.innerHTML = `
-        <div class="col-span-2"><select class="w-full border rounded p-2" onchange="filterServices(this, ${rowId})">${catOptions}</select></div>
-        <div class="col-span-3"><select class="w-full border rounded p-2 srv-select" id="srv_${rowId}" onchange="setPrice(this, ${rowId})"><option value="">Chọn Dịch vụ...</option></select></div>
-        <div class="col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11)" class="w-full border rounded p-2 srv-tooth"></div>
-        <div class="col-span-2"><select class="w-full border rounded p-2 srv-doc">${docOptions}</select></div>
-        <div class="col-span-2"><input type="text" id="price_${rowId}" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
+        <div class="col-span-1 md:col-span-2"><select class="w-full border rounded p-2" onchange="filterServices(this, ${rowId})">${catOptions}</select></div>
+        <div class="col-span-1 md:col-span-3"><select class="w-full border rounded p-2 srv-select" id="srv_${rowId}" onchange="setPrice(this, ${rowId})"><option value="">Chọn Dịch vụ...</option></select></div>
+        <div class="col-span-1 md:col-span-2"><input type="text" placeholder="Vị trí răng (VD: 11)" class="w-full border rounded p-2 srv-tooth"></div>
+        <div class="col-span-1 md:col-span-2"><select class="w-full border rounded p-2 srv-doc">${docOptions}</select></div>
+        <div class="col-span-1 md:col-span-2"><input type="text" id="price_${rowId}" placeholder="Đơn giá" class="w-full border rounded p-2 service-price text-right" oninput="formatCurrency(this); calculateTotal()"></div>
         <div class="col-span-1 text-center"><button class="text-red-500 font-bold px-2 py-1 bg-red-50 rounded hover:bg-red-100 border border-red-200" onclick="this.parentElement.parentElement.remove(); calculateTotal()">Xóa</button></div>
     `;
     document.getElementById('services_list').appendChild(row);
