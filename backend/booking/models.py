@@ -294,6 +294,7 @@ class BookingDetail(models.Model):
         return f"{self.booking.booking_id} - {self.service_detail.name if self.service_detail else ''}"
 
 class Billing(models.Model):
+    clinic = models.ForeignKey('Clinic', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Cơ sở khám')
     billing_id = models.AutoField(primary_key=True)
     booking = models.OneToOneField("Booking", on_delete=models.CASCADE, related_name="billing", verbose_name="Lịch khám")
     subtotal = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Tổng tiền gốc")
@@ -341,6 +342,7 @@ class MenuLink(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Hiển thị")
 
     class Meta:
+        db_table = 'db_table_menulink'
         ordering = ['order']
         verbose_name = "Cấu hình Header"
         verbose_name_plural = "Cấu hình Header"
@@ -355,6 +357,7 @@ class SiteSettings(models.Model):
     social_section_title = models.CharField(max_length=100, default="KẾT NỐI VỚI CHÚNG TÔI", verbose_name="Tiêu đề Cột MXH")
     
     class Meta:
+        db_table = 'db_table_sitesettings'
         verbose_name = "Cấu hình Footer"
         verbose_name_plural = "Cấu hình Footer"
         
@@ -368,7 +371,8 @@ class ClinicBranch(models.Model):
     hotline = models.CharField(max_length=20, verbose_name="Hotline")
     order = models.IntegerField(default=0, verbose_name="Thứ tự hiển thị")
     
-    class Meta: 
+    class Meta:
+        db_table = 'db_table_clinicbranch'
         ordering = ['order']
 
 class SocialLink(models.Model):
@@ -377,5 +381,6 @@ class SocialLink(models.Model):
     url = models.URLField(verbose_name="Đường dẫn")
     order = models.IntegerField(default=0, verbose_name="Thứ tự")
     
-    class Meta: 
+    class Meta:
+        db_table = 'db_table_sociallink'
         ordering = ['order']

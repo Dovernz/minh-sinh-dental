@@ -454,6 +454,14 @@ class PaymentAdmin(BaseRBACAdmin):
 
 
 
+    def formatted_amount(self, obj):
+        return f"{int(obj.amount or 0):,}"
+    formatted_amount.short_description = "Số tiền thanh toán"
+
+    def formatted_remain(self, obj):
+        return f"{int(obj.amount_remain or 0):,}"
+    formatted_remain.short_description = "Dư nợ còn lại"
+
 @admin.register(InventoryDetail)
 class InventoryDetailAdmin(BaseRBACAdmin):
     list_display = ('item_name', 'unit', 'category', 'price_per_unit')
@@ -744,14 +752,14 @@ class BillingAdmin(BaseRBACAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    list_display = ('booking', 'subtotal', 'discount', 'final_total', 'status', 'created_at', 'print_invoice_button')
-    list_filter = ('status', 'created_at')
+    list_display = ('billing_id', 'clinic', 'booking', 'subtotal', 'discount', 'final_total', 'status', 'created_at', 'print_invoice_button')
+    list_filter = ('clinic', 'status', 'created_at')
     readonly_fields = ('subtotal', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
     search_fields = ('booking__booking_id', 'booking__customer__name')
     
     fieldsets = (
         ('Thông tin chung', {
-            'fields': ('booking',)
+            'fields': ('clinic', 'booking',)
         }),
         ('Kế toán', {
             'fields': ('subtotal', 'discount', 'adjustment', 'final_total')
@@ -801,7 +809,7 @@ class BillingAdmin(BaseRBACAdmin):
 
     def print_invoice_button(self, obj):
         if obj.pk:
-            return format_html('<a href="{}/print/" target="_blank" class="button" style="background-color:#007bff; color:white; padding:5px 10px; border-radius:3px; text-decoration:none;">🖨️ In Hóa Đơn</a>', obj.pk)
+            return format_html('<a href="/admin/booking/billing/{}/print/" target="_blank" class="button" style="background-color:#007bff; color:white; padding:5px 10px; border-radius:3px; text-decoration:none;">🖨️ In Hóa Đơn</a>', obj.pk)
         return ""
     print_invoice_button.short_description = "In Hóa Đơn"
 
@@ -822,6 +830,14 @@ class BillingAdmin(BaseRBACAdmin):
                 return mark_safe(f'<img src="{url}" alt="QR Code" style="max-width: 300px;"/>')
         return "Chưa có thông tin hoặc tổng tiền = 0"
     payment_qr_code.short_description = "QR Thanh Toán"
+
+    def formatted_subtotal(self, obj):
+        return f"{int(obj.subtotal or 0):,}"
+    formatted_subtotal.short_description = "Tổng tiền gốc"
+
+    def formatted_final_total(self, obj):
+        return f"{int(obj.final_total or 0):,}"
+    formatted_final_total.short_description = "Thành tiền"
 
 @admin.register(BookingDetail)
 class BookingDetailAdmin(BaseRBACAdmin):

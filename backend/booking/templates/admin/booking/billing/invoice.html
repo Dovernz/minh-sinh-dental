@@ -26,10 +26,11 @@
 <body>
     <button class="print-btn" onclick="window.print()">🖨️ In Hóa Đơn</button>
     
-    <div class="header">
+        <div class="header">
         <h2>NHA KHOA MINH SINH</h2>
-        <p>Địa chỉ: 123 Đường Răng Hàm Mặt, TP.HCM</p>
-        <p>Điện thoại: 0909 123 456</p>
+        <p>Cơ sở: <strong>{{ billing.clinic.name|default:"Trụ sở chính" }}</strong></p>
+        <p>Địa chỉ: {{ billing.clinic.address|default:"123 Đường Răng Hàm Mặt, TP.HCM" }}</p>
+        <p>Điện thoại: {{ billing.clinic.hotline|default:"0909 123 456" }}</p>
     </div>
 
     <div class="info-section">
@@ -97,5 +98,28 @@
     </div>
     {% endif %}
     
+
+    
+    
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while (node = walker.nextNode()) {
+        if (node.nodeValue.match(/\d/)) {
+            let txt = node.nodeValue;
+            let replaced = txt.replace(/(\d{4,})(?:\s*(?:\?|đ|₫|VND|d))(?!\d)/gi, function(match, p1) {
+                return Number(p1).toLocaleString('en-US') + ' ₫';
+            });
+            node.nodeValue = replaced;
+        }
+    }
+});
+</script>
+
 </body>
 </html>

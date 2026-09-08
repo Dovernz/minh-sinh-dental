@@ -586,7 +586,7 @@ class POSBookingAPIView(View):
 class POSMasterDataAPIView(View):
     def get(self, request):
         try:
-            from booking.models import TopupInfo, ServiceCategory, ServiceDetail, Employee, Discount
+            from booking.models import Clinic, TopupInfo, ServiceCategory, ServiceDetail, Employee, Discount
             
             categories = list(ServiceCategory.objects.values('category_id', 'name'))
             services = list(ServiceDetail.objects.values('service_id', 'name', 'price', 'category_id'))
@@ -601,6 +601,8 @@ class POSMasterDataAPIView(View):
                     'value': float(getattr(d, 'value', 0)), 'desc': getattr(d, 'description', '')
                 })
                 
+            
+            clinics = [{'id': c.clinic_id, 'name': c.name} for c in Clinic.objects.all()]
             bank_info = {}
             topup = TopupInfo.objects.filter(is_default=True).first()
             if not topup: topup = TopupInfo.objects.first()
@@ -610,7 +612,7 @@ class POSMasterDataAPIView(View):
                 a_name = getattr(topup, 'account_name', '')
                 bank_info = {'bank_code': b_code, 'account_number': a_no, 'account_name': a_name}
 
-            return JsonResponse({'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts, 'bank_info': bank_info})
+            return JsonResponse({'clinics': clinics, 'categories': categories, 'services': services, 'doctors': doctors, 'discounts': discounts, 'bank_info': bank_info})
         except Exception as e: return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -651,7 +653,7 @@ class POSSubmitAPIView(View):
                         customer.customer_dob = cust_data['dob']
                         customer.save()
                     booking = Booking.objects.create(
-                        customer=customer, clinic=Clinic.objects.first(),
+                        customer=customer, clinic=Clinic.objects.filter(clinic_id=data.get('clinic_id')).first() if data.get('clinic_id') else Clinic.objects.first(),
                         start_time=datetime.now(), status='Completed', notes="Khách vãng lai POS"
                     )
                 
@@ -666,6 +668,7 @@ class POSSubmitAPIView(View):
                     adjustment=billing_data.get('adjustment', 0),
                     final_total=billing_data.get('final_total', 0),
                     payment_method=billing_data.get('payment_method', 'CASH'),
+                    clinic=booking.clinic,
                     status='UNPAID'
                 )
 
