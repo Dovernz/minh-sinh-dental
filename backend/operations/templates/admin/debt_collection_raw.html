@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head><title>Thu nợ</title><meta charset="utf-8"></head>
+<body class="bg-gray-100 min-h-screen">
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="p-6 max-w-5xl mx-auto bg-white rounded-xl shadow-md space-y-6">
+    <h2 class="text-2xl font-bold text-gray-800 border-b pb-4">Quản lý Thu hồi Công nợ</h2>
+
+    <!-- 1. Chọn Hóa Đơn -->
+    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <label class="block text-sm font-bold text-gray-700 mb-2">Tìm kiếm & Chọn Hóa đơn (Khách nợ):</label>
+        <select id="debt_select" class="w-full p-3 border rounded font-bold text-blue-900 shadow-sm" onchange="selectDebt()">
+            <option value="">-- Đang tải danh sách công nợ... --</option>
+        </select>
+    </div>
+
+    <!-- 2. Thông tin chi tiết -->
+    <div id="debt_details" class="hidden grid grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg border shadow-inner">
+        <div>
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-wide">Thông tin Khách hàng</p>
+            <p id="lbl_customer" class="font-bold text-xl text-blue-800 mt-1">-</p>
+            <p id="lbl_phone" class="text-gray-600 font-medium">-</p>
+            <p id="lbl_clinic" class="text-sm text-gray-500 mt-2 bg-gray-200 inline-block px-2 py-1 rounded">-</p>
+        </div>
+        <div class="text-right space-y-3 border-l-2 pl-6">
+            <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-gray-600 font-medium">Tổng Hóa Đơn:</span><span id="lbl_total" class="font-bold text-gray-800">-</span></div>
+            <div class="flex justify-between border-b border-gray-200 pb-2"><span class="text-green-600 font-medium">Đã Thanh Toán:</span><span id="lbl_paid" class="font-bold text-green-600">-</span></div>
+            <div class="flex justify-between pt-1"><span class="text-red-600 font-bold text-lg">Dư Nợ Hiện Tại:</span><span id="lbl_remain" class="font-bold text-red-600 text-2xl">-</span></div>
+        </div>
+    </div>
+
+    <!-- 3. Thanh toán đợt này -->
+    <div id="payment_section" class="hidden border-2 border-green-500 rounded-xl p-6 bg-green-50 text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+        <div class="max-w-md mx-auto mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-2 text-left">Số tiền thu đợt này (VNĐ):</label>
+            <input type="text" id="pay_amount" class="w-full text-right p-4 text-3xl font-bold text-blue-900 border-2 border-blue-400 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" oninput="formatCurrency(this); updateQR()">
+        </div>
+
+        <div class="max-w-md mx-auto mb-6">
+            <label class="block text-sm font-bold text-gray-700 mb-2 text-left">Phương thức thanh toán:</label>
+            <select id="pay_method" class="w-full p-3 border rounded-lg bg-white shadow-sm font-medium text-gray-700" onchange="updateQR()">
+                <option value="QR">Chuyển khoản (Mã VietQR Động)</option>
+                <option value="CASH">Tiền mặt</option>
+                <option value="CREDIT">Quẹt thẻ (POS)</option>
+            </select>
+        </div>
+
+        <div id="qr_block" class="mb-6 bg-white p-6 rounded-xl inline-block shadow-lg border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Mã quét tự động</p>
+            <img id="qr_image" src="" class="w-72 h-auto mx-auto object-contain p-2 border rounded-lg">
+            <p id="qr_content" class="text-sm font-mono bg-blue-50 text-blue-800 border border-blue-200 mt-4 py-2 px-3 rounded font-bold break-all"></p>
+        </div>
+
+        <button onclick="submitPayment()" class="w-full max-w-md mx-auto block bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 text-lg">
+            ✅ XÁC NHẬN ĐÃ THU TIỀN
+        </button>
+    </div>
+</div>
+
+<script>
+    let debtList = [];
+    let masterData = {};
+    let currentDebt = null;
+
+    function removeVietnameseTones(str) {
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a").replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e").replace(/ì|í|ị|ỉ|ĩ/g, "i").replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o").replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u").replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y").replace(/đ/g, "d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A").replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E").replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I").replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O").replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U").replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y").replace(/Đ/g, "D");
+        return str.toUpperCase();
+    }
+
+    function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+    function parseNumber(str) { return parseInt(str.replace(/,/g, '')) || 0; }
+
+    function formatCurrency(input) {
+        let val = parseNumber(input.value);
+        input.value = val === 0 ? '' : formatNumber(val);
+    }
+
+    Promise.all([
+        fetch('/api/pos/debts/').then(r => r.json()),
+        fetch('/api/pos/master-data/').then(r => r.json())
+    ]).then(([debtRes, masterRes]) => {
+        masterData = masterRes;
+        debtList = debtRes.debts || [];
+
+        let sel = document.getElementById('debt_select');
+        sel.innerHTML = '<option value="">-- Click để chọn Khách nợ (Tên/SĐT) --</option>';
+        debtList.forEach(d => {
+            sel.innerHTML += `<option value="${d.id}">HD${d.id} | ${d.customer_name} - ${d.phone} | Dư nợ: ${formatNumber(d.remain_amount)} VNĐ</option>`;
+        });
+    });
+
+    function selectDebt() {
+        let id = document.getElementById('debt_select').value;
+        if(!id) {
+            document.getElementById('debt_details').classList.add('hidden');
+            document.getElementById('payment_section').classList.add('hidden');
+            return;
+        }
+
+        currentDebt = debtList.find(x => x.id == id);
+        document.getElementById('lbl_customer').innerText = currentDebt.customer_name;
+        document.getElementById('lbl_phone').innerText = currentDebt.phone;
+        document.getElementById('lbl_clinic').innerText = currentDebt.clinic_name;
+        document.getElementById('lbl_total').innerText = formatNumber(currentDebt.final_total) + " đ";
+        document.getElementById('lbl_paid').innerText = formatNumber(currentDebt.paid_amount) + " đ";
+        document.getElementById('lbl_remain').innerText = formatNumber(currentDebt.remain_amount) + " đ";
+
+        document.getElementById('pay_amount').value = formatNumber(currentDebt.remain_amount);
+
+        document.getElementById('debt_details').classList.remove('hidden');
+        document.getElementById('payment_section').classList.remove('hidden');
+        updateQR();
+    }
+
+    function updateQR() {
+        let method = document.getElementById('pay_method').value;
+        let block = document.getElementById('qr_block');
+        if(method !== 'QR' || !currentDebt) { block.classList.add('hidden'); return; }
+
+        block.classList.remove('hidden');
+        let bankId = (masterData.bank_info.bank_code || 'MB').replace('Bank','').trim();
+        const bankMap = {'MBBank': 'MB', 'VietinBank': 'ICB', 'Vietcombank': 'VCB', 'Techcombank': 'TCB', 'Agribank': 'VBA', 'BIDV': 'BIDV', 'VPBank': 'VPB'};
+        bankId = bankMap[masterData.bank_info.bank_code] || bankId;
+        let accNo = masterData.bank_info.account_number;
+        let accName = masterData.bank_info.account_name;
+
+        let amount = parseNumber(document.getElementById('pay_amount').value);
+
+        // Format cực ngắn: TÊN NGÀY HDx
+        let namePart = removeVietnameseTones(currentDebt.customer_name).trim().split(' ').pop();
+        let d = new Date(); let dateStr = ("0" + d.getDate()).slice(-2) + ("0" + (d.getMonth() + 1)).slice(-2);
+        let content = `${namePart} ${dateStr} HD${currentDebt.id}`.substring(0, 35);
+
+        document.getElementById('qr_content').innerText = "Nội dung CK: " + content;
+        document.getElementById('qr_image').src = `https://img.vietqr.io/image/${bankId}-${accNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
+    }
+
+    function submitPayment() {
+        if(!currentDebt) return;
+        let amount = parseNumber(document.getElementById('pay_amount').value);
+        if(amount <= 0 || amount > currentDebt.remain_amount) {
+            alert("Số tiền không hợp lệ! Vui lòng kiểm tra lại Dư nợ."); return;
+        }
+
+        fetch('/api/pos/confirm-payment/', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ billing_id: currentDebt.id, amount: amount, payment_method: document.getElementById('pay_method').value })
+        }).then(r => r.json()).then(res => {
+            if(res.status === 'success') {
+                alert(`✅ Thu tiền thành công! Trạng thái HĐ: ${res.bill_status}\nDư nợ còn lại: ${formatNumber(res.remain)} đ`);
+                window.location.reload();
+            } else { alert('❌ Lỗi: ' + res.error); }
+        });
+    }
+</script>
+</body>
+</html>

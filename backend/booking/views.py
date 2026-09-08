@@ -720,3 +720,48 @@ class POSConfirmPaymentAPIView(View):
             return JsonResponse({'status': 'success', 'remain': remain, 'bill_status': billing.status})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+from django.views.generic import TemplateView
+from django.utils.decorators import method_decorator
+from django.views.decorators.clickjacking import xframe_options_exempt
+
+
+class DebtCollectionEmbedView(TemplateView):
+    template_name = 'admin/debt_collection_embed.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.contrib import admin
+        # Bơm toàn bộ dữ liệu menu, user, giao diện của Admin vào trang hiện tại
+        context.update(admin.site.each_context(self.request))
+        return context
+
+@method_decorator(xframe_options_exempt, name='dispatch')
+class DebtCollectionRawView(TemplateView):
+    template_name = 'admin/debt_collection_raw.html' 
+
+class POSDebtListAPIView(View):
+    def get(self, request):
+        try:
+            from booking.models import Billing
+            from django.db.models import Sum
+            
+            debts = Billing.objects.filter(status__in=['UNPAID', 'INSTALLMENT']).select_related('booking__customer', 'clinic').order_by('created_at')
+            data = []
+            for b in debts:
+                paid_sum = b.payments.aggregate(Sum('amount'))['amount__sum'] or 0
+                remain = float(b.final_total or 0) - float(paid_sum)
+                if remain > 0:
+                    data.append({
+                        'id': b.billing_id,
+                        'customer_name': getattr(b.booking.customer, 'name', 'Khách Vãng Lai') if (b.booking and b.booking.customer) else 'Khách Vãng Lai',
+                        'phone': getattr(b.booking.customer, 'phone', '') if (b.booking and b.booking.customer) else '',
+                        'clinic_name': getattr(b.clinic, 'name', 'Trụ sở chính') if b.clinic else 'Trụ sở chính',
+                        'final_total': float(b.final_total or 0),
+                        'paid_amount': float(paid_sum),
+                        'remain_amount': remain
+                    })
+            return JsonResponse({'status': 'success', 'debts': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

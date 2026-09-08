@@ -1,3 +1,10 @@
+import unicodedata
+from urllib.parse import quote
+
+def remove_vietnamese_accents(s):
+    if not s: return ""
+    return ''.join(c for c in unicodedata.normalize('NFKD', str(s)) if not unicodedata.combining(c)).upper()
+
 from django.utils.html import format_html
 from django.conf import settings
 from django.shortcuts import redirect
@@ -441,7 +448,7 @@ class BookingStatusHistoryAdmin(BaseRBACAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(BaseRBACAdmin):
-    list_display = ('payment_id', 'get_customer', 'amount', 'payment_method', 'amount_remain', 'created_at')
+    list_display = ('payment_id', 'get_customer', 'formatted_amount', 'payment_method', 'formatted_remain', 'created_at')
     list_filter = ('payment_method', 'created_at')
     search_fields = ('billing__booking__customer__name', 'billing__booking__customer__phone')
 
@@ -752,9 +759,9 @@ class BillingAdmin(BaseRBACAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    list_display = ('billing_id', 'clinic', 'booking', 'subtotal', 'discount', 'final_total', 'status', 'created_at', 'print_invoice_button')
+    list_display = ('billing_id', 'clinic', 'booking', 'formatted_subtotal', 'discount', 'formatted_final_total', 'status', 'created_at', 'print_invoice_button')
     list_filter = ('clinic', 'status', 'created_at')
-    readonly_fields = ('subtotal', 'adjustment', 'final_total', 'payment_qr_code', 'print_invoice_button')
+    readonly_fields = ('formatted_subtotal', 'adjustment', 'formatted_final_total', 'payment_qr_code', 'print_invoice_button')
     search_fields = ('booking__booking_id', 'booking__customer__name')
     
     fieldsets = (
@@ -762,7 +769,7 @@ class BillingAdmin(BaseRBACAdmin):
             'fields': ('clinic', 'booking',)
         }),
         ('Kế toán', {
-            'fields': ('subtotal', 'discount', 'adjustment', 'final_total')
+            'fields': ('formatted_subtotal', 'discount', 'adjustment', 'formatted_final_total')
         }),
         ('Thanh toán', {
             'fields': ('payment_qr_code', 'print_invoice_button')
@@ -795,7 +802,13 @@ class BillingAdmin(BaseRBACAdmin):
                 account = topup.account_number
                 name = topup.account_name.replace(' ', '%20') if topup.account_name else ''
                 amount = int(billing.final_total)
-                info = f"Thanh toan Booking {booking.booking_id}".replace(' ', '%20')
+                try:
+                    c_name = booking.customer.name if (booking and getattr(booking, 'customer', None)) else 'KHACH'
+                    f_name = remove_vietnamese_accents(c_name).strip().split(' ')[-1]
+                    d_str = billing.created_at.strftime('%d%m') if getattr(billing, 'created_at', None) else '0000'
+                    info = quote(f"{f_name} {d_str} HD{billing.billing_id}"[:40])
+                except Exception:
+                    info = f"HD{billing.billing_id}"
                 qr_url = f"https://img.vietqr.io/image/{bank}-{account}-compact2.png?amount={amount}&addInfo={info}&accountName={name}"
 
         context = {
@@ -825,7 +838,13 @@ class BillingAdmin(BaseRBACAdmin):
                 account = topup.account_number
                 name = topup.account_name.replace(' ', '%20') if topup.account_name else ''
                 amount = int(obj.final_total)
-                info = f"Thanh toan Booking {obj.booking.booking_id}".replace(' ', '%20')
+                try:
+                    c_name = obj.booking.customer.name if (obj.booking and getattr(obj.booking, 'customer', None)) else 'KHACH'
+                    f_name = remove_vietnamese_accents(c_name).strip().split(' ')[-1]
+                    d_str = obj.created_at.strftime('%d%m') if getattr(obj, 'created_at', None) else '0000'
+                    info = quote(f"{f_name} {d_str} HD{obj.billing_id}"[:40])
+                except Exception:
+                    info = f"HD{obj.billing_id}"
                 url = f"https://img.vietqr.io/image/{bank}-{account}-compact2.png?amount={amount}&addInfo={info}&accountName={name}"
                 return mark_safe(f'<img src="{url}" alt="QR Code" style="max-width: 300px;"/>')
         return "Chưa có thông tin hoặc tổng tiền = 0"

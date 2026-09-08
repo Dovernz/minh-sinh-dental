@@ -17,8 +17,11 @@ def pos_embed_view(request):
     context['title'] = 'Thanh toán (POS)'
     return render(request, 'admin/pos_embed.html', context)
 
-from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView
+from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView, DebtCollectionEmbedView, DebtCollectionRawView, POSDebtListAPIView
 urlpatterns = [
+    path('admin/pos-debt/', DebtCollectionEmbedView.as_view(), name='admin-pos-debt'),
+    path('admin/pos-debt-raw/', DebtCollectionRawView.as_view(), name='admin-pos-debt-raw'),
+    path('api/pos/debts/', POSDebtListAPIView.as_view(), name='api-pos-debts'),
     path("api/pos/confirm-payment/", POSConfirmPaymentAPIView.as_view(), name="pos-confirm-payment"),
     path("api/pos/submit/", POSSubmitAPIView.as_view(), name="pos-submit"),
     path("api/pos/master-data/", POSMasterDataAPIView.as_view(), name="pos-master"),

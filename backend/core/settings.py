@@ -217,6 +217,11 @@ UNFOLD = {
                         "link": "/admin/pos-system/",
                                             },
                     {
+                        "title": "Thu hồi Công nợ",
+                        "icon": "price_check", 
+                        "link": "/admin/pos-debt/",
+                    },
+                    {
                         "title": "Danh sách Hóa đơn",
                         "icon": "receipt_long",
                         "link": "/admin/booking/billing/",

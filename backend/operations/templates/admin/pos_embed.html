@@ -125,7 +125,7 @@
         
         <div id="modal_qr_container" class="hidden mt-4 flex flex-col items-center justify-center bg-gray-50 p-4 rounded border">
             <p class="text-sm font-bold text-gray-700 mb-2">Mã VietQR Thanh Toán</p>
-            <img id="modal_qr_image" src="" alt="Mã VietQR" class="w-48 h-48 object-cover rounded shadow border">
+            <img id="modal_qr_image" src="" alt="Mã VietQR" class="w-56 h-auto object-contain p-2 rounded shadow border">
             <p id="modal_qr_text" class="text-xs text-gray-500 mt-2 text-center"></p>
         </div>
 
@@ -358,7 +358,10 @@ function updateModalQR() {
         let accName = posMasterData.bank_info.account_name;
         
         let amount = parseNumber(document.getElementById('modal_pay_amount').value);
-        let content = `NKMS HD${current_billing_id}`;
+        let fullName = document.getElementById('cust_name').value || '';
+        let custName = removeVietnameseTones(fullName).trim().split(' ').pop();
+        let d = new Date(); let dateStr = ("0" + d.getDate()).slice(-2) + ("0" + (d.getMonth() + 1)).slice(-2);
+        let content = `${custName} ${dateStr} HD${current_billing_id}`.substring(0, 40);
         document.getElementById('modal_qr_text').innerText = "Nội dung: " + content;
         
         let qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
@@ -366,6 +369,12 @@ function updateModalQR() {
     } else {
         qrContainer.classList.add('hidden');
     }
+}
+
+function removeVietnameseTones(str) {
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a").replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e").replace(/ì|í|ị|ỉ|ĩ/g, "i").replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o").replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u").replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y").replace(/đ/g, "d");
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A").replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E").replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I").replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O").replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U").replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y").replace(/Đ/g, "D");
+    return str.toUpperCase();
 }
 
 function confirmPayment() {
