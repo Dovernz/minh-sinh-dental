@@ -176,7 +176,7 @@ UNFOLD = {
         lambda request: static("css/admin_custom.css"),
     ],
     "SCRIPTS": [
-        lambda request: static("js/admin_custom.js") + "?v=1788938896",
+        lambda request: static("js/admin_custom.js") + "?v=1788943611",
         '/static/js/live_search.js',
     ],
     "SIDEBAR": {
@@ -273,6 +273,11 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
+        {
+            "title": "Cấu hình Thanh toán",
+            "icon": "account_balance_wallet",
+            "link": reverse_lazy("admin:booking_topupinfo_changelist"),
+        },
                     
                     {
                         "title": "Thanh toán",
@@ -346,91 +351,7 @@ UNFOLD = {
                     },
                 ],
             },
-            {
-                "title": "Database",
-                "icon": "database",
-                "permission": lambda request: request.user.is_superuser,
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Articles",
-                        "icon": "article",
-                        "link": "/admin/booking/article/",
-                    },
-                    
-                    {
-                        "title": "Booking details",
-                        "icon": "list",
-                        "link": "/admin/booking/bookingdetail/",
-                    },
-                    {
-                        "title": "Booking status historys",
-                        "icon": "history",
-                        "link": "/admin/booking/bookingstatushistory/",
-                    },
-                    {
-                        "title": "Bookings",
-                        "icon": "table_view",
-                        "link": "/admin/booking/booking/",
-                    },
-                    {
-                        "title": "Cấu hình Thanh toán",
-                        "icon": "settings",
-                        "link": "/admin/booking/topupinfo/",
-                    },
-                    {
-                        "title": "Chi tiết Dịch vụ",
-                        "icon": "medical_services",
-                        "link": "/admin/booking/servicedetail/",
-                    },
-                    {
-                        "title": "Clinics",
-                        "icon": "store",
-                        "link": "/admin/booking/clinic/",
-                    },
-                    {
-                        "title": "Customers",
-                        "icon": "people",
-                        "link": "/admin/booking/customer/",
-                    },
-                    {
-                        "title": "Danh mục Dịch vụ",
-                        "icon": "category",
-                        "link": "/admin/booking/servicecategory/",
-                    },
-                    {
-                        "title": "Discounts",
-                        "icon": "local_offer",
-                        "link": "/admin/services_menu/catalogdiscount/",
-                    },
-                    {
-                        "title": "Employees",
-                        "icon": "badge",
-                        "link": "/admin/booking/employee/",
-                    },
-                    {
-                        "title": "Inventory details",
-                        "icon": "inventory_2",
-                        "link": "/admin/booking/inventorydetail/",
-                    },
-                    {
-                        "title": "Inventory usages",
-                        "icon": "history",
-                        "link": "/admin/booking/inventoryusage/",
-                    },
-                    {
-                        "title": "Payments",
-                        "icon": "payments",
-                        "link": "/admin/booking/payment/",
-                    },
-                    {
-                        "title": "Time slots",
-                        "icon": "schedule",
-                        "link": "/admin/booking/timeslot/",
-                    },
-                ],
-            },
+            
         ],
     },
 }
