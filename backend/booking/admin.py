@@ -612,6 +612,17 @@ class ArticleAdminForm(forms.ModelForm):
 
 
 class ArticleAdmin(BaseRBACAdmin):
+
+    def get_title(self, obj):
+        try:
+            # Bỏ qua object hiện tại, query thẳng ID này xuống Database để lấy cột title
+            real_title = obj.__class__.objects.filter(pk=obj.pk).values_list('title', flat=True).first()
+            return real_title or "- Trống -"
+        except Exception:
+            return getattr(obj, 'title', '- Lỗi truy xuất -')
+    get_title.short_description = "Tiêu đề"
+    list_display = ('article_id', 'get_title', 'category', 'slug', 'user', 'created_on')
+    list_display_links = ('article_id', 'get_title')
     form = ArticleAdminForm
     class Media:
         js = (
@@ -722,16 +733,15 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 """
-        if 'title' in form.base_fields:
-            if not form.base_fields['title'].help_text:
-                form.base_fields['title'].help_text = ''
-            form.base_fields['title'].help_text += mark_safe(js_click_image)
+        if 'get_title' in form.base_fields:
+            if not form.base_fields['get_title'].help_text:
+                form.base_fields['get_title'].help_text = ''
+            form.base_fields['get_title'].help_text += mark_safe(js_click_image)
 
         return form
 
 
-    list_display = ('title', 'category', 'slug', 'user', 'created_on')
-    search_fields = ('title', 'slug')
+    search_fields = ('get_title', 'slug')
     list_filter = ('created_on',)
     prepopulated_fields = {'slug': ('title',)}
     
