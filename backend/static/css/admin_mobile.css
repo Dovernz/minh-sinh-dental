@@ -17,3 +17,19 @@
         -webkit-overflow-scrolling: touch !important; 
     }
 }
+
+/* --- TỐI ƯU KHUNG PHÂN QUYỀN (Áp dụng trên mọi thiết bị) --- */
+.selector-available select, .selector-chosen select, select[multiple] {
+    height: 60vh !important; /* Kéo dài khung bằng 60% chiều cao màn hình */
+    min-height: 500px !important;
+}
+select[multiple] option {
+    padding: 12px 10px !important;
+    white-space: normal !important; /* Cho phép chữ tự động xuống dòng, không bị dồn cục */
+    line-height: 1.2 !important;
+    font-size: 13px !important;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important; /* Đường kẻ mờ phân cách các quyền */
+}
+/* Mở rộng tối đa chiều ngang của 2 cột */
+.selector { display: flex !important; width: 100% !important; gap: 15px; }
+.selector-available, .selector-chosen { width: 50% !important; flex: 1 !important; }
