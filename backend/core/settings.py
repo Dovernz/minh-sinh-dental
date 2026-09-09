@@ -166,6 +166,7 @@ from django.urls import reverse_lazy
 from django.templatetags.static import static
 
 UNFOLD = {
+    "INDEX_TITLE": "Bảng điều khiển",
     "SITE_TITLE": "Nha Khoa Minh Sinh",
     "SITE_HEADER": "Nha Khoa Minh Sinh",
     # "SITE_LOGO": "/static/img/logo.jpg",
@@ -175,7 +176,7 @@ UNFOLD = {
         lambda request: static("css/admin_custom.css"),
     ],
     "SCRIPTS": [
-        lambda request: static("js/admin_custom.js"),
+        lambda request: static("js/admin_custom.js") + "?v=1788938896",
         '/static/js/live_search.js',
     ],
     "SIDEBAR": {

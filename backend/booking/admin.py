@@ -884,8 +884,13 @@ class MenuLinkInline(TabularInline):
 
 @admin.register(MenuLink)
 class MenuLinkAdmin(ModelAdmin):
-    list_display = ('title', 'url', 'order', 'is_active')
-    search_fields = ('title',)
+
+    def get_menu_title(self, obj):
+        return str(obj) or "- Trống -"
+    get_menu_title.short_description = "Tiêu đề Menu"
+    list_display = ('get_menu_title', 'url', 'order', 'is_active')
+    list_display_links = ('get_menu_title', 'url')
+    search_fields = ('get_menu_title',)
     inlines = [MenuLinkInline]
     exclude = ('parent',)
 

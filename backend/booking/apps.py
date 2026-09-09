@@ -1,9 +1,10 @@
 from django.apps import AppConfig
 
 class BookingConfig(AppConfig):
+    verbose_name = "Database"
+
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'booking'
-    verbose_name = 'Database'
 
     def ready(self):
         from django.contrib.auth.models import Permission

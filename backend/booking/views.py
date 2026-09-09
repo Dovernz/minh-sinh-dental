@@ -735,6 +735,8 @@ class DebtCollectionEmbedView(TemplateView):
         from django.contrib import admin
         # Bơm toàn bộ dữ liệu menu, user, giao diện của Admin vào trang hiện tại
         context.update(admin.site.each_context(self.request))
+        context['title'] = 'Thu hồi Công nợ'  # Đổi Tiêu đề tab Trình duyệt
+        context['content_title'] = 'Quản lý Thu hồi Công nợ'
         return context
 
 @method_decorator(xframe_options_exempt, name='dispatch')
