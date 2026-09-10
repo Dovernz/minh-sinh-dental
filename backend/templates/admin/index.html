@@ -59,81 +59,84 @@
             </div>
         </div>
         
-        {% get_dashboard_charts as charts %}
-    <div class="grid grid-cols-1 gap-6">
-        <!-- CARD 1: TỔNG KHÁCH 7 NGÀY TỚI -->
+        {% get_dashboard_charts_json as chart_json %}
+    <div class="grid grid-cols-1 gap-6 mb-6">
+        <!-- BIỂU ĐỒ BAR: TỔNG KHÁCH 7 NGÀY -->
         <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
             <h3 class="dash-text-title text-lg font-bold mb-4">Lượng khách 7 ngày tới (Theo Cơ sở)</h3>
-            {% if charts.has_data %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {% for c in charts.clinic_totals %}
-                <div class="border dash-border rounded-md p-4 flex justify-between items-center" style="background-color: transparent;">
-                    <span class="dash-text-muted font-medium">{{ c.name }}</span>
-                    <span class="text-xl font-bold dash-text-title">{{ c.count }} <span class="text-sm font-normal dash-text-muted">khách</span></span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="dash-text-muted text-sm italic">Chưa có dữ liệu đặt lịch cho 7 ngày tới.</p>
-            {% endif %}
+            <div id="barChart" class="w-full"></div>
         </div>
 
-        <!-- CARD 2: MẬT ĐỘ THEO KHUNG GIỜ -->
+        <!-- BIỂU ĐỒ HEATMAP: MẬT ĐỘ THEO KHUNG GIỜ -->
         <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200 overflow-x-auto">
             <h3 class="dash-text-title text-lg font-bold mb-4">Mật độ Khách theo Khung giờ (7 ngày tới)</h3>
-            {% if charts.has_data %}
-            <table class="w-full text-left border-collapse whitespace-nowrap">
-                <thead>
-                    <tr class="border-b dash-border dash-text-muted text-sm">
-                        <th class="py-3 px-4 font-medium">Khung giờ</th>
-                        {% for c_name in charts.clinics %}
-                        <th class="py-3 px-4 font-medium">{{ c_name }}</th>
-                        {% endfor %}
-                        <th class="py-3 px-4 font-bold" style="color: #3b82f6;">Tổng cộng</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in charts.slots %}
-                    <tr class="border-b dash-border last:border-0 dash-text-title text-sm transition-colors dash-hover">
-                        <td class="py-3 px-4 font-medium">{{ row.time }}</td>
-                        {% for count in row.counts %}
-                        <td class="py-3 px-4">{{ count }}</td>
-                        {% endfor %}
-                        <td class="py-3 px-4 font-bold" style="color: #3b82f6;">{{ row.total }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p class="dash-text-muted text-sm italic">Chưa có dữ liệu phân bổ khung giờ.</p>
-            {% endif %}
+            <div id="heatmapChart" class="w-full min-w-[500px]"></div>
         </div>
     </div>
-    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const rawData = '{{ chart_json|escapejs }}';
+            let chartData = { bar: { categories: [], series: [] }, heatmap: [] };
+            try { chartData = JSON.parse(rawData); } catch(e) {}
+            
+            const isDark = document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#9ca3af' : '#6b7280';
+            const borderColor = isDark ? '#374151' : '#f3f4f6';
+            
+            // BAR CHART
+            const barSeries = (chartData.bar.series && chartData.bar.series.length > 0) ? chartData.bar.series : [{name: 'Trống', data: [0,0,0,0,0,0,0]}];
+            const barOptions = {
+                chart: { type: 'bar', height: 320, toolbar: { show: false }, foreColor: textColor, background: 'transparent' },
+                series: barSeries,
+                xaxis: { type: 'category', categories: chartData.bar.categories, axisBorder: { show: false }, axisTicks: { show: false } },
+                yaxis: { labels: { formatter: function(val) { return Math.round(val); } }, tickAmount: 5, min: 0 },
+                plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 3 } },
+                dataLabels: { enabled: false },
+                stroke: { show: true, width: 2, colors: ['transparent'] },
+                colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                theme: { mode: isDark ? 'dark' : 'light' },
+                tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: function (val) { return val + " khách" } } },
+                grid: { borderColor: borderColor },
+                legend: { position: 'top', horizontalAlign: 'right' }
+            };
+            new ApexCharts(document.querySelector("#barChart"), barOptions).render();
 
-    <!-- CỘT PHẢI: HOẠT ĐỘNG GẦN ĐÂY -->
-    <div class="w-full lg:w-1/3">
-        <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
-            <h2 class="text-lg font-bold mb-4 dash-text-title">Hoạt động gần đây</h2>
-            {% get_admin_log 10 as admin_log for_user user %}
-            {% if not admin_log %}
-                <p class="dash-text-muted text-sm">Chưa có hoạt động nào.</p>
-            {% else %}
-                <ul class="space-y-4">
-                {% for entry in admin_log %}
-                    <li class="border-b dash-border pb-2 last:border-0">
-                        <p class="text-sm font-medium dash-text-title">{{ entry.object_repr }}</p>
-                        <p class="text-xs dash-text-muted mt-1">
-                            {% if entry.is_addition %}<span style="color: #10b981;">Thêm mới</span>
-                            {% elif entry.is_change %}<span style="color: #3b82f6;">Chỉnh sửa</span>
-                            {% elif entry.is_deletion %}<span style="color: #ef4444;">Xóa</span>{% endif %}
-                            • {{ entry.action_time|date:"H:i d/m/Y" }}
-                        </p>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-    </div>
-</div>
+            // HEATMAP CHART (CHẨN HÓA MÀU & TRỤC)
+            const heatSeries = (chartData.heatmap && chartData.heatmap.length > 0) ? chartData.heatmap : [];
+            // Tự động kéo dài chiều cao biểu đồ dựa trên số lượng khung giờ (35px mỗi khung)
+            const heatHeight = Math.max(480, heatSeries.length * 35);
+            
+            const heatmapOptions = {
+                chart: { type: 'heatmap', height: heatHeight, toolbar: { show: false }, foreColor: textColor, background: 'transparent' },
+                series: heatSeries,
+                xaxis: { 
+                    type: 'category', // ÉP CỨNG TRỤC X LÀ CATEGORY ĐỂ LẤY TÊN CƠ SỞ
+                    axisBorder: { show: false }, 
+                    axisTicks: { show: false } 
+                },
+                plotOptions: {
+                    heatmap: {
+                        shadeIntensity: 0.5,
+                        radius: 4,
+                        useFillColorAsStroke: false,
+                        colorScale: {
+                            // CHIA DẢI MÀU THEO TỔNG SỐ KHÁCH
+                            ranges: [
+                                { from: 0, to: 0, color: isDark ? '#374151' : '#f3f4f6', name: 'Trống (0)' },
+                                { from: 1, to: 2, color: '#93c5fd', name: 'Ít (1-2)' },
+                                { from: 3, to: 5, color: '#3b82f6', name: 'Vừa (3-5)' },
+                                { from: 6, to: 1000, color: '#1e40af', name: 'Đông (>5)' }
+                            ]
+                        }
+                    }
+                },
+                dataLabels: { enabled: true }, // Tự động chọn text Đen/Trắng để tương phản với nền
+                theme: { mode: isDark ? 'dark' : 'light' },
+                tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: function (val) { return val + " khách" } } }
+            };
+            new ApexCharts(document.querySelector("#heatmapChart"), heatmapOptions).render();
+        });
+    </script>
 {% endblock %}
