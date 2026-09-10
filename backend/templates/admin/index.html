@@ -1,0 +1,139 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static log dashboard_tags %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Chế độ Mặc định (Light Mode) */
+    .dash-card { background-color: #ffffff; border: 1px solid #e5e7eb; }
+    .dash-text-title { color: #111827; }
+    .dash-text-muted { color: #6b7280; }
+    .dash-border { border-color: #f3f4f6; }
+    
+    /* Chế độ Tối (Dark Mode) - Vượt mặt bộ lọc Tailwind */
+    html[data-theme="dark"] .dash-card,
+    html.dark .dash-card,
+    body.dark .dash-card {
+        background-color: #111827 !important; /* Xám đen tuyền */
+        border-color: #374151 !important;
+    }
+    html[data-theme="dark"] .dash-text-title,
+    html.dark .dash-text-title,
+    body.dark .dash-text-title {
+        color: #f9fafb !important; /* Trắng sáng */
+    }
+    html[data-theme="dark"] .dash-text-muted,
+    html.dark .dash-text-muted,
+    body.dark .dash-text-muted {
+        color: #9ca3af !important; /* Xám nhạt */
+    }
+    html[data-theme="dark"] .dash-border,
+    html.dark .dash-border,
+    body.dark .dash-border {
+        border-color: #374151 !important;
+    }
+    /* Hiệu ứng Hover Bảng */
+    .dash-hover:hover { background-color: #f9fafb; }
+    html[data-theme="dark"] .dash-hover:hover, html.dark .dash-hover:hover, body.dark .dash-hover:hover { background-color: #1f2937 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-6 w-full">
+    <!-- CỘT TRÁI: DASHBOARD THỐNG KÊ -->
+    {% get_dashboard_stats as stats %}
+    <div class="w-full lg:w-2/3">
+        <h2 class="text-xl font-bold mb-4 dash-text-title">Tổng quan Hệ thống</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
+                <h3 class="dash-text-muted text-sm font-medium mb-2">Doanh thu hôm nay</h3>
+                <p class="text-2xl font-bold" style="color: #8b5cf6;">{{ stats.revenue|default:"0" }} VNĐ</p>
+            </div>
+            <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
+                <h3 class="dash-text-muted text-sm font-medium mb-2">Lịch hẹn mới</h3>
+                <p class="text-2xl font-bold" style="color: #10b981;">{{ stats.bookings|default:"0" }}</p>
+            </div>
+            <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
+                <h3 class="dash-text-muted text-sm font-medium mb-2">Khách hàng mới được tạo</h3>
+                <p class="text-2xl font-bold" style="color: #f97316;">{{ stats.customers|default:"0" }}</p>
+            </div>
+        </div>
+        
+        {% get_dashboard_charts as charts %}
+    <div class="grid grid-cols-1 gap-6">
+        <!-- CARD 1: TỔNG KHÁCH 7 NGÀY TỚI -->
+        <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
+            <h3 class="dash-text-title text-lg font-bold mb-4">Lượng khách 7 ngày tới (Theo Cơ sở)</h3>
+            {% if charts.has_data %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% for c in charts.clinic_totals %}
+                <div class="border dash-border rounded-md p-4 flex justify-between items-center" style="background-color: transparent;">
+                    <span class="dash-text-muted font-medium">{{ c.name }}</span>
+                    <span class="text-xl font-bold dash-text-title">{{ c.count }} <span class="text-sm font-normal dash-text-muted">khách</span></span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="dash-text-muted text-sm italic">Chưa có dữ liệu đặt lịch cho 7 ngày tới.</p>
+            {% endif %}
+        </div>
+
+        <!-- CARD 2: MẬT ĐỘ THEO KHUNG GIỜ -->
+        <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200 overflow-x-auto">
+            <h3 class="dash-text-title text-lg font-bold mb-4">Mật độ Khách theo Khung giờ (7 ngày tới)</h3>
+            {% if charts.has_data %}
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="border-b dash-border dash-text-muted text-sm">
+                        <th class="py-3 px-4 font-medium">Khung giờ</th>
+                        {% for c_name in charts.clinics %}
+                        <th class="py-3 px-4 font-medium">{{ c_name }}</th>
+                        {% endfor %}
+                        <th class="py-3 px-4 font-bold" style="color: #3b82f6;">Tổng cộng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in charts.slots %}
+                    <tr class="border-b dash-border last:border-0 dash-text-title text-sm transition-colors dash-hover">
+                        <td class="py-3 px-4 font-medium">{{ row.time }}</td>
+                        {% for count in row.counts %}
+                        <td class="py-3 px-4">{{ count }}</td>
+                        {% endfor %}
+                        <td class="py-3 px-4 font-bold" style="color: #3b82f6;">{{ row.total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="dash-text-muted text-sm italic">Chưa có dữ liệu phân bổ khung giờ.</p>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+
+    <!-- CỘT PHẢI: HOẠT ĐỘNG GẦN ĐÂY -->
+    <div class="w-full lg:w-1/3">
+        <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">
+            <h2 class="text-lg font-bold mb-4 dash-text-title">Hoạt động gần đây</h2>
+            {% get_admin_log 10 as admin_log for_user user %}
+            {% if not admin_log %}
+                <p class="dash-text-muted text-sm">Chưa có hoạt động nào.</p>
+            {% else %}
+                <ul class="space-y-4">
+                {% for entry in admin_log %}
+                    <li class="border-b dash-border pb-2 last:border-0">
+                        <p class="text-sm font-medium dash-text-title">{{ entry.object_repr }}</p>
+                        <p class="text-xs dash-text-muted mt-1">
+                            {% if entry.is_addition %}<span style="color: #10b981;">Thêm mới</span>
+                            {% elif entry.is_change %}<span style="color: #3b82f6;">Chỉnh sửa</span>
+                            {% elif entry.is_deletion %}<span style="color: #ef4444;">Xóa</span>{% endif %}
+                            • {{ entry.action_time|date:"H:i d/m/Y" }}
+                        </p>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

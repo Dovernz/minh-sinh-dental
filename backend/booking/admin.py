@@ -31,7 +31,6 @@ from .models import (
     InventoryDetail, InventoryUsage, Article, BookingDetail
 )
 
-
 admin.site.unregister(User)
 admin.site.unregister(Group)
 
@@ -80,7 +79,6 @@ class BaseRBACAdmin(ModelAdmin):
         if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
             return True
         return False
-
 
     def get_urls(self):
         urls = super().get_urls()
@@ -143,6 +141,7 @@ class TopupInfoForm(forms.ModelForm):
 @admin.register(TopupInfo)
 class TopupInfoAdmin(BaseRBACAdmin):
     list_display = ('bank_name', 'account_number', 'account_name', 'is_default')
+    search_fields = ['bank_name', 'account_number', 'account_name']
     list_filter = ('is_default',)
     form = TopupInfoForm
 
@@ -203,7 +202,6 @@ class ServiceCategoryAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
     resource_classes = [ServiceCategoryResource]
     list_display = ('name', 'estimate_time', 'created_on')
     search_fields = ('name','estimate_time')
-
 
     def get_urls(self):
         urls = super().get_urls()
@@ -272,7 +270,6 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
             return qs.none()
         return qs
 
-
     def get_search_results(self, request, queryset, search_term):
         original_search_fields = self.search_fields
         self.search_fields = [f for f in self.search_fields if f != 'price']
@@ -293,7 +290,6 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
                 queryset = queryset | qs_price
                 
         return queryset, use_distinct
-
 
     def get_urls(self):
         urls = super().get_urls()
@@ -319,7 +315,6 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
         return request.user.is_superuser or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
     def has_view_permission(self, request, obj=None):
         return request.user.is_authenticated
-
 
 @admin.register(TimeSlot)
 class TimeSlotAdmin(BaseRBACAdmin):
@@ -458,9 +453,6 @@ class PaymentAdmin(BaseRBACAdmin):
         return "N/A"
     get_customer.short_description = 'Khách hàng'
 
-
-
-
     def formatted_amount(self, obj):
         return f"{int(obj.amount or 0):,}"
     formatted_amount.short_description = "Số tiền thanh toán"
@@ -480,7 +472,6 @@ class InventoryUsageAdmin(BaseRBACAdmin):
     list_display = ('booking', 'item', 'quantity_used', 'employee', 'created_on')
     list_filter = ('created_on',)
     search_fields = ('booking__customer__name', 'item__item_name', 'employee__full_name')
-
 
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
@@ -531,8 +522,6 @@ class ArticleAdminForm(forms.ModelForm):
         widgets = {
             
         }
-
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -607,9 +596,7 @@ class ArticleAdminForm(forms.ModelForm):
         """
         self.fields['category'].help_text = mark_safe(js)
 
-
 @admin.register(Article)
-
 
 class ArticleAdmin(BaseRBACAdmin):
 
@@ -658,8 +645,6 @@ class ArticleAdmin(BaseRBACAdmin):
         js_click_image += """
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
-
 
 <div id="cropModal">
     <div id="cropContainer">
@@ -740,9 +725,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         return form
 
-
-    search_fields = ('get_title', 'slug')
-    list_filter = ('created_on',)
+    search_fields = ('article_id', 'get_title', 'category', 'slug', 'user',)
+    list_filter = ('category','user','created_on',)
     prepopulated_fields = {'slug': ('title',)}
     
     exclude = ('user_id', 'user', 'created_on')
@@ -752,7 +736,6 @@ document.addEventListener("DOMContentLoaded", function() {
             obj.user = request.user
             obj.created_on = timezone.now()
         super().save_model(request, obj, form, change)
-
 
 from booking.models import Billing, TopupInfo
 from django.utils.safestring import mark_safe
@@ -785,7 +768,6 @@ class BillingAdmin(BaseRBACAdmin):
             'fields': ('payment_qr_code', 'print_invoice_button')
         })
     )
-
 
     def get_urls(self):
         urls = super().get_urls()
@@ -835,7 +817,6 @@ class BillingAdmin(BaseRBACAdmin):
             return format_html('<a href="/admin/booking/billing/{}/print/" target="_blank" class="button" style="background-color:#007bff; color:white; padding:5px 10px; border-radius:3px; text-decoration:none;">🖨️ In Hóa Đơn</a>', obj.pk)
         return ""
     print_invoice_button.short_description = "In Hóa Đơn"
-
 
     def payment_qr_code(self, obj):
         if obj.pk and obj.final_total > 0:
