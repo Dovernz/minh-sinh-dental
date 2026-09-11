@@ -86,6 +86,7 @@ class Customer(models.Model):
     address = models.TextField(blank=True, null=True, verbose_name="Địa chỉ")
     email = models.EmailField(max_length=100, blank=True, null=True, verbose_name="Email")
     created_on = models.DateTimeField(auto_now_add=True)
+    customer_type = models.CharField(max_length=20, choices=[("Mới", "Khách Mới"), ("Cũ", "Khách Cũ")], default="Mới", verbose_name="Phân loại Khách")
 
     class Meta:
         db_table = 'db_table_customers'

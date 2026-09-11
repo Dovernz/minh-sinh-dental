@@ -1,3 +1,26 @@
+from django.contrib import admin
+
+class BookingHistoryInline(admin.TabularInline):
+    from booking.models import Booking
+    model = Booking
+    extra = 0
+    fields = ('start_time', 'clinic', 'category', 'status', 'get_total', 'get_services')
+    readonly_fields = ('start_time', 'clinic', 'category', 'status', 'get_total', 'get_services')
+    can_delete = False
+    verbose_name = "Lịch sử Khám & Dịch vụ (Kèm Hóa đơn)"
+    verbose_name_plural = "Lịch sử Khám & Dịch vụ (Kèm Hóa đơn)"
+
+    def get_total(self, obj):
+        if hasattr(obj, 'billing'): return f"{obj.billing.final_total:,.0f} VNĐ"
+        return "Chưa thanh toán"
+    get_total.short_description = "Thành tiền"
+
+    def get_services(self, obj):
+        details = obj.details.all()
+        if details: return ", ".join([d.service_detail.name for d in details if d.service_detail])
+        return "-"
+    get_services.short_description = "Chi tiết Dịch vụ"
+
 import unicodedata
 from urllib.parse import quote
 
@@ -332,10 +355,10 @@ class BookingInlineForCustomer(admin.TabularInline):
 
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
-    inlines = [BookingInlineForCustomer]
-    list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email')
-    search_fields = ('name', 'phone', 'email', 'address')
-    list_filter = ('address', 'gender')
+    inlines = [BookingHistoryInline]
+    list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email', 'customer_type')
+    search_fields = ('name', 'phone', 'email', 'address', 'customer_type')
+    list_filter = ('address', 'gender', 'customer_type')
 
 @admin.register(Employee)
 class EmployeeAdmin(BaseRBACAdmin):

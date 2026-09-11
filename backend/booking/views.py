@@ -274,9 +274,25 @@ class BookingCreateView(APIView):
                 
                 created_booking_ids.append(booking.booking_id)
             
+        # --- GỬI EMAIL XÁC NHẬN CHUẨN SMTP ---
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            for p in patients:
+                p_email = p.get('email')
+                p_name = p.get('fullName')
+                if p_email:
+                    subject = f"Xác nhận Lịch hẹn - {clinic.name}"
+                    msg = f"Xin chào {p_name},\n\nCảm ơn bạn đã đặt lịch khám tại {clinic.name}.\nThời gian: {start_time_str} ngày {date_str}.\n\nVui lòng đến đúng giờ để được phục vụ tốt nhất!\n\nTrân trọng,"
+                    send_mail(subject, msg, getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@minhsinh.com'), [p_email], fail_silently=True)
+        except Exception as e:
+            print("Lỗi gửi Email:", e)
+
         return JsonResponse({
             "status": "success",
-            "booking_id": created_booking_ids[0] if created_booking_ids else None
+            "booking_id": created_booking_ids[0] if created_booking_ids else None,
+            "clinic_name": clinic.name,
+            "time": f"{start_time_str} - {date_str}"
         }, status=201)
 
 class TopupInfoView(APIView):
