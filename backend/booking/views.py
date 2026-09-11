@@ -572,7 +572,7 @@ class POSBookingAPIView(View):
                 data.append({
                     'id': b_id, 
                     'display': f"[{time_str}] {name} - {phone} (ID: {b_id})",
-                    'customer': {
+                    'clinic_id': getattr(getattr(b, 'clinic', getattr(b, 'branch', None)), 'clinic_id', getattr(b, 'clinic_id', '')), 'clinic_name': str(getattr(b, 'clinic', getattr(b, 'branch', 'Cơ sở'))), 'customer': {
                         'name': name, 'phone': phone,
                         'gender': getattr(c, 'gender', 'OTHER') if c else 'OTHER',
                         'dob': str(c.customer_dob) if c and getattr(c, 'customer_dob', None) else '',

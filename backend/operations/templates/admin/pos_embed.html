@@ -226,7 +226,24 @@ function fillCustomerData() {
         document.getElementById('cust_dob').value = bk.customer.dob || '';
         document.getElementById('cust_email').value = bk.customer.email || '';
         document.getElementById('cust_address').value = bk.customer.address || '';
-            document.getElementById('pos_clinic').value = bk.clinic_id || '';
+            
+    let clinic_val = bk.clinic_id || bk.branch_id || (bk.clinic ? bk.clinic.id : '');
+    let clinicSelect = document.getElementById('pos_clinic');
+
+    if (clinic_val) {
+        clinicSelect.value = clinic_val;
+        // Ép tạo thẻ option hiển thị nếu Dropdown chưa kịp tải danh sách từ API
+        if (clinicSelect.value !== String(clinic_val)) {
+            let opt = document.createElement('option');
+            opt.value = clinic_val;
+            opt.textContent = bk.clinic_name || "Cơ sở " + clinic_val;
+            clinicSelect.appendChild(opt);
+            clinicSelect.value = clinic_val;
+        }
+    } else {
+        clinicSelect.value = '';
+    }
+    
     }
     
 }
