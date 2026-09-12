@@ -250,7 +250,7 @@ class BookingCreateView(APIView):
                 for pat in p_list:
                     p_email = pat.get('email')
                     if p_email:
-                        subject = f"Xác nhận Lịch hẹn - {c_name}"
+                        subject = f"Xác nhận Lịch hẹn ngày {d_str} - {c_name}"
                         msg = f'''Xin chào {pat.get('fullName')},
 
 Cảm ơn bạn đã đặt lịch khám.
