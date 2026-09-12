@@ -1,69 +1,113 @@
+"use client";
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default async function BookingSuccessPage({ params }: { params: Promise<{ id: string | string[] }> }) {
-    const resolvedParams = await params;
+export default function BookingSuccessPage() {
+    const params = useParams();
+    const id = params?.id;
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    // Tách chuỗi ID nếu khách đặt nhiều người
-    const rawId = Array.isArray(resolvedParams.id) ? resolvedParams.id.join('-') : (resolvedParams.id || '');
-    const ids = rawId.split(/[,-]/).filter(Boolean);
+    useEffect(() => {
+        const loader = document.getElementById('safe-loader');
+        if (loader) loader.remove(); // Hủy màn chắn loading của trang trước
 
-    // Gọi API lấy dữ liệu song song cho tất cả các Booking
-    const bookingsData = await Promise.all(
-        ids.map(async (id) => {
-            try {
-                const res = await fetch(`http://backend:8000/api/bookings/${id}/`, { cache: 'no-store' });
-                if (res.ok) return await res.json();
-            } catch (e) {}
-            return null;
-        })
-    );
-    const bookings = bookingsData.filter(b => b && !b.error && b.id);
+        if (!id || id === 'undefined') return;
+        
+        const idStr = Array.isArray(id) ? id.join(',') : String(id);
+        const ids = decodeURIComponent(idStr).split(',').filter(v => v && v !== 'undefined');
+        
+        if (ids.length === 0) {
+            setLoading(false);
+            return;
+        }
+
+        Promise.all(ids.map(bookId => 
+            fetch(`http://localhost:8000/api/bookings/${bookId}/detail/`).then(res => res.ok ? res.json() : null)
+        )).then(data => {
+            let flatData = [];
+            data.forEach(item => {
+                if (item) {
+                    if (Array.isArray(item)) flatData.push(...item);
+                    else flatData.push(item);
+                }
+            });
+            setBookings(flatData);
+            setLoading(false);
+        }).catch(err => {
+            console.error("Lỗi:", err);
+            setError(String(err));
+            setLoading(false);
+        });
+    }, [id]);
 
     return (
-        <div className="container mx-auto py-12 px-4 max-w-4xl">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-green-500 text-white text-center py-10 px-4">
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-bold mb-2">Đặt Lịch Thành Công!</h1>
-                    <p className="text-green-100 text-lg">Cảm ơn bạn đã tin tưởng Nha Khoa Minh Sinh</p>
-                </div>
-                
-                <div className="p-6 md:p-10">
-                    <h2 className="text-xl font-bold text-gray-800 mb-6 border-b pb-3">Chi tiết các lịch hẹn ({bookings.length}):</h2>
-                    <div className="space-y-6">
-                        {bookings.length > 0 ? bookings.map((booking, idx) => (
-                            <div key={idx} className="bg-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">#{booking.id}</div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Khách hàng</p>
-                                        <p className="font-bold text-gray-800 text-lg">{booking.customer_name || booking.name || 'Khách hàng'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Số điện thoại</p>
-                                        <p className="font-semibold text-gray-800">{booking.customer_phone || booking.phone || '---'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Dịch vụ</p>
-                                        <p className="font-semibold text-blue-700">{booking.service_name || booking.category_name || 'Khám tổng quát'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Thời gian (Dự kiến)</p>
-                                        <p className="font-semibold text-gray-800">{booking.time || booking.start_time} - {booking.date || booking.booking_date || booking.start_date}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )) : (
-                            <p className="text-center text-gray-500">Đang tải chi tiết hoặc mã lịch không hợp lệ...</p>
-                        )}
+        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto">
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div className="bg-green-500 py-8 px-6 text-center">
+                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-white mb-4 shadow-sm">
+                            <svg className="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h2 className="text-3xl font-extrabold text-white tracking-tight">Đặt Lịch Thành Công!</h2>
+                        <p className="mt-2 text-green-100 text-lg">Cảm ơn bạn đã tin tưởng Nha Khoa Minh Sinh</p>
                     </div>
                     
-                    <div className="mt-10 text-center">
-                        <Link href="/" className="inline-block bg-blue-600 text-white font-bold py-3 px-10 rounded-full shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-300">
-                            Về trang chủ
-                        </Link>
+                    <div className="p-8">
+                        <h3 className="text-xl font-bold text-gray-900 mb-6 border-b pb-3">Chi tiết lịch hẹn ({bookings.length}):</h3>
+                        
+                        
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200">
+                                <b>Lỗi kết nối API:</b> {error}
+                                <br/> Máy chủ không tìm thấy thông tin hoặc đang quá tải.
+                            </div>
+                        )}
+                        {loading ? (
+                            <div className="flex flex-col items-center py-8 space-y-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <p className="text-gray-500">Đang tải chi tiết lịch hẹn...</p>
+                            </div>
+                        ) : bookings.length > 0 ? (
+                            <div className="space-y-6">
+                                {bookings.map((bk, idx) => (
+                                    <div key={idx} className="bg-blue-50 border border-blue-100 rounded-xl p-6 relative hover:shadow-md transition-shadow">
+                                        <div className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1.5 rounded-bl-lg rounded-tr-xl text-sm font-bold shadow-sm">Mã: #{bk.id}</div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                            <div>
+                                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">Khách hàng</p>
+                                                <p className="font-bold text-gray-900 text-lg mt-1">{bk.customer_name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">Dịch vụ</p>
+                                                <p className="font-bold text-blue-600 text-lg mt-1">{bk.category_name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">Thời gian</p>
+                                                <p className="font-bold text-gray-900 text-lg mt-1">{bk.start_time}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">Cơ sở</p>
+                                                <p className="font-bold text-gray-900 text-lg mt-1">{bk.clinic_name}</p>
+                                                <p className="text-sm text-gray-500 mt-1">{bk.clinic_address}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                <p className="text-gray-600 font-medium">Mã lịch không hợp lệ hoặc không tìm thấy dữ liệu.</p>
+                            </div>
+                        )}
+
+                        <div className="mt-10 flex justify-center">
+                            <Link href="/" className="px-10 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/30">
+                                Về Trang Chủ
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

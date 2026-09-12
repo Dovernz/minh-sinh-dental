@@ -189,111 +189,104 @@ class BookingCreateView(APIView):
         created_user_id = data.get('created_user_id')
         
         if not clinic_id or not date_str or not start_time_str or not patients:
-            return Response({"error": "Thiếu dữ liá»‡u Ä‘ầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Thiếu dữ liệu đầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
             clinic = Clinic.objects.get(pk=clinic_id)
         except Clinic.DoesNotExist:
-            return Response({"error": "Không tìm thấy cơ sá»Ÿ"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Không tìm thấy cơ sở"}, status=status.HTTP_404_NOT_FOUND)
             
         target_date = parse_date(date_str)
         if not target_date:
-            return Response({"error": "Äá»‹nh dạng ngày không hợp lá»‡ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Định dạng ngày không hợp lệ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
             from datetime import datetime
             start_time = datetime.strptime(start_time_str, "%H:%M").time()
         except ValueError:
-            return Response({"error": "Sai Ä‘á»‹nh dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Sai định dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            # Tìm sá»‘ lượng booking Ä‘ã có trong ca này
-            existing_bookings = Booking.objects.filter(
-                clinic=clinic, 
-                start_time__date=target_date, 
-                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
-            )
-            from datetime import timedelta, datetime as dt_module
-            # calculate end_time for the new booking (assuming 30min for now, or use actual)
-            # Actually we just want to know if start_time falls into an existing booking
+            existing_bookings = Booking.objects.filter(clinic=clinic, start_time__date=target_date, status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid'])
+            from django.utils import timezone
             occupied_count = sum(1 for b in existing_bookings if b.start_time and b.end_time and timezone.localtime(b.start_time).time() <= start_time < timezone.localtime(b.end_time).time())
         except Exception as e:
-            print("BookingCreateView Booking Error:", e)
             occupied_count = 0
             
         available_count = max(0, clinic.total_chairs - occupied_count)
         
         if len(patients) > available_count:
-            return Response({"error": f"Chá»‰ còn {available_count} ghế trá»‘ng trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Chỉ còn {available_count} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
             
         created_booking_ids = []
-        
         from django.db import transaction
         with transaction.atomic():
-            for i, p in enumerate(patients):
+            for p in patients:
                 full_name = p.get('fullName')
                 phone = p.get('phone')
                 category_id = p.get('category_id')
                 email = p.get('email')
                 dob = p.get('dob')
                 
-                if not full_name or not phone:
-                    continue # Bỏ qua khách hàng không có tên/SĐT
+                if not full_name or not phone: continue
                     
-                customer, _ = Customer.objects.get_or_create(
-                    phone=phone, 
-                    defaults={
-                        'name': full_name,
-                        'email': email,
-                        'customer_dob': parse_date(dob) if dob else None
-                    }
-                )
-                
-                category = None
-                duration_minutes = 30
-                if category_id:
-                    category = ServiceCategory.objects.filter(pk=category_id).first()
-                    if category and category.estimate_time:
-                        duration_minutes = category.estimate_time
+                customer, _ = Customer.objects.get_or_create(phone=phone, defaults={'name': full_name, 'email': email, 'customer_dob': parse_date(dob) if dob else None})
+                category = ServiceCategory.objects.filter(pk=category_id).first() if category_id else None
+                duration_minutes = category.estimate_time if category and category.estimate_time else 30
                         
-                from datetime import datetime as dt_module
+                from datetime import datetime as dt_module, timedelta
                 appointment_time_dt = dt_module.combine(target_date, start_time)
-                from datetime import timedelta
                 end_time_dt = appointment_time_dt + timedelta(minutes=duration_minutes)
                 
-                booking = Booking.objects.create(
-                    customer=customer,
-                    clinic=clinic,
-                    start_time=appointment_time_dt,
-                    end_time=end_time_dt,
-                    estimated_duration=duration_minutes,
-                    status='Pending',
-                    category=category,
-                    created_user_id=created_user_id
-                )
-                
+                booking = Booking.objects.create(customer=customer, clinic=clinic, start_time=appointment_time_dt, end_time=end_time_dt, estimated_duration=duration_minutes, status='Pending', category=category, created_user_id=created_user_id)
                 created_booking_ids.append(booking.booking_id)
-            
-        # --- GỬI EMAIL XÁC NHẬN CHUẨN SMTP ---
-        try:
-            from django.core.mail import send_mail
-            from django.conf import settings
-            for p in patients:
-                p_email = p.get('email')
-                p_name = p.get('fullName')
-                if p_email:
-                    subject = f"Xác nhận Lịch hẹn - {clinic.name}"
-                    msg = f"Xin chào {p_name},\n\nCảm ơn bạn đã đặt lịch khám tại {clinic.name}.\nThời gian: {start_time_str} ngày {date_str}.\n\nVui lòng đến đúng giờ để được phục vụ tốt nhất!\n\nTrân trọng,"
-                    send_mail(subject, msg, getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@minhsinh.com'), [p_email], fail_silently=True)
-        except Exception as e:
-            print("Lỗi gửi Email:", e)
 
-        return JsonResponse({
-            "status": "success",
-            "booking_id": created_booking_ids[0] if created_booking_ids else None,
-            "clinic_name": clinic.name,
-            "time": f"{start_time_str} - {date_str}"
-        }, status=201)
+        # ---------------- LOGIC GỬI EMAIL ----------------
+        # --- CHẠY NGẦM EMAIL BẰNG THREADING (KHÔNG LÀM LAG TRANG) ---
+        def send_async_email(p_list, c_name, c_address, t_str, d_str, map_url=""): 
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                for pat in p_list:
+                    p_email = pat.get('email')
+                    if p_email:
+                        subject = f"Xác nhận Lịch hẹn - {c_name}"
+                        msg = f'''Xin chào {pat.get('fullName')},
+
+Cảm ơn bạn đã đặt lịch khám.
+Thời gian: {t_str} ngày {d_str}.
+
+Trân trọng,'''
+                        html_msg = f'''
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                            <div style="background-color: #3b82f6; padding: 25px; text-align: center; color: white;">
+                                <h2 style="margin: 0; font-size: 24px; font-weight: 800;">Xác Nhận Đặt Lịch!</h2>
+                                <p style="margin: 8px 0 0; font-size: 16px; opacity: 0.9;">Nha Khoa Minh Sinh</p>
+                            </div>
+                            <div style="padding: 30px; color: #374151; line-height: 1.6;">
+                                <p style="font-size: 16px;">Xin chào <b style="color: #111827;">{pat.get('fullName')}</b>,</p>
+                                <p style="font-size: 15px;">Dưới đây là thông tin chi tiết lịch hẹn của bạn:</p>
+                                <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>👤 Khách hàng:</b> {pat.get('fullName')} - {pat.get('phone')}</p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>⏰ Thời gian:</b> <span style="color: #b91c1c; font-weight: bold;">{t_str} | Ngày {d_str}</span></p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>🏥 Cơ sở:</b> {c_name}</p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>📍 Địa chỉ:</b> {c_address}</p>
+                                
+                                </div>
+                                {f'<div style="text-align: center; margin: 25px 0;"><a href="{map_url}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">📍 Xem Google Map Cơ Sở</a></div>' if map_url else ''}
+                                <p style="font-size: 15px;">Vui lòng đến trước 10 phút để được hỗ trợ tốt nhất.</p>
+                                <p style="margin: 5px 0 0; font-size: 16px; font-weight: bold; color: #111827;">Đội ngũ Nha Khoa Minh Sinh</p>
+                            </div>
+                        </div>'''
+                        send_mail(subject, msg, getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@minhsinh.com'), [p_email], html_message=html_msg, fail_silently=True)
+            except Exception as e:
+                print("Thread Email Error:", e)
+
+        import threading
+        threading.Thread(target=send_async_email, args=(patients, clinic.name, clinic.address, start_time_str, date_str, getattr(clinic, "map_url", ""))).start()
+            
+        from django.http import JsonResponse
+        return JsonResponse({"status": "success", "booking_id": ",".join(map(str, created_booking_ids)) if created_booking_ids else None}, status=201)
 
 class TopupInfoView(APIView):
     def get(self, request):
@@ -322,16 +315,28 @@ from django.utils.timezone import localtime
 from .models import Booking
 
 def get_booking_detail(request, pk):
-    booking = get_object_or_404(Booking, pk=pk)
-    return JsonResponse({
-        "id": booking.booking_id,
-        "customer_name": booking.customer.name if booking.customer else "Khách hàng",
-        "clinic_name": booking.clinic.name if booking.clinic else "Nha Khoa Minh Sinh",
-        "clinic_address": booking.clinic.address if booking.clinic else "Hồ Chí Minh",
-        "category_name": booking.category.name if booking.category else "Dịch vụ nha khoa",
-        "start_time": localtime(booking.start_time).strftime("%H:%M - %d/%m/%Y") if booking.start_time else "Chưa xác định",
-    })
-
+    from django.http import JsonResponse
+    from .models import Booking
+    try:
+        booking = Booking.objects.get(pk=pk)
+        t_str = "Chưa xác định"
+        if booking.start_time:
+            try:
+                from django.utils.timezone import localtime
+                t_str = localtime(booking.start_time).strftime("%H:%M - %d/%m/%Y")
+            except:
+                t_str = booking.start_time.strftime("%H:%M - %d/%m/%Y")
+                
+        return JsonResponse({
+            "id": booking.booking_id,
+            "customer_name": getattr(booking.customer, 'name', 'Khách hàng') if booking.customer else "Khách hàng",
+            "clinic_name": getattr(booking.clinic, 'name', 'Nha Khoa') if booking.clinic else "Nha Khoa",
+            "clinic_address": getattr(booking.clinic, 'address', '') if booking.clinic else "",
+            "category_name": getattr(booking.category, 'name', 'Khám tổng quát') if booking.category else "Khám tổng quát",
+            "start_time": t_str,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required

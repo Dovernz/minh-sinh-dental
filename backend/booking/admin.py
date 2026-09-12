@@ -1,26 +1,3 @@
-from django.contrib import admin
-
-class BookingHistoryInline(admin.TabularInline):
-    from booking.models import Booking
-    model = Booking
-    extra = 0
-    fields = ('start_time', 'clinic', 'category', 'status', 'get_total', 'get_services')
-    readonly_fields = ('start_time', 'clinic', 'category', 'status', 'get_total', 'get_services')
-    can_delete = False
-    verbose_name = "Lịch sử Khám & Dịch vụ (Kèm Hóa đơn)"
-    verbose_name_plural = "Lịch sử Khám & Dịch vụ (Kèm Hóa đơn)"
-
-    def get_total(self, obj):
-        if hasattr(obj, 'billing'): return f"{obj.billing.final_total:,.0f} VNĐ"
-        return "Chưa thanh toán"
-    get_total.short_description = "Thành tiền"
-
-    def get_services(self, obj):
-        details = obj.details.all()
-        if details: return ", ".join([d.service_detail.name for d in details if d.service_detail])
-        return "-"
-    get_services.short_description = "Chi tiết Dịch vụ"
-
 import unicodedata
 from urllib.parse import quote
 
@@ -56,6 +33,41 @@ from .models import (
 
 admin.site.unregister(User)
 admin.site.unregister(Group)
+
+class BookingHistoryInline(admin.TabularInline):
+    from booking.models import Booking
+    model = Booking
+    extra = 0
+    fields = ('start_time', 'clinic', 'status', 'get_detailed_services', 'get_total')
+    readonly_fields = ('start_time', 'clinic', 'status', 'get_detailed_services', 'get_total')
+    can_delete = False
+    verbose_name = "Lịch sử Khám (Kèm Chi tiết Dịch vụ)"
+    verbose_name_plural = "Lịch sử Khám (Kèm Chi tiết Dịch vụ)"
+
+    def get_total(self, obj):
+        if hasattr(obj, 'billing') and getattr(obj, 'billing', None): 
+            return f"{obj.billing.final_total:,.0f} VNĐ"
+        return "Chưa thanh toán"
+    get_total.short_description = "Thành tiền Hóa đơn"
+
+    def get_detailed_services(self, obj):
+        details = obj.details.all()
+        if not details:
+            return "-"
+        
+        html = "<ul style='margin-left: 0; padding-left: 15px; list-style-type: disc;'>"
+        for d in details:
+            srv = getattr(d.service_detail, 'name', "Dịch vụ trống") if getattr(d, 'service_detail', None) else "Dịch vụ trống"
+            doc = getattr(d.doctor, 'full_name', "Chưa chỉ định BS") if getattr(d, 'doctor', None) else "Chưa chỉ định BS"
+            tooth = f" <span style='color: #f59e0b; font-weight: bold;'>(Răng: {d.tooth_position})</span>" if d.tooth_position else ""
+            price = f"{d.actual_price:,.0f}đ" if d.actual_price else "0đ"
+            
+            html += f"<li style='margin-bottom: 6px; line-height: 1.4;'><b>{srv}</b>{tooth}<br/><span style='color: #6b7280; font-size: 0.9em;'>↳ BS: {doc} | Giá: {price}</span></li>"
+        html += "</ul>"
+        
+        from django.utils.safestring import mark_safe
+        return mark_safe(html)
+    get_detailed_services.short_description = "Chi tiết (Dịch vụ - Bác sĩ - Răng - Giá)"
 
 @admin.register(Group)
 class CustomGroupAdmin(GroupAdmin):
@@ -343,15 +355,6 @@ class ServiceDetailAdmin(ImportExportActionModelAdmin, BaseRBACAdmin):
 class TimeSlotAdmin(BaseRBACAdmin):
     list_display = ('start_time', 'end_time')
 
-class BookingInlineForCustomer(admin.TabularInline):
-    model = Booking
-    fields = ('start_time', 'end_time', 'clinic', 'status')
-    readonly_fields = ('start_time', 'end_time', 'clinic', 'status')
-    can_delete = False
-    extra = 0
-    verbose_name = "Lịch sử Khám & Dịch vụ"
-    verbose_name_plural = "Lịch sử Khám & Dịch vụ"
-    classes = ['collapse']
 
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
