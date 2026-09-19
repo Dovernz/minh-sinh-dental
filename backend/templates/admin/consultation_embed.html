@@ -1,0 +1,79 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+<div class="consultation-container" style="max-width: 1200px; margin: 0 auto; font-family: system-ui, sans-serif;">
+    <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e5e7eb;">
+        <!-- Header -->
+        <div style="background: #3b82f6; color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Lập Phác Đồ & Tư Vấn (Bác Sĩ)</h2>
+        </div>
+
+        <div style="padding: 24px;">
+            <!-- 1. Thông tin Khách hàng -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 1rem; color: #374151; border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; font-weight: bold;">1. Chọn Khách hàng & Cơ sở</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #4b5563; margin-bottom: 4px;">Tìm Khách hàng</label>
+                        <select id="cons_customer" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;"></select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #4b5563; margin-bottom: 4px;">Cơ sở Khám</label>
+                        <select id="cons_clinic" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Chọn Dịch vụ Đề xuất -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 1rem; color: #374151; border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; font-weight: bold;">2. Thêm Dịch vụ Đề xuất</h3>
+                <div style="display: flex; gap: 12px; margin-top: 16px; background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px dashed #d1d5db;">
+                    <select id="cons_category" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <option value="">-- Chọn Danh mục --</option>
+                    </select>
+                    <select id="cons_service" style="flex: 2; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <option value="">-- Chọn Dịch vụ --</option>
+                    </select>
+                    <button id="btn_add_service" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">+ Thêm</button>
+                </div>
+            </div>
+
+            <!-- 3. Bảng Dịch vụ Tư vấn -->
+            <div>
+                <h3 style="font-size: 1rem; color: #374151; border-bottom: 2px solid #f3f4f6; padding-bottom: 8px; font-weight: bold;">3. Danh sách Tư vấn & Chốt dịch vụ</h3>
+                <table style="width: 100%; text-align: left; margin-top: 16px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f3f4f6; color: #4b5563; font-size: 0.875rem;">
+                            <th style="padding: 12px; border: 1px solid #e5e7eb;">Dịch vụ</th>
+                            <th style="padding: 12px; border: 1px solid #e5e7eb; width: 15%;">Răng</th>
+                            <th style="padding: 12px; border: 1px solid #e5e7eb; width: 20%;">Ghi chú Bác sĩ</th>
+                            <th style="padding: 12px; border: 1px solid #e5e7eb; width: 15%;">Đơn giá</th>
+                            <th style="padding: 12px; border: 1px solid #e5e7eb; width: 10%; text-align: center; color: #2563eb;">Khách chốt</th>
+                            <th style="padding: 12px; border: 1px solid #e5e7eb; width: 5%;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cons_table_body">
+                        <!-- Render dòng dịch vụ tại đây -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Ghi chú tổng và Submit -->
+            <div style="margin-top: 24px; border-top: 2px solid #f3f4f6; padding-top: 24px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="width: 60%;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #4b5563; margin-bottom: 4px;">Ghi chú tổng quát Hồ sơ:</label>
+                    <textarea id="cons_general_note" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;"></textarea>
+                </div>
+                <button id="btn_submit_consultation" style="background: #3b82f6; color: white; border: none; padding: 12px 32px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">
+                    LƯU HỒ SƠ TƯ VẤN
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Logic Javascript gọi API lấy danh mục, dịch vụ và Khách hàng sẽ được tích hợp ở bước 2
+    console.log("Màn hình Tư vấn Bác sĩ Đã sẵn sàng!");
+</script>
+{% endblock %}

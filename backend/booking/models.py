@@ -87,6 +87,18 @@ class Customer(models.Model):
     email = models.EmailField(max_length=100, blank=True, null=True, verbose_name="Email")
     created_on = models.DateTimeField(auto_now_add=True)
     customer_type = models.CharField(max_length=20, choices=[("Mới", "Khách Mới"), ("Cũ", "Khách Cũ")], default="Mới", verbose_name="Phân loại Khách")
+    medical_notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú bệnh nhân")
+    customer_source = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nguồn KH")
+    source_detail = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nguồn chi tiết")
+    nationality = models.CharField(max_length=255, blank=True, null=True, verbose_name="Quốc tịch")
+    profession = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nghề nghiệp")
+    city = models.CharField(max_length=255, blank=True, null=True, verbose_name="Tỉnh/Thành phố")
+    district = models.CharField(max_length=255, blank=True, null=True, verbose_name="Phường xã")
+    identity_card = models.CharField(max_length=255, blank=True, null=True, verbose_name="CMND/CC")
+    id_issue_date = models.DateField(blank=True, null=True, verbose_name="Ngày cấp CMND")
+    id_issue_place = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nơi cấp")
+    insurance_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="Đối tượng bảo hiểm")
+    insurance_code = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mã bảo hiểm")
 
     class Meta:
         db_table = 'db_table_customers'
@@ -385,3 +397,38 @@ class SocialLink(models.Model):
     class Meta:
         db_table = 'db_table_sociallink'
         ordering = ['order']
+
+
+# ==========================================
+# MODULE TƯ VẤN & PHÁC ĐỒ (DOCTOR CONSULTATION)
+# ==========================================
+class Consultation(models.Model):
+    consultation_id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='consultations', verbose_name="Khách hàng")
+    clinic = models.ForeignKey(Clinic, on_delete=models.SET_NULL, null=True, verbose_name="Cơ sở khám")
+    doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'Doctor'}, verbose_name="Bác sĩ tư vấn")
+    created_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True, verbose_name="Ghi chú tổng quát")
+    
+    class Meta:
+        db_table = 'db_table_consultations'
+        verbose_name = "Hồ sơ Tư vấn"
+        verbose_name_plural = "Hồ sơ Tư vấn"
+
+class ConsultationDetail(models.Model):
+    detail_id = models.AutoField(primary_key=True)
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE, related_name='details')
+    service_detail = models.ForeignKey(ServiceDetail, on_delete=models.SET_NULL, null=True)
+    tooth_position = models.CharField(max_length=50, blank=True, null=True, verbose_name="Vị trí răng")
+    notes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ghi chú")
+    proposed_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Giá đề xuất")
+    is_accepted = models.BooleanField(default=False, verbose_name="Khách chốt làm")
+    
+    class Meta:
+        db_table = 'db_table_consultation_details'
+
+class DoctorConsultationProxy(Consultation):
+    class Meta:
+        proxy = True
+        verbose_name = 'Phác đồ & Tư vấn (Bác sĩ)'
+        verbose_name_plural = 'Phác đồ & Tư vấn (Bác sĩ)'

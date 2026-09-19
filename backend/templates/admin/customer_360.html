@@ -1,0 +1,512 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="max-w-7xl mx-auto p-4 font-sans text-gray-800">
+    <!-- Hiển thị Thông báo -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="p-4 mb-5 rounded-lg bg-emerald-100 text-emerald-800 font-medium border border-emerald-400">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Tabs Header -->
+    <div class="flex border-b border-gray-200 mb-6">
+        <button onclick="switchTab('tab-general')" id="btn-tab-general" class="tab-btn px-6 py-3 font-semibold text-blue-600 border-b-2 border-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Thông tin chung</button>
+        <button onclick="switchTab('tab-consult')" id="btn-tab-consult" class="tab-btn px-6 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Dịch vụ</button>
+        <button onclick="switchTab('tab-service')" id="btn-tab-service" class="tab-btn px-6 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Tư vấn</button>
+    </div>
+
+    <!-- Tab 1: Thông tin chung -->
+    <div id="tab-general" class="tab-content block">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Thông tin khách hàng -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Thông tin Khách hàng</h3>
+                    <button onclick="document.getElementById('editModal').style.display='flex'" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md text-sm font-semibold border border-indigo-200 hover:bg-indigo-100 transition">Sửa Hồ sơ</button>
+                </div>
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-2xl font-bold text-indigo-700">
+                        {{ customer.name|make_list|first }}
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 m-0">{{ customer.name }}</h2>
+                        <span class="text-sm font-semibold text-gray-500">Mã: #KH{{ customer.pk }}</span>
+                    </div>
+                </div>
+                <div class="space-y-2 text-gray-600 text-sm">
+                    <p>📞 <strong class="text-gray-700">Điện thoại:</strong> {{ customer.phone }}</p>
+                    <p>🎂 <strong class="text-gray-700">Ngày sinh:</strong> {{ customer.customer_dob|date:"Y-m-d"|default:"Chưa cập nhật" }}</p>
+                    <p>📧 <strong class="text-gray-700">Email:</strong> {{ customer.email|default:"Chưa cập nhật" }}</p>
+                    <p>📍 <strong class="text-gray-700">Địa chỉ:</strong> {{ customer.address|default:"Chưa cập nhật" }}</p>
+                    <p>🏷️ <strong class="text-gray-700">Phân loại:</strong> {{ customer.customer_type|default:"Mới" }}</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6">
+                <!-- Ghi chú bệnh nhân -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-800 border-b pb-4 mb-4">Ghi chú bệnh nhân</h3>
+                    <form method="POST" action="" id="noteForm"> 
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_note">
+                        <textarea name="patient_note" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Nhập ghi chú quan trọng về khách hàng...">{{ customer.note|default:'' }}</textarea>
+                        <div class="text-right mt-3">
+                            <button type="button" onclick="saveNote()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Lưu Ghi chú</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lịch hẹn -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-800 border-b pb-4 mb-4">Lịch hẹn</h3>
+                    <div class="max-h-64 overflow-y-auto pr-2 space-y-4">
+                        {% if upcoming_bookings %}
+                            <div>
+                                <h4 class="text-sm font-semibold text-emerald-600 mb-2">Sắp tới</h4>
+                                <div class="space-y-2">
+                                    {% for booking in upcoming_bookings %}
+                                        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg">
+                                            <div class="font-semibold text-emerald-800">{{ booking.booking_time|date:"H:i d/m/Y" }}</div>
+                                            <div class="text-sm text-emerald-700 mt-1">🏥 {{ booking.clinic.name|default:"Chưa rõ cơ sở" }}</div>
+                                            <div class="text-sm text-emerald-700">👨‍⚕️ {{ booking.doctor.name|default:"Chưa chọn bác sĩ" }}</div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if past_bookings %}
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-500 mb-2">Đã qua</h4>
+                                <div class="space-y-2">
+                                    {% for booking in past_bookings %}
+                                        <div class="bg-gray-50 border border-gray-200 p-3 rounded-lg">
+                                            <div class="font-semibold text-gray-700">{{ booking.booking_time|date:"H:i d/m/Y" }}</div>
+                                            <div class="text-sm text-gray-500 mt-1">🏥 {{ booking.clinic.name|default:"Chưa rõ cơ sở" }}</div>
+                                            <div class="text-sm text-gray-500">👨‍⚕️ {{ booking.doctor.name|default:"Chưa chọn bác sĩ" }}</div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if not upcoming_bookings and not past_bookings %}
+                            <div class="text-gray-400 italic text-sm text-center py-4">Chưa có lịch hẹn nào.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Tư vấn -->
+    <div id="tab-consult" class="tab-content hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-gray-800">Danh sách Dịch vụ</h2>
+            <button onclick="toggleConsultForm()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">
+                + Thêm dịch vụ mới
+            </button>
+        </div>
+
+        <!-- Form Thêm dịch vụ -->
+        <div id="newConsultForm" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-lg font-bold text-blue-600">🩺 Tạo Kế hoạch Điều trị / Dịch vụ</h3>
+                <button type="button" onclick="toggleConsultForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold leading-none">&times;</button>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Main Form (Left) -->
+                <div class="flex-1 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">👨‍⚕️ Bác sĩ tư vấn</label>
+                            <select id="cons_doctor" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                                <option value="">-- Chọn Bác sĩ --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">📋 Nhóm dịch vụ</label>
+                            <select id="cons_category" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                                <option value="">-- Chọn Nhóm dịch vụ --</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">💉 Dịch vụ</label>
+                            <select id="cons_service" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                                <option value="">-- Chọn Dịch vụ --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Đơn giá (VNĐ)</label>
+                            <input type="number" id="cons_price" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Số lượng</label>
+                            <input type="number" id="cons_qty" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="1" min="1">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Chiết khấu (%)</label>
+                            <input type="number" id="cons_discount" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1 text-sm">📝 Ghi chú</label>
+                        <textarea id="cons_note" rows="2" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Nhập ghi chú chi tiết..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Summary (Right) -->
+                <div class="w-full lg:w-80 bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <h4 class="font-bold text-gray-800 border-b border-slate-200 pb-3 mb-4 text-center">Tóm tắt Chi phí</h4>
+                        <div class="flex justify-between items-center mb-3 text-sm">
+                            <span class="text-gray-600 font-medium">Tổng tiền:</span>
+                            <span class="font-bold text-blue-600 text-lg" id="cons_total_price">0 VNĐ</span>
+                        </div>
+                        <label class="flex items-center mt-6 cursor-pointer bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                            <input type="checkbox" id="cons_accept_now" class="w-5 h-5 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer">
+                            <span class="ml-3 font-semibold text-gray-700">Chốt dịch vụ ngay</span>
+                        </label>
+                    </div>
+                    
+                    <button id="btn_submit_consultation" type="button" class="w-full mt-6 bg-orange-500 text-white px-4 py-3 rounded-lg font-bold shadow hover:bg-orange-600 transition flex items-center justify-center gap-2">
+                        💾 LƯU PHÁC ĐỒ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách phiếu tư vấn cũ -->
+        <form method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm_services">
+            
+            <div class="flex justify-between items-end mb-4">
+                <h3 class="text-lg font-bold text-gray-700">📋 Bảng Dịch vụ</h3>
+                {% if consultations %}
+                <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold shadow hover:bg-emerald-700 transition flex items-center gap-2">
+                    ✅ XÁC NHẬN CHỐT DỊCH VỤ
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-100 border-b border-gray-200 text-sm text-gray-700">
+                        <tr>
+                            <th class="p-4 font-semibold w-12 text-center">
+                                <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                            </th>
+                            <th class="p-4 font-semibold">Dịch vụ (Tên & Răng)</th>
+                            <th class="p-4 font-semibold">Thành tiền (Giá, Khấu trừ)</th>
+                            <th class="p-4 font-semibold">Người tư vấn</th>
+                            <th class="p-4 font-semibold">Ghi chú</th>
+                            <th class="p-4 font-semibold text-center w-28">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% if consultations %}
+                            {% for cons in consultations %}
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4 text-center">
+                                        {% if not cons.is_accepted %}
+                                            <input type="checkbox" name="consultation_ids" value="{{ cons.pk }}" class="consultation-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                                        {% else %}
+                                            <span class="text-emerald-500 font-bold text-lg">✓</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-semibold text-blue-700">{{ cons.service.name|default:cons.service }}</div>
+                                        {% if cons.tooth_position %}
+                                            <div class="text-xs text-gray-500 mt-1">Răng: {{ cons.tooth_position }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4 text-gray-700">
+                                        <div class="font-medium">{{ cons.price|default:"0" }} VNĐ</div>
+                                        {% if cons.discount %}
+                                            <div class="text-xs text-red-500 mt-1">Khấu trừ: {{ cons.discount }}%</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4 text-gray-600">{{ cons.doctor.name|default:"-" }}</td>
+                                    <td class="p-4 text-gray-600 text-sm max-w-[200px] truncate" title="{{ cons.note|default:'' }}">{{ cons.note|default:"-" }}</td>
+                                    <td class="p-4 text-center">
+                                        {% if cons.is_accepted %}
+                                            <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-md border border-emerald-200">Đã chốt</span>
+                                        {% else %}
+                                            <span class="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md border border-amber-200">Chờ chốt</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="p-8 text-center text-gray-400 italic">Chưa có dịch vụ nào được ghi nhận.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab 3: Dịch vụ -->
+    <div id="tab-service" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500 italic">
+            Sẽ bổ sung chi tiết sau
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa Thông tin -->
+<div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center p-4 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-800">Hồ sơ khách hàng</h3>
+            <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
+        </div>
+        <form method="POST" action="" class="p-4 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_info">
+            
+            <!-- Khối 1: Thông tin cá nhân -->
+            <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                <legend class="text-sm font-bold text-gray-700 px-2">Thông tin cá nhân</legend>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Họ tên *</label>
+                        <input type="text" name="name" value="{{ customer.name }}" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày sinh</label>
+                        <input type="date" name="customer_dob" value="{{ customer.customer_dob|date:'Y-m-d' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số điện thoại *</label>
+                        <input type="text" name="phone" value="{{ customer.phone }}" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Chi nhánh</label>
+                        <select name="branch" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Chọn Chi nhánh --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nhóm khách hàng</label>
+                        <select name="customer_type" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="Mới" {% if customer.customer_type == 'Mới' %}selected{% endif %}>Khách Mới</option>
+                            <option value="Cũ" {% if customer.customer_type == 'Cũ' %}selected{% endif %}>Khách Cũ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email" value="{{ customer.email|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nguồn khách hàng</label>
+                        <select name="customer_source" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Chọn Nguồn --</option>
+                            <option value="Facebook" {% if customer.customer_source == 'Facebook' %}selected{% endif %}>Facebook</option>
+                            <option value="Zalo" {% if customer.customer_source == 'Zalo' %}selected{% endif %}>Zalo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nguồn chi tiết</label>
+                        <input type="text" name="source_detail" value="{{ customer.source_detail|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Quốc tịch</label>
+                        <input type="text" name="nationality" value="{{ customer.nationality|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nghề nghiệp</label>
+                        <input type="text" name="profession" value="{{ customer.profession|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Địa chỉ</label>
+                        <input type="text" name="address" value="{{ customer.address|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tỉnh/Thành phố</label>
+                        <input type="text" name="city" value="{{ customer.city|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Phường xã</label>
+                        <input type="text" name="district" value="{{ customer.district|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Khối 2: CMND/CC -->
+            <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                <legend class="text-sm font-bold text-gray-700 px-2">CMND/CCCD</legend>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số CMND/CCCD</label>
+                        <input type="text" name="identity_card" value="{{ customer.identity_card|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày cấp</label>
+                        <input type="date" name="id_issue_date" value="{{ customer.id_issue_date|date:'Y-m-d' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nơi cấp</label>
+                        <input type="text" name="id_issue_place" value="{{ customer.id_issue_place|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Khối 3: Bảo hiểm -->
+            <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                <legend class="text-sm font-bold text-gray-700 px-2">Bảo hiểm</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Đối tượng bảo hiểm</label>
+                        <select name="insurance_type" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Chọn đối tượng --</option>
+                            <option value="Thu phí" {% if customer.insurance_type == 'Thu phí' %}selected{% endif %}>Thu phí</option>
+                            <option value="Miễn phí" {% if customer.insurance_type == 'Miễn phí' %}selected{% endif %}>Miễn phí</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Mã bảo hiểm</label>
+                        <input type="text" name="insurance_code" value="{{ customer.insurance_code|default:'' }}" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
+                <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="px-5 py-2 border border-gray-300 text-gray-700 font-bold rounded-md hover:bg-gray-50 transition">HỦY</button>
+                <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-md font-bold shadow hover:bg-blue-700 transition">LƯU THÔNG TIN</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Xử lý Tabs
+    function switchTab(tabId) {
+        // Ẩn tất cả nội dung
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.classList.remove('block');
+        });
+        
+        // Reset tab styles
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('text-blue-600', 'border-blue-600');
+            el.classList.add('text-gray-500', 'border-transparent');
+        });
+
+        // Hiển thị tab được chọn
+        const targetTab = document.getElementById(tabId);
+        if(targetTab) {
+            targetTab.classList.remove('hidden');
+            targetTab.classList.add('block');
+        }
+
+        // Active style cho nút tab
+        const btnId = tabId.replace('tab-', 'btn-tab-');
+        const targetBtn = document.getElementById(btnId);
+        if(targetBtn) {
+            targetBtn.classList.remove('text-gray-500', 'border-transparent');
+            targetBtn.classList.add('text-blue-600', 'border-blue-600');
+        }
+
+        // Lưu trạng thái tab vào URL
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId.replace('tab-', ''));
+        window.history.pushState({}, '', url);
+    }
+
+    // Toggle Form Tư vấn
+    function toggleConsultForm() {
+        const form = document.getElementById('newConsultForm');
+        if (form.classList.contains('hidden')) {
+            form.classList.remove('hidden');
+            form.classList.add('block');
+        } else {
+            form.classList.remove('block');
+            form.classList.add('hidden');
+        }
+    }
+
+    // Toggle All Checkboxes
+    function toggleAllCheckboxes(source) {
+        const checkboxes = document.querySelectorAll('.consultation-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = source.checked;
+        });
+    }
+
+    // Tự động chuyển tab theo URL param
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab === 'consult') switchTab('tab-consult');
+        else if (tab === 'service') switchTab('tab-service');
+        else switchTab('tab-general');
+
+        // Tính tổng tiền ở tab Dịch vụ
+        calculateTotalConfirmed();
+    });
+
+    function calculateTotalConfirmed() {
+        let total = 0;
+        const prices = document.querySelectorAll('#confirmed_services_tbody .price-col');
+        prices.forEach(td => {
+            const valStr = td.innerText.replace(/[^0-9.-]+/g, "");
+            const val = parseFloat(valStr);
+            if (!isNaN(val)) total += val;
+        });
+        
+        const totalEl = document.getElementById('total_confirmed_price');
+        if(totalEl) {
+            totalEl.innerText = new Intl.NumberFormat('vi-VN').format(total) + " VNĐ";
+        }
+    }
+
+    // Ghi chú AJAX (Mock, tuỳ chỉnh URL cho chuẩn xác sau)
+    function saveNote() {
+        const form = document.getElementById('noteForm');
+        const formData = new FormData(form);
+        const url = form.action || window.location.href;
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(res => {
+            if(res.ok) {
+                alert('Đã lưu ghi chú thành công!');
+            } else {
+                // Handle fallback if endpoint not exist
+                alert('Lưu qua AJAX (Cần endpoint phù hợp). Đã bắt sự kiện nút!');
+            }
+        }).catch(err => {
+            console.error(err);
+            alert('Lưu không thành công, vui lòng kiểm tra lại.');
+        });
+    }
+
+    function editConsultation(id) {
+        console.log("Edit consultation ID:", id);
+        // Có thể bổ sung logic hiển thị modal sửa sau.
+        toggleConsultForm();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+{% endblock %}

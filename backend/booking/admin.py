@@ -359,9 +359,122 @@ class TimeSlotAdmin(BaseRBACAdmin):
 @admin.register(Customer)
 class CustomerAdmin(BaseRBACAdmin):
     inlines = [BookingHistoryInline]
-    list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email', 'customer_type')
+    list_display = ('name', 'gender', 'phone', 'customer_dob', 'address', 'email', 'customer_type', 'action_ho_so')
     search_fields = ('name', 'phone', 'email', 'address', 'customer_type')
     list_filter = ('address', 'gender', 'customer_type')
+
+    def action_ho_so(self, obj):
+        from django.utils.html import format_html
+        return format_html('<a href="{}/profile/" style="background: #3b82f6; color: white; padding: 6px 16px; border-radius: 6px; font-weight: bold; text-decoration: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🩺 Hồ sơ Khám</a>', obj.pk)
+    action_ho_so.short_description = 'Tư vấn & Phác đồ'
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:object_id>/profile/', self.admin_site.admin_view(self.customer_profile_view), name='customer_profile'),
+        ]
+        return custom_urls + urls
+
+    def customer_profile_view(self, request, object_id):
+        from django.template.response import TemplateResponse
+        from .models import Customer, Booking, ConsultationDetail, Consultation
+        from django.shortcuts import get_object_or_404, redirect
+        from django.contrib import messages
+        from django.utils import timezone
+        
+        customer = get_object_or_404(Customer, pk=object_id)
+        
+        if request.method == 'POST':
+            action = request.POST.get('action', 'update_info')
+            if action == 'update_info':
+                customer.patient_code = request.POST.get('patient_code', customer.patient_code)
+                customer.name = request.POST.get('name', customer.name)
+                customer.phone = request.POST.get('phone', customer.phone)
+                
+                dob = request.POST.get('customer_dob')
+                if dob: 
+                    customer.customer_dob = dob
+                else:
+                    customer.customer_dob = None
+                    
+                customer.gender = request.POST.get('gender', customer.gender)
+                customer.address = request.POST.get('address', customer.address)
+                customer.email = request.POST.get('email', customer.email)
+                customer.customer_type = request.POST.get('customer_type', customer.customer_type)
+                customer.customer_source = request.POST.get('customer_source', customer.customer_source)
+                customer.source_detail = request.POST.get('source_detail', customer.source_detail)
+                customer.nationality = request.POST.get('nationality', customer.nationality)
+                customer.profession = request.POST.get('profession', customer.profession)
+                customer.city = request.POST.get('city', customer.city)
+                customer.district = request.POST.get('district', customer.district)
+                customer.identity_card = request.POST.get('identity_card', customer.identity_card)
+                id_issue_date = request.POST.get('id_issue_date')
+                if id_issue_date:
+                    customer.id_issue_date = id_issue_date
+                else:
+                    customer.id_issue_date = None
+                customer.id_issue_place = request.POST.get('id_issue_place', customer.id_issue_place)
+                customer.insurance_type = request.POST.get('insurance_type', customer.insurance_type)
+                customer.insurance_code = request.POST.get('insurance_code', customer.insurance_code)
+                customer.save()
+                
+                messages.success(request, "✅ Cập nhật thông tin khách hàng thành công!")
+                return redirect(f'/admin/booking/customer/{object_id}/profile/?tab=info')
+            elif action == 'update_notes':
+                customer.medical_notes = request.POST.get('medical_notes', customer.medical_notes)
+                customer.save()
+                messages.success(request, "✅ Cập nhật ghi chú y khoa thành công!")
+                return redirect(f'/admin/booking/customer/{object_id}/profile/?tab=medical')
+            elif action == 'confirm_services':
+                detail_ids = request.POST.getlist('detail_ids')
+                if detail_ids:
+                    ConsultationDetail.objects.filter(pk__in=detail_ids).update(is_accepted=True)
+                    messages.success(request, "✅ Xác nhận dịch vụ thành công!")
+                return redirect(f'/admin/booking/customer/{object_id}/profile/?tab=consult')
+            elif action == 'create_consultation':
+                notes = request.POST.get('notes', '')
+                Consultation.objects.create(customer=customer, notes=notes)
+                messages.success(request, "✅ Đã tạo hồ sơ tư vấn mới!")
+                return redirect(f'/admin/booking/customer/{object_id}/profile/?tab=consult')
+
+        today = timezone.now().date()
+        upcoming_bookings = Booking.objects.filter(
+            customer=customer, 
+            start_time__date__gte=today, 
+            status='Pending'
+        ).order_by('start_time')
+        
+        past_bookings = Booking.objects.filter(
+            customer=customer,
+            start_time__date__lt=today
+        ).order_by('-start_time')
+        
+        consultations = Consultation.objects.filter(customer=customer).prefetch_related('details').order_by('-created_at')
+        consultation_details = ConsultationDetail.objects.filter(consultation__customer=customer).select_related('consultation', 'service_detail').order_by('-consultation__created_at')
+        
+        confirmed_details = ConsultationDetail.objects.filter(
+            consultation__customer=customer, 
+            is_accepted=True
+        )
+
+        context = dict(self.admin_site.each_context(request))
+        context['title'] = f'Hồ sơ Y khoa: {customer.name}'
+        context['customer'] = customer
+        context['upcoming_bookings'] = upcoming_bookings
+        context['past_bookings'] = past_bookings
+        context['consultations'] = consultations
+        context['consultation_details'] = consultation_details
+        context['confirmed_details'] = confirmed_details
+        context['confirmed_consultations'] = confirmed_details
+        context['active_tab'] = request.GET.get('tab', 'consult')
+        return TemplateResponse(request, "admin/customer_360.html", context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if request.GET.get('tab') == 'edit' or request.method == 'POST':
+            return super().change_view(request, object_id, form_url, extra_context)
+        from django.shortcuts import redirect
+        return redirect(f'/admin/booking/customer/{object_id}/profile/')
 
 @admin.register(Employee)
 class EmployeeAdmin(BaseRBACAdmin):
@@ -987,3 +1100,9 @@ class SiteSettingsAdmin(ModelAdmin):
                 instance.order = max_order + 1
             instance.save()
         formset.save_m2m()
+
+from booking.models import Consultation, ConsultationDetail, DoctorConsultationProxy
+from django.template.response import TemplateResponse
+from django.urls import path
+
+
