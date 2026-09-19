@@ -798,3 +798,15 @@ class ClinicListAPIView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
+class AdminTimeSlotListView(APIView):
+    def get(self, request):
+        from .models import TimeSlot
+        slots = TimeSlot.objects.all().order_by('start_time')
+        data = [
+            {
+                'id': slot.timeslot_id,
+                'start_time': slot.start_time.strftime('%H:%M') if slot.start_time else None,
+                'end_time': slot.end_time.strftime('%H:%M') if slot.end_time else None
+            } for slot in slots
+        ]
+        return Response(data, status=status.HTTP_200_OK)

@@ -21,6 +21,31 @@
         <form method="POST" action="" class="space-y-4" id="addCustomerForm">
             {% csrf_token %}
             
+            <!-- Khối Lịch Hẹn (Ẩn mặc định) -->
+            <div id="appointment-section" style="display: none;" class="mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                <h4 class="text-sm font-bold text-blue-700 mb-3 border-b border-blue-200 pb-2">Thông tin Lịch Hẹn</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ngày hẹn</label>
+                        <input type="date" name="booking_date" id="booking_date" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Khung giờ</label>
+                        <select name="booking_time" id="booking_time_slot" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Chọn khung giờ --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Dịch vụ quan tâm</label>
+                        <input type="text" name="interested_services" placeholder="Nhập dịch vụ quan tâm" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nội dung / Ghi chú lịch hẹn</label>
+                        <textarea name="appointment_note" rows="2" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập ghi chú chi tiết..."></textarea>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB THÔNG TIN CHUNG -->
             <div id="modal-tab-general" class="modal-tab-content block">
                 <!-- Khối 1: Thông tin cá nhân -->
@@ -33,25 +58,6 @@
                             <label class="flex items-center gap-1 cursor-pointer ml-4">
                                 <input type="checkbox" name="create_appointment" id="toggle_appointment" class="rounded text-blue-600" onchange="document.getElementById('appointment-section').style.display = this.checked ? 'block' : 'none';"> Tạo lịch hẹn
                             </label>
-                        </div>
-                    </div>
-
-                    <!-- Khối Lịch Hẹn (Ẩn mặc định) -->
-                    <div id="appointment-section" style="display: none;" class="mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
-                        <h4 class="text-sm font-bold text-blue-700 mb-3 border-b border-blue-200 pb-2">Thông tin Lịch Hẹn</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Thời gian hẹn</label>
-                                <input type="datetime-local" name="booking_time" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Dịch vụ quan tâm</label>
-                                <input type="text" name="interested_services" placeholder="Nhập dịch vụ quan tâm" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nội dung / Ghi chú lịch hẹn</label>
-                                <textarea name="appointment_note" rows="2" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập ghi chú chi tiết..."></textarea>
-                            </div>
                         </div>
                     </div>
 
@@ -308,5 +314,35 @@
             })
             .catch(err => console.error("Error fetching clinics:", err));
     });
+
+    // Fetch time slots when date is selected
+    const bookingDateInput = document.getElementById('booking_date');
+    if (bookingDateInput) {
+        bookingDateInput.addEventListener('change', function() {
+            const date = this.value;
+            const timeSlotSelect = document.getElementById('booking_time_slot');
+            timeSlotSelect.innerHTML = '<option value="">-- Chọn khung giờ --</option>';
+            
+            if (date) {
+                fetch(`/api/admin-timeslots/?date=${date}`)
+                    .then(res => res.json())
+                    .then(data => {
+                                // Support data.timeslots or direct array
+                                const slots = data.timeslots || data;
+                                if (Array.isArray(slots)) {
+                                    slots.forEach(slot => {
+                                        const option = document.createElement('option');
+                                        const slotValue = slot.id;
+                                        const slotText = slot.start_time ? `${slot.start_time} - ${slot.end_time}` : slot.name;
+                                        option.value = slotValue;
+                                        option.textContent = slotText;
+                                        timeSlotSelect.appendChild(option);
+                                    });
+                                }
+                    })
+                    .catch(err => console.error("Error fetching timeslots:", err));
+            }
+        });
+    }
 </script>
 {% endblock %}

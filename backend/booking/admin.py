@@ -428,14 +428,26 @@ class CustomerAdmin(BaseRBACAdmin):
             )
             
             if request.POST.get('create_appointment') == 'on':
-                booking_time = request.POST.get('booking_time')
+                booking_time = request.POST.get('booking_time') # is timeslot_id
+                booking_date = request.POST.get('booking_date')
                 branch_id = request.POST.get('branch')
                 appointment_note = request.POST.get('appointment_note', '')
                 
-                if booking_time:
+                start_time_dt = None
+                if booking_time and booking_date:
+                    from .models import TimeSlot
+                    from datetime import datetime
+                    try:
+                        ts = TimeSlot.objects.get(pk=booking_time)
+                        date_obj = datetime.strptime(booking_date, '%Y-%m-%d').date()
+                        start_time_dt = datetime.combine(date_obj, ts.start_time)
+                    except Exception:
+                        pass
+                
+                if start_time_dt:
                     Booking.objects.create(
                         customer=customer,
-                        start_time=booking_time,
+                        start_time=start_time_dt,
                         clinic_id=branch_id if branch_id else None,
                         notes=appointment_note,
                         status='Pending'
