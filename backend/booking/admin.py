@@ -376,6 +376,79 @@ class CustomerAdmin(BaseRBACAdmin):
         ]
         return custom_urls + urls
 
+    def add_view(self, request, form_url='', extra_context=None):
+        from django.template.response import TemplateResponse
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        from .models import Customer, Booking
+        
+        if request.method == 'POST':
+            name = request.POST.get('name')
+            phone = request.POST.get('phone')
+            if not name or not phone:
+                messages.error(request, "Tên và số điện thoại là bắt buộc!")
+                return redirect(request.path)
+                
+            customer = Customer.objects.create(
+                name=name,
+                phone=phone,
+                customer_dob=request.POST.get('customer_dob') or None,
+                gender=request.POST.get('gender'),
+                address=request.POST.get('address'),
+                email=request.POST.get('email'),
+                customer_type=request.POST.get('customer_type', 'Mới'),
+                customer_source=request.POST.get('customer_source'),
+                source_detail=request.POST.get('source_detail'),
+                nationality=request.POST.get('nationality'),
+                profession=request.POST.get('profession'),
+                city=request.POST.get('city'),
+                district=request.POST.get('district'),
+                identity_card=request.POST.get('identity_card'),
+                id_issue_date=request.POST.get('id_issue_date') or None,
+                id_issue_place=request.POST.get('id_issue_place'),
+                insurance_type=request.POST.get('insurance_type'),
+                insurance_code=request.POST.get('insurance_code'),
+                facebook_link=request.POST.get('facebook_link'),
+                zalo_link=request.POST.get('zalo_link'),
+                viber_link=request.POST.get('viber_link'),
+                instagram_link=request.POST.get('instagram_link'),
+                gdrive_link=request.POST.get('gdrive_link'),
+                phone_2=request.POST.get('phone_2'),
+                passport=request.POST.get('passport'),
+                ethnicity=request.POST.get('ethnicity'),
+                religion=request.POST.get('religion'),
+                marketing_staff=request.POST.get('marketing_staff'),
+                gclid=request.POST.get('gclid'),
+                dvqhns=request.POST.get('dvqhns'),
+                language=request.POST.get('language'),
+                expected_clinic=request.POST.get('expected_clinic'),
+                old_customer_code=request.POST.get('old_customer_code'),
+                general_note=request.POST.get('general_note'),
+                medical_notes=request.POST.get('medical_notes')
+            )
+            
+            if request.POST.get('create_appointment') == 'on':
+                booking_time = request.POST.get('booking_time')
+                branch_id = request.POST.get('branch')
+                appointment_note = request.POST.get('appointment_note', '')
+                
+                if booking_time:
+                    Booking.objects.create(
+                        customer=customer,
+                        start_time=booking_time,
+                        clinic_id=branch_id if branch_id else None,
+                        notes=appointment_note,
+                        status='Pending'
+                    )
+                    
+            messages.success(request, "Thêm khách hàng thành công!")
+            return redirect(f'/admin/booking/customer/{customer.pk}/profile/')
+            
+        context = dict(self.admin_site.each_context(request))
+        context['title'] = 'Thêm Khách hàng mới'
+        context['opts'] = self.model._meta
+        return TemplateResponse(request, "admin/customer_add.html", context)
+
     def customer_profile_view(self, request, object_id):
         from django.template.response import TemplateResponse
         from .models import Customer, Booking, ConsultationDetail, Consultation
@@ -417,6 +490,25 @@ class CustomerAdmin(BaseRBACAdmin):
                 customer.id_issue_place = request.POST.get('id_issue_place', customer.id_issue_place)
                 customer.insurance_type = request.POST.get('insurance_type', customer.insurance_type)
                 customer.insurance_code = request.POST.get('insurance_code', customer.insurance_code)
+                
+                # VTTech Fields
+                customer.facebook_link = request.POST.get('facebook_link', customer.facebook_link)
+                customer.zalo_link = request.POST.get('zalo_link', customer.zalo_link)
+                customer.viber_link = request.POST.get('viber_link', customer.viber_link)
+                customer.instagram_link = request.POST.get('instagram_link', customer.instagram_link)
+                customer.gdrive_link = request.POST.get('gdrive_link', customer.gdrive_link)
+                customer.phone_2 = request.POST.get('phone_2', customer.phone_2)
+                customer.passport = request.POST.get('passport', customer.passport)
+                customer.ethnicity = request.POST.get('ethnicity', customer.ethnicity)
+                customer.religion = request.POST.get('religion', customer.religion)
+                customer.marketing_staff = request.POST.get('marketing_staff', customer.marketing_staff)
+                customer.gclid = request.POST.get('gclid', customer.gclid)
+                customer.dvqhns = request.POST.get('dvqhns', customer.dvqhns)
+                customer.language = request.POST.get('language', customer.language)
+                customer.expected_clinic = request.POST.get('expected_clinic', customer.expected_clinic)
+                customer.old_customer_code = request.POST.get('old_customer_code', customer.old_customer_code)
+                customer.general_note = request.POST.get('general_note', customer.general_note)
+                
                 customer.save()
                 
                 messages.success(request, "✅ Cập nhật thông tin khách hàng thành công!")

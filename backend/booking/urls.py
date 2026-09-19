@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail
+from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView
 
 urlpatterns = [
+    path('admin-clinics/', ClinicListAPIView.as_view(), name='api-admin-clinics'),
     path('settings/', SiteSettingsAPIView.as_view(), name='api-settings'),
     path('menus/', MenuLinkListAPIView.as_view(), name='api-menus'),
     path('articles/by-url/', ArticleByCategoryUrlView.as_view(), name='articles-by-url'),

@@ -788,3 +788,13 @@ class POSDebtListAPIView(View):
             return JsonResponse({'status': 'success', 'debts': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+class ClinicListAPIView(View):
+    def get(self, request):
+        try:
+            from booking.models import Clinic
+            clinics = Clinic.objects.all().values('clinic_id', 'name')
+            return JsonResponse({'status': 'success', 'clinics': list(clinics)})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+

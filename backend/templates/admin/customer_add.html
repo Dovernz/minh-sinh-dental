@@ -1,0 +1,312 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="max-w-5xl mx-auto p-4 font-sans text-gray-800">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Thêm Khách hàng mới</h2>
+            <p class="text-sm text-gray-500">Điền thông tin chi tiết của khách hàng</p>
+        </div>
+        <div class="flex bg-gray-100 p-1 rounded-lg">
+            <button type="button" onclick="switchModalTab('general')" id="btn-modal-general" class="modal-tab-btn px-4 py-1.5 text-sm font-semibold bg-white text-blue-600 shadow-sm rounded-md transition-all">Thông tin chung</button>
+            <button type="button" onclick="switchModalTab('other')" id="btn-modal-other" class="modal-tab-btn px-4 py-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-md transition-all">Khác</button>
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <form method="POST" action="" class="space-y-4" id="addCustomerForm">
+            {% csrf_token %}
+            
+            <!-- TAB THÔNG TIN CHUNG -->
+            <div id="modal-tab-general" class="modal-tab-content block">
+                <!-- Khối 1: Thông tin cá nhân -->
+                <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50 mb-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <legend class="text-sm font-bold text-gray-700 px-2">Thông tin cá nhân</legend>
+                        <div class="flex gap-4 text-sm items-center">
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="Nam" class="text-blue-600"> Nam</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="Nữ" class="text-blue-600"> Nữ</label>
+                            <label class="flex items-center gap-1 cursor-pointer ml-4">
+                                <input type="checkbox" name="create_appointment" id="toggle_appointment" class="rounded text-blue-600" onchange="document.getElementById('appointment-section').style.display = this.checked ? 'block' : 'none';"> Tạo lịch hẹn
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Khối Lịch Hẹn (Ẩn mặc định) -->
+                    <div id="appointment-section" style="display: none;" class="mb-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                        <h4 class="text-sm font-bold text-blue-700 mb-3 border-b border-blue-200 pb-2">Thông tin Lịch Hẹn</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Thời gian hẹn</label>
+                                <input type="datetime-local" name="booking_time" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Dịch vụ quan tâm</label>
+                                <input type="text" name="interested_services" placeholder="Nhập dịch vụ quan tâm" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nội dung / Ghi chú lịch hẹn</label>
+                                <textarea name="appointment_note" rows="2" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập ghi chú chi tiết..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Avatar area (placeholder) -->
+                        <div class="col-span-1 flex flex-col items-center justify-start pt-2">
+                            <div class="w-24 h-24 bg-gray-200 rounded-lg mb-2"></div>
+                            <a href="#" class="text-xs text-blue-500 flex items-center gap-1"><span class="border rounded-full w-4 h-4 inline-flex items-center justify-center text-[10px]">i</span> Hướng dẫn</a>
+                        </div>
+
+                        <div class="col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Họ và tên *</label>
+                                <input type="text" name="name" required class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Ngày sinh</label>
+                                <input type="date" name="customer_dob" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại *</label>
+                                <input type="text" name="phone" required class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Chi nhánh</label>
+                                <select name="branch" id="branch-select" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="">-- Chọn Chi nhánh --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1 text-green-600">Nhóm khách hàng</label>
+                                <select name="customer_type" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="Mới">Khách Mới</option>
+                                    <option value="Cũ">Khách Cũ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+                                <input type="email" name="email" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1 text-green-600">Nguồn khách hàng</label>
+                                <select name="customer_source" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="">-- Chọn Nguồn --</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Zalo">Zalo</option>
+                                    <option value="Khách Vãng Lai">Khách Vãng Lai</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1 text-green-600">Nguồn chi tiết</label>
+                                <input type="text" name="source_detail" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Quốc tịch</label>
+                                <input type="text" name="nationality" value="Vietnam" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nghề nghiệp</label>
+                                <input type="text" name="profession" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div class="col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Địa chỉ</label>
+                                    <input type="text" name="address" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Tỉnh/Thành phố</label>
+                                    <input type="text" name="city" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Phường xã</label>
+                                    <input type="text" name="district" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Khách cũ</label>
+                                <div class="flex items-center gap-2 border border-gray-300 rounded-md p-2 bg-white">
+                                    <input type="checkbox" name="is_old_customer" class="rounded">
+                                    <input type="text" name="old_customer_code" placeholder="eg. mã khách hàng cũ" class="w-full outline-none text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Ngôn ngữ</label>
+                                <input type="text" name="language" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Chi nhánh dự kiến</label>
+                                <input type="text" name="expected_clinic" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div class="col-span-3">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Ghi chú</label>
+                                <textarea name="general_note" rows="2" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Khối 2: CMND/CC -->
+                <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50 mb-4">
+                    <legend class="text-sm font-bold text-gray-700 px-2">CMND/CCCD</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Số CMND/CCCD</label>
+                            <input type="text" name="identity_card" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Ngày cấp</label>
+                            <input type="date" name="id_issue_date" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Nơi cấp</label>
+                            <input type="text" name="id_issue_place" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Khối 3: Bảo hiểm -->
+                <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                    <legend class="text-sm font-bold text-gray-700 px-2">Bảo hiểm</legend>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Đối tượng bảo hiểm</label>
+                            <select name="insurance_type" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">-- Chọn đối tượng --</option>
+                                <option value="Thu phí">Thu phí</option>
+                                <option value="Miễn phí">Miễn phí</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Mã bảo hiểm</label>
+                            <input type="text" name="insurance_code" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- TAB KHÁC -->
+            <div id="modal-tab-other" class="modal-tab-content hidden">
+                <fieldset class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Facebook</label>
+                            <input type="text" name="facebook_link" placeholder="Facebook.com/" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Zalo</label>
+                            <input type="text" name="zalo_link" placeholder="Zalo.me/" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Viber</label>
+                            <input type="text" name="viber_link" placeholder="Viber.com/" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Instagram</label>
+                            <input type="text" name="instagram_link" placeholder="Instagram.com/" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-4">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">GDrive</label>
+                            <input type="text" name="gdrive_link" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại 2 (10 ký tự số)</label>
+                            <input type="text" name="phone_2" placeholder="eg. số điện thoại" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Hộ chiếu</label>
+                            <input type="text" name="passport" placeholder="eg. hộ chiếu" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Dân tộc</label>
+                            <input type="text" name="ethnicity" placeholder="eg. dân tộc" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Tôn giáo</label>
+                            <select name="religion" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">tôn giáo</option>
+                                <option value="Không">Không</option>
+                                <option value="Phật giáo">Phật giáo</option>
+                                <option value="Thiên chúa giáo">Thiên chúa giáo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Nhân viên marketing</label>
+                            <input type="text" name="marketing_staff" placeholder="nhân viên marketing" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gclid</label>
+                            <input type="text" name="gclid" placeholder="eg. gclid" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">ĐVQHNS</label>
+                            <input type="text" name="dvqhns" placeholder="eg. đvqhns" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-4 mt-2">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Ghi chú</label>
+                            <textarea name="medical_notes" rows="3" placeholder="eg. ghi chú" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            
+            <!-- Footer -->
+            <div class="flex justify-end gap-3 pt-4 mt-4 bg-white sticky bottom-0">
+                <a href="{% url 'admin:booking_customer_changelist' %}" class="px-5 py-2 bg-gray-400 text-white font-bold rounded-md hover:bg-gray-500 transition text-center">Hủy</a>
+                <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-md font-bold shadow hover:bg-blue-700 transition">Thêm Khách Hàng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function switchModalTab(tabId) {
+        document.querySelectorAll('.modal-tab-content').forEach(el => {
+            el.classList.remove('block');
+            el.classList.add('hidden');
+        });
+        
+        document.getElementById('modal-tab-' + tabId).classList.remove('hidden');
+        document.getElementById('modal-tab-' + tabId).classList.add('block');
+        
+        const btnGeneral = document.getElementById('btn-modal-general');
+        const btnOther = document.getElementById('btn-modal-other');
+        
+        if (tabId === 'general') {
+            btnGeneral.className = "modal-tab-btn px-4 py-1.5 text-sm font-semibold bg-white text-blue-600 shadow-sm rounded-md transition-all";
+            btnOther.className = "modal-tab-btn px-4 py-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-md transition-all";
+        } else {
+            btnOther.className = "modal-tab-btn px-4 py-1.5 text-sm font-semibold bg-white text-blue-600 shadow-sm rounded-md transition-all";
+            btnGeneral.className = "modal-tab-btn px-4 py-1.5 text-sm font-semibold text-gray-500 hover:text-gray-700 rounded-md transition-all";
+        }
+    }
+
+    // Call API to fetch clinics
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/api/admin-clinics/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const branchSelect = document.getElementById('branch-select');
+                    data.clinics.forEach(clinic => {
+                        const option = document.createElement('option');
+                        option.value = clinic.clinic_id;
+                        option.textContent = clinic.name;
+                        branchSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(err => console.error("Error fetching clinics:", err));
+    });
+</script>
+{% endblock %}

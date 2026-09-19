@@ -99,6 +99,24 @@ class Customer(models.Model):
     id_issue_place = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nơi cấp")
     insurance_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="Đối tượng bảo hiểm")
     insurance_code = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mã bảo hiểm")
+    
+    # VTTech specific fields
+    facebook_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="Facebook")
+    zalo_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zalo")
+    viber_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="Viber")
+    instagram_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="Instagram")
+    gdrive_link = models.CharField(max_length=255, blank=True, null=True, verbose_name="GDrive")
+    phone_2 = models.CharField(max_length=20, blank=True, null=True, verbose_name="Số điện thoại 2")
+    passport = models.CharField(max_length=255, blank=True, null=True, verbose_name="Hộ chiếu")
+    ethnicity = models.CharField(max_length=255, blank=True, null=True, verbose_name="Dân tộc")
+    religion = models.CharField(max_length=255, blank=True, null=True, verbose_name="Tôn giáo")
+    marketing_staff = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nhân viên marketing")
+    gclid = models.CharField(max_length=255, blank=True, null=True, verbose_name="Gclid")
+    dvqhns = models.CharField(max_length=255, blank=True, null=True, verbose_name="ĐVQHNS")
+    language = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ngôn ngữ")
+    expected_clinic = models.CharField(max_length=255, blank=True, null=True, verbose_name="Chi nhánh dự kiến")
+    old_customer_code = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mã khách cũ")
+    general_note = models.TextField(blank=True, null=True, verbose_name="Ghi chú chung")
 
     class Meta:
         db_table = 'db_table_customers'
