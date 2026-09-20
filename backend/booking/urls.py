@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView
+from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView
 
 urlpatterns = [
     path('admin-clinics/', ClinicListAPIView.as_view(), name='api-admin-clinics'),
@@ -12,6 +12,9 @@ urlpatterns = [
     path('clinics/', ClinicListView.as_view(), name='api-clinics'),
     path('services/', ServiceListView.as_view(), name='api-services'),
     path('bookings/', BookingCreateView.as_view(), name='api-bookings'),
+    path('bookings/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete'),
+    path('booking/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete-alias'),
+    path('booking/<int:pk>/cancel/', BookingCancelView.as_view(), name='api-booking-cancel'),
     path('daily-schedule/', DailyScheduleView.as_view(), name='api-daily-schedule'),
     path('available-slots/', AvailableSlotsView.as_view(), name='api-available-slots'),
     path('topup-info/', TopupInfoView.as_view(), name='api-topup-info'),

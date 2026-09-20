@@ -810,3 +810,27 @@ class AdminTimeSlotListView(APIView):
             } for slot in slots
         ]
         return Response(data, status=status.HTTP_200_OK)
+
+class BookingCompleteView(APIView):
+    def post(self, request, pk):
+        try:
+            booking = Booking.objects.get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({"error": "Không tìm thấy booking"}, status=status.HTTP_404_NOT_FOUND)
+        
+        booking.status = 'Completed'
+        booking.save(update_fields=['status'])
+        
+        return Response({"message": "Booking completed successfully", "id": pk}, status=status.HTTP_200_OK)
+
+class BookingCancelView(APIView):
+    def post(self, request, pk):
+        try:
+            booking = Booking.objects.get(pk=pk)
+        except Booking.DoesNotExist:
+            return Response({"error": "Không tìm thấy booking"}, status=status.HTTP_404_NOT_FOUND)
+        
+        booking.status = 'Cancelled'
+        booking.save(update_fields=['status'])
+        
+        return Response({"message": "Booking cancelled successfully", "id": pk}, status=status.HTTP_200_OK)

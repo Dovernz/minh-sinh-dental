@@ -190,7 +190,18 @@ class Payment(models.Model):
     class Meta:
         db_table = 'db_table_payments'
 
-
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.amount_remain <= 0 and self.billing:
+            from django.utils import timezone
+            booking = self.billing.booking
+            if booking and booking.status != 'Completed':
+                booking.status = 'Completed'
+                booking.save(update_fields=['status'])
+            
+            if self.billing.status != 'PAID':
+                self.billing.status = 'PAID'
+                self.billing.save(update_fields=['status'])
 class InventoryDetail(models.Model):
     item_id = models.AutoField(primary_key=True)
     item_name = models.CharField(max_length=255, verbose_name="Tên vật tư")
@@ -361,6 +372,12 @@ class Billing(models.Model):
             self.final_total = calculated_total
 
         super().save(*args, **kwargs)
+
+        if self.status == 'PAID':
+            from django.utils import timezone
+            if self.booking and self.booking.status != 'Completed':
+                self.booking.status = 'Completed'
+                self.booking.save(update_fields=['status'])
 
     def __str__(self):
         return f"Bill #{self.billing_id} - Booking {self.booking.booking_id}"

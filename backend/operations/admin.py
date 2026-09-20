@@ -144,7 +144,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             elif not clinic_id_str and not date_str:
                 qs = qs.filter(clinic_id=clinic_id, start_time__date=selected_date)
                 
-            qs = qs.exclude(status__iexact='cancelled').select_related('customer')
+            qs = qs.select_related('customer')
             
             clinic = clinics.filter(clinic_id=clinic_id).first()
             total_chairs = clinic.total_chairs if clinic else 5
@@ -166,21 +166,31 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                 
                 active_bookings = []
                 for span in booking_spans:
-                    if span["start"] < ts.end_time and span["end"] > ts.start_time:
+                    # If start == end (truncated end_time), treat it as a 30-min block to ensure it displays
+                    eff_end = span["end"]
+                    if span["start"] == span["end"]:
+                        eff_end = (datetime.datetime.combine(datetime.date.today(), span["start"]) + datetime.timedelta(minutes=30)).time()
+                    if span["start"] < ts.end_time and eff_end > ts.start_time:
                         active_bookings.append(span)
                         
-                used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None)
+                used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None and span["booking"].status.lower() not in ['completed', 'cancelled'])
                 for span in active_bookings:
                     if span["chair"] is None:
+                        is_done = span["booking"].status.lower() in ['completed', 'cancelled']
+                        assigned = False
                         for c in chairs:
                             if c not in used_chairs:
                                 span["chair"] = c
-                                used_chairs.add(c)
+                                if not is_done:
+                                    used_chairs.add(c)
+                                assigned = True
                                 break
+                        if not assigned and is_done:
+                            span["chair"] = chairs[0] if chairs else None
                                 
                 for c in chairs:
-                    active_span = next((s for s in active_bookings if s["chair"] == c), None)
-                    row['chairs'][c] = active_span["booking"] if active_span else None
+                    spans_in_chair = [s for s in active_bookings if s["chair"] == c]
+                    row['chairs'][c] = [s["booking"] for s in spans_in_chair]
                 
                 matrix.append(row)
                 
@@ -259,7 +269,10 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
                     b_end_local = localtime(b.end_time).time()
                     
                     for ts in time_slots:
-                        if b_start_local < ts.end_time and b_end_local > ts.start_time:
+                        eff_end = b_end_local
+                        if b_start_local == b_end_local:
+                            eff_end = (datetime.datetime.combine(datetime.date.today(), b_start_local) + datetime.timedelta(minutes=30)).time()
+                        if b_start_local < ts.end_time and eff_end > ts.start_time:
                             key = (b_date, ts.start_time)
                             counts_map[key] = counts_map.get(key, 0) + 1
             

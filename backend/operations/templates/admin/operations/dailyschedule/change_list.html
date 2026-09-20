@@ -44,6 +44,12 @@
             <input type="date" name="custom_date" value="{{ selected_start_date }}" onchange="this.form.submit()" class="px-3 py-1.5 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
         </div>
         <button type="submit" class="hidden px-4 py-2 bg-blue-600 text-white rounded-md font-bold cursor-pointer dark:bg-blue-500">Lọc dữ liệu</button>
+
+        <div class="flex items-center gap-2 ml-auto">
+            <button type="button" class="filter-btn px-3 py-1.5 rounded-md font-bold border border-blue-500 bg-blue-500 text-white transition-colors" data-filter="Upcoming">Sắp tới</button>
+            <button type="button" class="filter-btn px-3 py-1.5 rounded-md font-bold border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" data-filter="Completed">Đã xong</button>
+            <button type="button" class="filter-btn px-3 py-1.5 rounded-md font-bold border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" data-filter="Canceled">Đã hủy</button>
+        </div>
     </form>
 </div>
 {% endblock %}
@@ -80,37 +86,98 @@
         background-color: #193696 !important; 
         border: 1px solid #1e3a8a !important;
         color: #e0e7ff !important;
-        border-radius: 8px !important; /* Tăng độ bo tròn góc */
-        margin: 10px !important;        /* Tạo khoảng hở (padding) so với viền của ô */
-        padding: 8px !important;       /* Căn chỉnh khoảng cách chữ bên trong */
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; /* Thêm chút bóng đổ cho khối nổi lên */
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    }
+
+    /* Đổi màu ô trạng thái Completed, Canceled ở Dark Mode */
+    html.dark table .completed-booking {
+        background-color: #374151 !important; 
+        border: 1px solid #4b5563 !important;
+        color: #9ca3af !important;
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    }
+    html.dark table .canceled-booking {
+        background-color: #451a1a !important; 
+        border: 1px solid #7f1d1d !important;
+        color: #fca5a5 !important;
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
     }
     
     /* C. Ép toàn bộ chữ bên trong các ô hiển thị màu xám/xanh sáng */
-    html.dark table td[style*="background"] *, 
-    html.dark table td div[style*="background"] * {
+    html.dark table td[style*="background"] :not(button), 
+    html.dark table td div[style*="background"] :not(button) {
         color: #a3a6ac !important;
     }
-    html.dark table .bg-blue-50 * {
+    html.dark table .bg-blue-50 :not(button) {
         color: #e0e7ff !important;
+    }
+    html.dark table .completed-booking :not(button) {
+        color: #9ca3af !important;
+    }
+    html.dark table .canceled-booking :not(button) {
+        color: #fca5a5 !important;
     }
 
     /* Đồng bộ form dáng (bo góc, khoảng hở) cho các ô ĐÃ CÓ LỊCH ở chế độ sáng */
     html:not(.dark) table .bg-blue-50 {
-        background-color: #90c0fa !important; /* Nền xanh nhạt dịu mắt */
-        border: 1px solid #7ea6d6 !important; /* Viền xanh đồng điệu */
-        color: #1e3a8a !important;            /* Chữ xanh đậm sắc nét */
-        border-radius: 8px !important;        /* Bo tròn góc giống Dark Mode */
-        margin: 10px !important;               /* Tạo khoảng hở với khung */
-        padding: 8px !important;              /* Khoảng cách chữ bên trong */
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important; /* Bóng đổ cực nhẹ */
+        background-color: #90c0fa !important;
+        border: 1px solid #7ea6d6 !important;
+        color: #1e3a8a !important;
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    }
+
+    /* Đổi màu ô trạng thái Completed, Canceled ở Light Mode */
+    html:not(.dark) table .completed-booking {
+        background-color: #e5e7eb !important; 
+        border: 1px solid #d1d5db !important;
+        color: #4b5563 !important;
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    }
+    html:not(.dark) table .canceled-booking {
+        background-color: #fee2e2 !important; 
+        border: 1px solid #f87171 !important;
+        color: #991b1b !important;
+        border-radius: 8px !important;
+        margin: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
     }
     
-    /* Ép toàn bộ chữ bên trong hiển thị màu xanh đậm */
-    html:not(.dark) table .bg-blue-50 *,
+    /* Ép toàn bộ chữ bên trong hiển thị màu xanh đậm/xám đậm, ngoại trừ nút bấm */
+    html:not(.dark) table .bg-blue-50 :not(button),
     html:not(.dark) table .bg-blue-50 strong,
     html:not(.dark) table .bg-blue-50 span {
         color: #000000 !important;
+    }
+    html:not(.dark) table .completed-booking :not(button),
+    html:not(.dark) table .completed-booking strong,
+    html:not(.dark) table .completed-booking span {
+        color: #4b5563 !important;
+    }
+    html:not(.dark) table .canceled-booking :not(button),
+    html:not(.dark) table .canceled-booking strong,
+    html:not(.dark) table .canceled-booking span {
+        color: #991b1b !important;
+    }
+
+    /* Đảm bảo chữ trong button luôn giữ màu trắng và không bị ghi đè */
+    table button {
+        color: #ffffff !important;
     }
 
     /* 3. Tối ưu độ cao bảng Lịch */
@@ -138,14 +205,26 @@
             {% for row in matrix %}
                 <tr>
                     <td class="border border-gray-300 p-2.5 font-bold bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">{{ row.time }}</td>
-                    {% for c, b in row.chairs.items %}
+                    {% for c, b_list in row.chairs.items %}
                         <td class="border border-gray-300 p-2.5 align-top dark:border-gray-700">
-                            {% if b %}
-                                <div class="p-1.5 rounded-md text-left text-xs bg-blue-50 dark:bg-blue-900/50 dark:text-blue-100">
+                            {% if b_list %}
+                                {% for b in b_list %}
+                                <div class="booking-item relative p-1.5 mb-2 rounded-md text-left text-xs {% if b.status == 'Completed' %}completed-booking{% elif b.status == 'Canceled' %}canceled-booking{% else %}bg-blue-50 dark:bg-blue-900/50 dark:text-blue-100{% endif %}" data-status="{{ b.status|default:'Upcoming' }}">
                                     <strong>{{ b.customer.name }}</strong><br>
                                     {{ b.customer.phone }}<br>
                                     <span class="text-gray-600 dark:text-gray-400">{% if b.category %}{{ b.category.name }}{% else %}Chưa chọn dịch vụ{% endif %}</span>
+                                    {% if b.status != 'Completed' and b.status != 'Canceled' %}
+                                    <div class="mt-2 flex justify-end gap-1">
+                                        <button type="button" onclick="completeBooking({{ b.booking_id }})" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded shadow-sm text-[10px] transition-colors cursor-pointer border-none font-medium">
+                                            Đã xong
+                                        </button>
+                                        <button type="button" onclick="cancelBooking({{ b.booking_id }})" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-[10px] transition-colors cursor-pointer border-none font-medium">
+                                            Hủy
+                                        </button>
+                                    </div>
+                                    {% endif %}
                                 </div>
+                                {% endfor %}
                             {% else %}
                                 <span class="text-gray-400 dark:text-gray-600">Trống</span>
                             {% endif %}
@@ -157,4 +236,105 @@
     </table></div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const bookingItems = document.querySelectorAll('.booking-item');
+
+    function applyFilter(filterName) {
+        let targetStatus = filterName;
+        if (filterName === 'Upcoming') targetStatus = 'Pending';
+        if (filterName === 'Canceled' || filterName === 'Cancelled') targetStatus = 'Cancelled';
+
+        bookingItems.forEach(item => {
+            let itemStatus = item.dataset.status;
+            if (!itemStatus || itemStatus.trim() === '') {
+                itemStatus = 'Pending';
+            }
+            // Ensure any legacy values align with the new expected statuses
+            if (itemStatus === 'Upcoming') itemStatus = 'Pending';
+            if (itemStatus === 'Canceled') itemStatus = 'Cancelled';
+
+            if (itemStatus === targetStatus) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Update button styles
+            filterBtns.forEach(b => {
+                b.classList.remove('border-blue-500', 'bg-blue-500', 'text-white');
+                b.classList.add('border-gray-300', 'text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-gray-200', 'dark:border-gray-600');
+            });
+            e.target.classList.remove('border-gray-300', 'text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-gray-200', 'dark:border-gray-600');
+            e.target.classList.add('border-blue-500', 'bg-blue-500', 'text-white');
+
+            const filterStatus = e.target.dataset.filter;
+            applyFilter(filterStatus);
+        });
+    });
+
+    // Default filter: Upcoming
+    applyFilter('Upcoming');
+});
+
+function completeBooking(bookingId) {
+    if (!confirm('Bạn có chắc chắn đánh dấu lịch này đã xong?')) return;
+    
+    // Use Django's built-in fetch utility or a raw fetch with CSRF.
+    // In Django admin, we can get csrf token from a cookie or just ignore if API doesn't need it or use simple fetch.
+    const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    fetch(`/api/bookings/${bookingId}/complete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken || '',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Có lỗi xảy ra khi hoàn thành lịch.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra.');
+    });
+}
+
+function cancelBooking(bookingId) {
+    if (!confirm('Bạn có chắc chắn muốn hủy lịch này?')) return;
+    
+    const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    
+    // As per user, API is /api/booking/<id>/cancel/
+    // Wait, complete uses /api/bookings/<id>/complete/ with "s". Let's match the prompt:
+    fetch(`/api/booking/${bookingId}/cancel/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken || '',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Có lỗi xảy ra khi hủy lịch.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra.');
+    });
+}
+</script>
 {% endblock %}
