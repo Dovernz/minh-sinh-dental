@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 # -*- coding: utf-8 -*-
 from django.db import models
 from cloudinary.models import CloudinaryField
@@ -135,9 +135,24 @@ class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile', blank=True, null=True)
     full_name = models.CharField(max_length=255, verbose_name="Họ và tên")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Số điện thoại")
-    email = models.EmailField(max_length=50, blank=True, null=True, verbose_name="Email")
+    email = models.EmailField(max_length=50, blank=True, null=True, verbose_name='Email')
+    dob = models.DateField(null=True, blank=True, verbose_name='Ngày sinh')
+    company_email = models.EmailField(max_length=50, blank=True, null=True, verbose_name='Mail công ty')
+    nickname = models.CharField(max_length=100, blank=True, null=True, verbose_name='Nickname')
+    department = models.CharField(max_length=100, blank=True, null=True, verbose_name='Bộ phận')
+    is_all_clinics = models.BooleanField(default=True, verbose_name='Tất cả chi nhánh')
+    clinic = models.ForeignKey('Clinic', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Chi nhánh')
     specialty = models.CharField(max_length=50, blank=True, null=True, verbose_name="Chuyên môn")
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Doctor', verbose_name="Vai trò")
+    contract_type = models.CharField(max_length=20, choices=[('Part-time', 'Part-time'), ('Full-time', 'Full-time')], default='Full-time')
+    allowance_position = models.IntegerField(default=0, verbose_name='Phụ cấp chức vụ')
+    allowance_degree = models.IntegerField(default=0, verbose_name='Phụ cấp bằng cấp')
+    allowance_specialty = models.IntegerField(default=0, verbose_name='Phụ cấp chuyên môn')
+    annual_leave_days = models.IntegerField(default=0, verbose_name='Số ngày phép năm')
+    used_leave_days = models.IntegerField(default=0, verbose_name='Ngày phép đã sử dụng')
+    start_date = models.DateField(null=True, blank=True, verbose_name='Ngày nhận việc')
+    base_salary = models.IntegerField(default=0, verbose_name='Lương căn bản')
+    agreed_salary = models.IntegerField(default=0, verbose_name='Lương thỏa thuận')
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -317,19 +332,33 @@ class BookingDetail(models.Model):
     detail_id = models.AutoField(primary_key=True)
     booking = models.ForeignKey("Booking", on_delete=models.CASCADE, related_name="details")
     service_detail = models.ForeignKey("ServiceDetail", on_delete=models.SET_NULL, null=True, verbose_name="Dịch vụ")
-    doctor = models.ForeignKey("Employee", on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'Doctor'}, verbose_name="Bác sĩ khám")
+    consulting_doctor = models.ForeignKey("Employee", on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'role': 'Doctor'}, related_name='consulting_details', verbose_name="Bác sĩ tư vấn")
+    performing_doctor = models.ForeignKey("Employee", on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'role': 'Doctor'}, related_name='performing_details', verbose_name="Bác sĩ thực hiện")
     actual_price = models.IntegerField(null=True, blank=True, verbose_name="Đơn giá")
     quantity = models.PositiveIntegerField(default=1, verbose_name="Số lượng")
     tooth_position = models.CharField(max_length=50, null=True, blank=True, verbose_name="Vị trí răng")
+    consulting_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Hoa hồng tư vấn")
+    performing_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Hoa hồng thực hiện")
 
     class Meta:
         db_table = "db_table_booking_details"
-        verbose_name = "Dịch vụ trong Lịch"
-        verbose_name_plural = "Các dịch vụ"
+        verbose_name_plural = "Chi tiết Booking"
 
     def save(self, *args, **kwargs):
         if not self.actual_price and self.service_detail:
             self.actual_price = self.service_detail.price or 0
+            
+        from decimal import Decimal
+        if self.consulting_doctor and self.consulting_doctor.contract_type == 'Part-time':
+            self.consulting_commission = Decimal(self.actual_price or 0) * Decimal('0.05')
+        else:
+            self.consulting_commission = Decimal('0')
+
+        if self.performing_doctor and self.performing_doctor.contract_type == 'Part-time':
+            self.performing_commission = Decimal(self.actual_price or 0) * Decimal('0.10')
+        else:
+            self.performing_commission = Decimal('0')
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -457,8 +486,20 @@ class ConsultationDetail(models.Model):
     tooth_position = models.CharField(max_length=50, blank=True, null=True, verbose_name="Vị trí răng")
     notes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ghi chú")
     proposed_price = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="Giá đề xuất")
-    is_accepted = models.BooleanField(default=False, verbose_name="Khách chốt làm")
+    is_accepted = models.BooleanField(default=False, verbose_name='Khách chốt làm')
+    consulting_doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='consulting_consultations', verbose_name='Bác sĩ tư vấn')
+    performing_doctor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='performing_consultations', verbose_name='Bác sĩ thực hiện')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='Số lượng')
+    discount = models.IntegerField(default=0, verbose_name='Chiết khấu')
+    vat_percent = models.IntegerField(default=0, verbose_name='VAT (%)')
+    discount_amount = models.IntegerField(default=0, verbose_name='Tiền C.Khấu')
+    discount_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name='Lý do giảm giá')
     
+    @property
+    def final_price(self):
+        from decimal import Decimal
+        return Decimal(self.proposed_price or 0) - Decimal(self.discount_amount or 0)
+
     class Meta:
         db_table = 'db_table_consultation_details'
 
@@ -467,3 +508,8 @@ class DoctorConsultationProxy(Consultation):
         proxy = True
         verbose_name = 'Phác đồ & Tư vấn (Bác sĩ)'
         verbose_name_plural = 'Phác đồ & Tư vấn (Bác sĩ)'
+
+
+
+
+

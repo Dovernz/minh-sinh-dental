@@ -1,4 +1,4 @@
-from django.core.mail import EmailMultiAlternatives
+﻿from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
 from django.conf import settings
@@ -834,3 +834,120 @@ class BookingCancelView(APIView):
         booking.save(update_fields=['status'])
         
         return Response({"message": "Booking cancelled successfully", "id": pk}, status=status.HTTP_200_OK)
+
+class DoctorListView(View):
+    def get(self, request):
+        from booking.models import Employee
+        doctors = Employee.objects.filter(role='Doctor').values('employee_id', 'full_name', 'contract_type')
+        return JsonResponse(list(doctors), safe=False)
+
+class ServiceTreeAPIView(View):
+    def get(self, request):
+        from booking.models import ServiceCategory
+        categories = ServiceCategory.objects.prefetch_related('services').all()
+        data = []
+        for cat in categories:
+            services = [{'service_id': s.service_id, 'name': s.name, 'base_price': s.price} for s in cat.services.all()]
+            data.append({
+                'category_id': cat.category_id,
+                'name': cat.name,
+                'services': services
+            })
+        return JsonResponse(data, safe=False)
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EmployeeEmbedAPIView(View):
+    def get(self, request):
+        from booking.models import Employee
+        emp_id = request.GET.get('employee_id')
+        if emp_id:
+            try:
+                emp = Employee.objects.get(pk=emp_id)
+                return JsonResponse({'employee_id': emp.employee_id, 'full_name': emp.full_name, 'contract_type': emp.contract_type, 'role': emp.role})
+            except Employee.DoesNotExist:
+                return JsonResponse({'error': 'Not found'}, status=404)
+        emps = Employee.objects.all().values('employee_id', 'full_name', 'contract_type', 'role')
+        return JsonResponse(list(emps), safe=False)
+
+    def post(self, request):
+        from booking.models import Employee
+        data = json.loads(request.body)
+        emp = Employee.objects.create(
+            full_name=data.get('full_name'),
+            contract_type=data.get('contract_type', 'Full-time'),
+            role=data.get('role', 'Doctor')
+        )
+        return JsonResponse({'status': 'success', 'employee_id': emp.employee_id})
+
+    def put(self, request):
+        from booking.models import Employee
+        data = json.loads(request.body)
+        try:
+            emp = Employee.objects.get(pk=data.get('employee_id'))
+            emp.full_name = data.get('full_name', emp.full_name)
+            emp.phone = data.get('phone', emp.phone)
+            emp.email = data.get('email', emp.email)
+            emp.dob = data.get('dob') or emp.dob
+            emp.company_email = data.get('company_email', emp.company_email)
+            emp.nickname = data.get('nickname', emp.nickname)
+            emp.department = data.get('department', emp.department)
+            emp.is_all_clinics = data.get('is_all_clinics', emp.is_all_clinics)
+            emp.clinic_id = data.get('clinic_id', emp.clinic_id)
+            emp.specialty = data.get('specialty', emp.specialty)
+            emp.allowance_position = data.get('allowance_position', emp.allowance_position)
+            emp.allowance_degree = data.get('allowance_degree', emp.allowance_degree)
+            emp.allowance_specialty = data.get('allowance_specialty', emp.allowance_specialty)
+            emp.annual_leave_days = data.get('annual_leave_days', emp.annual_leave_days)
+            emp.used_leave_days = data.get('used_leave_days', emp.used_leave_days)
+            emp.start_date = data.get('start_date', emp.start_date)
+            emp.base_salary = data.get('base_salary', emp.base_salary)
+            emp.agreed_salary = data.get('agreed_salary', emp.agreed_salary)
+            emp.contract_type = data.get('contract_type', emp.contract_type)
+            emp.role = data.get('role', emp.role)
+            emp.save()
+            return JsonResponse({'status': 'success'})
+        except Employee.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+
+    def delete(self, request):
+        from booking.models import Employee
+        data = json.loads(request.body)
+        try:
+            emp = Employee.objects.get(pk=data.get('employee_id'))
+            emp.delete()
+            return JsonResponse({'status': 'success'})
+        except Employee.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+
+class CommissionStatsAPIView(View):
+    def get(self, request):
+        from booking.models import BookingDetail
+        details = BookingDetail.objects.filter(booking__status='Completed')
+        data = []
+        for d in details:
+            if d.consulting_doctor:
+                data.append({
+                    'doctor': d.consulting_doctor.full_name,
+                    'type': 'Consulting',
+                    'commission': float(d.consulting_commission)
+                })
+            if d.performing_doctor:
+                data.append({
+                    'doctor': d.performing_doctor.full_name,
+                    'type': 'Performing',
+                    'commission': float(d.performing_commission)
+                })
+        return JsonResponse(data, safe=False)
+
+class ServiceStatsAPIView(View):
+    def get(self, request):
+        from booking.models import BookingDetail
+        from django.db.models import Sum
+        stats = BookingDetail.objects.filter(booking__status='Completed').values('service_detail__name').annotate(total=Sum('quantity'))
+        return JsonResponse(list(stats), safe=False)
+
+

@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load humanize %}
 {% load i18n static %}
 {% block content %}
 
@@ -109,7 +110,7 @@
     <div id="tab-consult" class="tab-content hidden">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-gray-800">Danh sách Dịch vụ</h2>
-            <button onclick="toggleConsultForm()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">
+            <button onclick="openNewConsForm()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">
                 + Thêm dịch vụ mới
             </button>
         </div>
@@ -118,7 +119,7 @@
         <div id="newConsultForm" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
                 <h3 class="text-lg font-bold text-blue-600">🩺 Tạo Kế hoạch Điều trị / Dịch vụ</h3>
-                <button type="button" onclick="toggleConsultForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold leading-none">&times;</button>
+                <button type="button" onclick="openNewConsForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold leading-none">&times;</button>
             </div>
             
             <div class="flex flex-col lg:flex-row gap-6">
@@ -127,7 +128,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">👨‍⚕️ Bác sĩ tư vấn</label>
-                            <select id="cons_doctor" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            <select id="cons_consulting_doctor" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                                <option value="">-- Chọn Bác sĩ --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">👨‍⚕️ Bác sĩ thực hiện</label>
+                            <select id="cons_performing_doctor" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
                                 <option value="">-- Chọn Bác sĩ --</option>
                             </select>
                         </div>
@@ -145,22 +152,42 @@
                         </div>
                     </div>
                     
+                    <input type="hidden" id="cons_detail_id" value="">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Đơn giá (VNĐ)</label>
-                            <input type="number" id="cons_price" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0">
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Răng</label>
+                            <input type="text" id="cons_tooth_position" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="VD: 11, 12, 13">
                         </div>
                         <div>
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">Số lượng</label>
                             <input type="number" id="cons_qty" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="1" min="1">
                         </div>
                         <div>
-                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Chiết khấu (%)</label>
-                            <input type="number" id="cons_discount" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Đơn giá (VNĐ)</label>
+                            <input type="text" id="cons_price" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0">
                         </div>
                     </div>
                     
-                    <div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">VAT (%)</label>
+                            <input type="number" id="cons_vat" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">C.Khấu (%)</label>
+                            <input type="number" id="cons_discount" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Tiền C.Khấu</label>
+                            <input type="text" id="cons_discount_amount" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Lý do giảm giá</label>
+                            <input type="text" id="cons_discount_reason" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Nhập lý do">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
                         <label class="block font-semibold text-gray-700 mb-1 text-sm">📝 Ghi chú</label>
                         <textarea id="cons_note" rows="2" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Nhập ghi chú chi tiết..."></textarea>
                     </div>
@@ -194,10 +221,15 @@
             
             <div class="flex justify-between items-end mb-4">
                 <h3 class="text-lg font-bold text-gray-700">📋 Bảng Dịch vụ</h3>
-                {% if consultations %}
-                <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold shadow hover:bg-emerald-700 transition flex items-center gap-2">
-                    ✅ XÁC NHẬN CHỐT DỊCH VỤ
-                </button>
+                {% if consultation_details %}
+                <div class="flex gap-2">
+                    <button type="button" onclick="bulkDeleteCons()" class="bg-red-600 text-white px-6 py-2.5 rounded-lg font-bold shadow hover:bg-red-700 transition flex items-center gap-2">
+                        🗑️ XÓA DỊCH VỤ ĐÃ CHỌN
+                    </button>
+                    <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold shadow hover:bg-emerald-700 transition flex items-center gap-2">
+                        ✅ XÁC NHẬN CHỐT DỊCH VỤ
+                    </button>
+                </div>
                 {% endif %}
             </div>
 
@@ -209,45 +241,59 @@
                                 <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
                             </th>
                             <th class="p-4 font-semibold">Dịch vụ (Tên & Răng)</th>
-                            <th class="p-4 font-semibold">Thành tiền (Giá, Khấu trừ)</th>
-                            <th class="p-4 font-semibold">Người tư vấn</th>
+                            <th class="p-4 font-semibold">Thành Tiền</th>
+                            <th class="p-4 font-semibold">Bác sĩ tư vấn</th>
+                              <th class="p-4 font-semibold">Bác sĩ thực hiện</th>
                             <th class="p-4 font-semibold">Ghi chú</th>
                             <th class="p-4 font-semibold text-center w-28">Trạng thái</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        {% if consultations %}
-                            {% for cons in consultations %}
-                                <tr class="hover:bg-gray-50 transition">
+                        {% if consultation_details %}
+                            {% for cons in consultation_details %}
+                                <tr class="hover:bg-gray-100 transition cursor-pointer" onclick="rowClick(event, '{{ cons.pk }}', '{{ cons.service_detail_id|default:'' }}', '{{ cons.proposed_price|default:0 }}', '{{ cons.quantity|default:1 }}', '{{ cons.discount|default:0 }}', '{{ cons.consulting_doctor_id|default:'' }}', '{{ cons.performing_doctor_id|default:'' }}', '{{ cons.notes|escapejs }}', '{{ cons.tooth_position|default:'' }}', '{{ cons.vat_percent|default:0 }}', '{{ cons.discount_amount|default:0 }}', '{{ cons.discount_reason|default:'' }}')">
                                     <td class="p-4 text-center">
                                         {% if not cons.is_accepted %}
-                                            <input type="checkbox" name="consultation_ids" value="{{ cons.pk }}" class="consultation-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                                            <input type="checkbox" name="detail_ids" value="{{ cons.pk }}" class="consultation-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
                                         {% else %}
                                             <span class="text-emerald-500 font-bold text-lg">✓</span>
                                         {% endif %}
                                     </td>
                                     <td class="p-4">
-                                        <div class="font-semibold text-blue-700">{{ cons.service.name|default:cons.service }}</div>
+                                        <div class="font-semibold text-blue-700">{{ cons.service_detail.name|default:cons.service_detail }}</div>
                                         {% if cons.tooth_position %}
                                             <div class="text-xs text-gray-500 mt-1">Răng: {{ cons.tooth_position }}</div>
                                         {% endif %}
                                     </td>
-                                    <td class="p-4 text-gray-700">
-                                        <div class="font-medium">{{ cons.price|default:"0" }} VNĐ</div>
-                                        {% if cons.discount %}
-                                            <div class="text-xs text-red-500 mt-1">Khấu trừ: {{ cons.discount }}%</div>
-                                        {% endif %}
+                                    <td class="p-4 text-gray-700 text-sm">
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-gray-500">Giá tiền</span>
+                                            <span class="font-medium">{{ cons.proposed_price|default:0|intcomma }}</span>
+                                        </div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-gray-500">Giảm khác</span>
+                                            <span class="font-medium">{{ cons.discount_amount|default:0|intcomma }} ( {{ cons.discount|default:0 }}% )</span>
+                                        </div>
+                                        <div class="flex justify-between border-t border-gray-200 pt-1 mt-1">
+                                            <span class="text-gray-700 font-semibold">Thành tiền</span>
+                                            <span class="font-bold text-blue-700">
+                                                {% comment %} Simple calculation in template, normally done in view, but we can just show proposed_price - discount_amount {% endcomment %}
+                                                {{ cons.final_price|default:0|intcomma }}
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td class="p-4 text-gray-600">{{ cons.doctor.name|default:"-" }}</td>
-                                    <td class="p-4 text-gray-600 text-sm max-w-[200px] truncate" title="{{ cons.note|default:'' }}">{{ cons.note|default:"-" }}</td>
+                                    <td class="p-4 text-gray-600">{{ cons.consulting_doctor.full_name|default:"-" }}</td>
+                                    <td class="p-4 text-gray-600">{{ cons.performing_doctor.full_name|default:"-" }}</td>
+                                    <td class="p-4 text-gray-600 text-sm max-w-[200px] truncate" title="{{ cons.notes|default:'' }}">{{ cons.notes|default:"-" }}</td>
                                     <td class="p-4 text-center">
                                         {% if cons.is_accepted %}
                                             <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-md border border-emerald-200">Đã chốt</span>
                                         {% else %}
                                             <span class="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-md border border-amber-200">Chờ chốt</span>
+                                            
                                         {% endif %}
                                     </td>
-                                </tr>
+</tr>
                             {% endfor %}
                         {% else %}
                             <tr>
@@ -612,7 +658,30 @@
     }
 
     // Toggle Form Tư vấn
-    function toggleConsultForm() {
+            function openNewConsForm() {
+            document.getElementById('cons_detail_id').value = '';
+            document.getElementById('cons_category').value = '';
+            document.getElementById('cons_service').innerHTML = '<option value="">-- Chọn Dịch vụ --</option>';
+            document.getElementById('cons_qty').value = 1;
+            document.getElementById('cons_price').value = 0;
+            document.getElementById('cons_discount').value = 0;
+            document.getElementById('cons_consulting_doctor').value = '';
+            document.getElementById('cons_performing_doctor').value = '';
+            document.getElementById('cons_tooth_position').value = '';
+            document.getElementById('cons_vat').value = 0;
+            document.getElementById('cons_discount_amount').value = 0;
+            document.getElementById('cons_discount_reason').value = '';
+            document.getElementById('cons_note').value = '';
+            document.getElementById('btn_submit_consultation').innerHTML = '💾 LƯU PHÁC ĐỒ';
+            
+            const form = document.getElementById('newConsultForm');
+            form.classList.remove('hidden');
+            form.classList.add('block');
+            calculateFormTotal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleConsultForm() {
         const form = document.getElementById('newConsultForm');
         if (form.classList.contains('hidden')) {
             form.classList.remove('hidden');
@@ -683,12 +752,214 @@
         });
     }
 
-    function editConsultation(id) {
-        console.log("Edit consultation ID:", id);
-        // Có thể bổ sung logic hiển thị modal sửa sau.
-        toggleConsultForm();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+        window.rowClick = function(event, pk, service_id, price, qty, discount, cons_doc, perf_doc, notes, tooth, vat, discount_amount, discount_reason) {
+            if (event.target.tagName.toLowerCase() === 'input' && event.target.type === 'checkbox') {
+                return;
+            }
+            window.editCons(pk, service_id, price, qty, discount, cons_doc, perf_doc, notes, tooth, vat, discount_amount, discount_reason);
+        }
+
+        window.editCons = function(pk, service_id, price, qty, discount, cons_doc, perf_doc, notes, tooth, vat, discount_amount, discount_reason) {
+            document.getElementById('cons_detail_id').value = pk || '';
+            document.getElementById('cons_qty').value = qty || 1;
+            document.getElementById('cons_price').value = parseInt(price || 0).toLocaleString('en-US');
+            document.getElementById('cons_discount').value = discount || 0;
+            document.getElementById('cons_consulting_doctor').value = cons_doc || '';
+            document.getElementById('cons_performing_doctor').value = perf_doc || '';
+            document.getElementById('cons_tooth_position').value = tooth || '';
+            document.getElementById('cons_vat').value = vat || 0;
+            document.getElementById('cons_discount_amount').value = parseInt(discount_amount || 0).toLocaleString('en-US');
+            document.getElementById('cons_discount_reason').value = discount_reason || '';
+            document.getElementById('cons_note').value = (notes && notes !== 'None') ? notes : '';
+
+            if (window.currentCategories) {
+                let categoryId = null;
+                for (let cat of window.currentCategories) {
+                    if (cat.services && cat.services.some(s => s.service_id == service_id)) {
+                        categoryId = cat.category_id;
+                        break;
+                    }
+                }
+                if (categoryId) {
+                    const catSelect = document.getElementById('cons_category');
+                    catSelect.value = categoryId;
+                    catSelect.dispatchEvent(new Event('change'));
+                    document.getElementById('cons_service').value = service_id;
+                }
+            }
+
+            const form = document.getElementById('newConsultForm');
+            form.classList.remove('hidden');
+            form.classList.add('block');
+            calculateFormTotal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.bulkDeleteCons = function() {
+            const checkboxes = document.querySelectorAll('input[name="detail_ids"]:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('Vui lòng chọn ít nhất một dịch vụ để xóa!');
+                return;
+            }
+            if (confirm('Bạn có chắc chắn muốn xóa ' + ids.length + ' dịch vụ đã chọn?')) {
+                const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfTokenInput.value
+                    },
+                    body: JSON.stringify({
+                        action: 'bulk_delete_consultation',
+                        detail_ids: ids
+                    })
+                }).then(res => res.json()).then(data => {
+                    if (data.status === 'ok') {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Lỗi!');
+                    }
+                });
+            }
+        }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch('/api/doctors/')
+            .then(res => res.json())
+            .then(data => {
+                const consultSelect = document.getElementById('cons_consulting_doctor');
+                const performSelect = document.getElementById('cons_performing_doctor');
+                data.forEach(doctor => {
+                    consultSelect.add(new Option(doctor.full_name, doctor.employee_id));
+                    performSelect.add(new Option(doctor.full_name, doctor.employee_id));
+                });
+            })
+            .catch(err => console.error(err));
+
+        window.currentCategories = [];
+        fetch('/api/service-tree/')
+            .then(res => res.json())
+            .then(data => {
+                window.currentCategories = data;
+                const catSelect = document.getElementById('cons_category');
+                data.forEach(cat => {
+                    catSelect.add(new Option(cat.name, cat.category_id));
+                });
+            })
+            .catch(err => console.error(err));
+
+        const catSelect = document.getElementById('cons_category');
+        const serviceSelect = document.getElementById('cons_service');
+        const priceInput = document.getElementById('cons_price');
+
+        catSelect.addEventListener('change', (e) => {
+            const catId = e.target.value;
+            serviceSelect.innerHTML = '<option value="">-- Chọn Dịch vụ --</option>';
+            const category = window.currentCategories.find(c => c.category_id == catId);
+            if (category && category.services) {
+                category.services.forEach(srv => {
+                    const opt = new Option(srv.name, srv.service_id);
+                    opt.dataset.price = srv.base_price;
+                    serviceSelect.add(opt);
+                });
+            }
+        });
+
+        serviceSelect.addEventListener('change', (e) => {
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+                priceInput.value = parseFloat(selectedOption.dataset.price).toLocaleString('en-US');
+            } else {
+                priceInput.value = 0;
+            }
+            calculateFormTotal();
+        });
+
+        priceInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if(val) {
+                this.value = parseInt(val).toLocaleString('en-US');
+            } else {
+                this.value = '';
+            }
+        });
+
+        const discountAmountInput = document.getElementById('cons_discount_amount');
+        if (discountAmountInput) {
+            discountAmountInput.addEventListener('input', function(e) {
+                let val = this.value.replace(/\D/g, '');
+                if(val) {
+                    this.value = parseInt(val).toLocaleString('en-US');
+                } else {
+                    this.value = '';
+                }
+            });
+        }
+
+                function calculateFormTotal() {
+            const price = parseInt(document.getElementById('cons_price').value.replace(/,/g, '') || 0, 10);
+            const discount = parseInt(document.getElementById('cons_discount_amount').value.replace(/,/g, '') || 0, 10);
+            const qty = parseInt(document.getElementById('cons_qty').value || 1, 10);
+            const total = (price * qty) - discount;
+            document.getElementById('cons_total_price').innerText = Math.max(0, total).toLocaleString('en-US') + ' VNĐ';
+        }
+
+        // Attach events
+        ['cons_price', 'cons_qty', 'cons_discount_amount'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', calculateFormTotal);
+        });
+
+        // Trigger on editCons
+
+        const btnSubmit = document.getElementById('btn_submit_consultation');
+        if (btnSubmit) {
+            btnSubmit.addEventListener('click', () => {
+                const payload = {
+                    action: document.getElementById('cons_detail_id').value ? 'update_consultation' : 'add_consultation',
+                    detail_id: document.getElementById('cons_detail_id').value,
+                    consulting_doctor_id: document.getElementById('cons_consulting_doctor').value,
+                    performing_doctor_id: document.getElementById('cons_performing_doctor').value,
+                    service_id: document.getElementById('cons_service').value,
+                    price: parseInt(document.getElementById('cons_price').value.replace(/,/g, '') || 0, 10),
+                    qty: document.getElementById('cons_qty').value,
+                    discount: document.getElementById('cons_discount').value,
+                    tooth_position: document.getElementById('cons_tooth_position').value,
+                    vat_percent: document.getElementById('cons_vat').value,
+                    discount_amount: parseInt(document.getElementById('cons_discount_amount').value.replace(/,/g, '') || 0, 10),
+                    discount_reason: document.getElementById('cons_discount_reason').value,
+                    note: document.getElementById('cons_note').value,
+                    accept_now: document.getElementById('cons_accept_now').checked
+                };
+
+                const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                
+                fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfTokenInput ? csrfTokenInput.value : ''
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => {
+                    if (res.ok) {
+                        window.location.reload();
+                    } else {
+                        alert("Có lỗi xảy ra khi lưu phác đồ");
+                    }
+                })
+                .catch(err => console.error(err));
+            });
+        }
+    });
 </script>
 
 {% endblock %}
+
+
+
+
+
+

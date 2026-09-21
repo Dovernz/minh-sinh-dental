@@ -1,0 +1,247 @@
+﻿{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden font-sans mt-4 relative">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center border-b px-6 py-4 bg-gray-50">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-lg bg-white border flex items-center justify-center p-2 shadow-sm">
+                <img src="https://dental.minhsinh.com/logo.png" onerror="this.src='https://via.placeholder.com/64'" class="max-w-full max-h-full">
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Hồ sơ cá nhân</h2>
+                <p class="text-sm text-gray-500">Thông tin nhân viên – Khi thay đổi giá trị cần bấm Lưu để áp dụng</p>
+            </div>
+        </div>
+        <div class="flex gap-2" id="tab-buttons">
+            <button onclick="switchTab('thong-tin-chung')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold bg-white text-gray-700 shadow-sm" data-tab="thong-tin-chung">Thông tin chung</button>
+            <button onclick="switchTab('phu-cap')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold text-gray-500 hover:bg-gray-50" data-tab="phu-cap">Phụ cấp</button>
+            <button onclick="switchTab('khac')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold text-gray-500 hover:bg-gray-50" data-tab="khac">Khác</button>
+        </div>
+    </div>
+
+    <!-- Form Body -->
+    <div class="p-8 h-96 overflow-y-auto">
+        <!-- Tab 1: Thông tin chung -->
+        <div id="tab-thong-tin-chung" class="tab-content">
+            <div class="flex gap-6 mb-6 items-center">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="gender" class="w-4 h-4 text-blue-600 focus:ring-blue-500" checked>
+                    <span class="text-gray-700 font-medium">Nam</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="gender" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                    <span class="text-gray-700 font-medium">Nữ</span>
+                </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nhân viên *</label>
+                    <input type="text" id="emp_name" value="{% if employee %}{{ employee.full_name }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mã (SĐT)</label>
+                    <input type="text" id="emp_phone" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày sinh</label>
+                    <input type="date" id="emp_dob" value="{% if employee and employee.dob %}{{ employee.dob|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Điện thoại (10 ký tự số)</label>
+                    <input type="text" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" disabled>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <input type="email" id="emp_email" value="{% if employee %}{{ employee.email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mail công ty</label>
+                    <input type="email" id="emp_company_email" value="{% if employee %}{{ employee.company_email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nickname</label>
+                    <input type="text" id="emp_nickname" value="{% if employee %}{{ employee.nickname|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Bộ phận</label>
+                    <select id="emp_department" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">-- Chọn bộ phận --</option>
+                        <option value="Quản lí" {% if employee and employee.department == 'Quản lí' %}selected{% endif %}>Quản lí</option>
+                        <option value="Bác sĩ" {% if employee and employee.department == 'Bác sĩ' %}selected{% endif %}>Bác sĩ</option>
+                        <option value="Lễ tân" {% if employee and employee.department == 'Lễ tân' %}selected{% endif %}>Lễ tân</option>
+                    </select>
+                </div>
+                <div class="col-span-3">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="checkbox" id="emp_is_all_clinics" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-gray-300" {% if employee and employee.is_all_clinics %}checked{% endif %}>
+                        <span class="font-semibold text-gray-700 text-sm">Tất cả chi nhánh</span>
+                    </label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chi nhánh</label>
+                    <select id="emp_clinic" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-400 bg-gray-50" disabled>
+                        <option value="">chọn chi nhánh</option>
+                        <!-- Add clinics dynamically if needed -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Phụ cấp -->
+        <div id="tab-phu-cap" class="tab-content hidden">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b pb-4">
+                    <label class="flex items-center gap-3">
+                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_position %}checked{% endif %}>
+                        <span class="text-gray-700 font-medium">Chức vụ</span>
+                    </label>
+                    <input type="number" id="emp_allowance_position" value="{% if employee %}{{ employee.allowance_position|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="flex items-center justify-between border-b pb-4">
+                    <label class="flex items-center gap-3">
+                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_degree %}checked{% endif %}>
+                        <span class="text-gray-700 font-medium">Bằng cấp, Chứng chỉ</span>
+                    </label>
+                    <input type="number" id="emp_allowance_degree" value="{% if employee %}{{ employee.allowance_degree|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="flex items-center justify-between border-b pb-4">
+                    <label class="flex items-center gap-3">
+                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_specialty %}checked{% endif %}>
+                        <span class="text-gray-700 font-medium">Chuyên môn</span>
+                    </label>
+                    <input type="number" id="emp_allowance_specialty" value="{% if employee %}{{ employee.allowance_specialty|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Khác -->
+        <div id="tab-khac" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chức vụ</label>
+                    <select id="emp_role" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="Doctor" {% if employee and employee.role == 'Doctor' %}selected{% endif %}>Bác sĩ</option>
+                        <option value="Staff" {% if employee and employee.role == 'Staff' %}selected{% endif %}>Nhân viên</option>
+                        <option value="Admin" {% if employee and employee.role == 'Admin' %}selected{% endif %}>Quản lý</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Loại hợp đồng</label>
+                    <select id="emp_contract" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="Full-time" {% if employee and employee.contract_type == 'Full-time' %}selected{% endif %}>Full-time</option>
+                        <option value="Part-time" {% if employee and employee.contract_type == 'Part-time' %}selected{% endif %}>Part-time</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Số ngày phép năm</label>
+                    <input type="number" id="emp_annual_leave" value="{% if employee %}{{ employee.annual_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày nhận việc</label>
+                    <input type="date" id="emp_start_date" value="{% if employee and employee.start_date %}{{ employee.start_date|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày phép đã sử dụng</label>
+                    <input type="number" id="emp_used_leave" value="{% if employee %}{{ employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày phép còn lại</label>
+                    <input type="number" disabled value="{% if employee %}{{ employee.annual_leave_days|add:'-'|add:employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-100 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Lương căn bản</label>
+                    <input type="number" id="emp_base_salary" value="{% if employee %}{{ employee.base_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Lương thỏa thuận</label>
+                    <input type="number" id="emp_agreed_salary" value="{% if employee %}{{ employee.agreed_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                
+                <div class="col-span-2 hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chuyên môn</label>
+                    <input type="text" id="emp_specialty" value="{% if employee %}{{ employee.specialty|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Footer -->
+    <div class="border-t px-8 py-5 flex justify-end gap-3 bg-white">
+        <button onclick="window.history.back()" class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white font-semibold rounded-lg shadow transition">Đóng</button>
+        <button onclick="saveEmployee()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition">Lưu</button>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'text-gray-700');
+            btn.classList.add('text-gray-500');
+        });
+        const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        activeBtn.classList.remove('text-gray-500');
+        activeBtn.classList.add('bg-white', 'text-gray-700');
+    }
+
+    function saveEmployee() {
+        const empId = "{% if employee %}{{ employee.employee_id }}{% endif %}";
+        const payload = {
+            employee_id: empId || null,
+            full_name: document.getElementById('emp_name').value,
+            phone: document.getElementById('emp_phone').value,
+            email: document.getElementById('emp_email').value,
+            specialty: document.getElementById('emp_specialty').value,
+            role: document.getElementById('emp_role').value,
+            contract_type: document.getElementById('emp_contract').value,
+            dob: document.getElementById('emp_dob').value || null,
+            company_email: document.getElementById('emp_company_email').value,
+            nickname: document.getElementById('emp_nickname').value,
+            department: document.getElementById('emp_department').value,
+            is_all_clinics: document.getElementById('emp_is_all_clinics').checked,
+            clinic_id: document.getElementById('emp_clinic').value || null,
+            
+            allowance_position: parseInt(document.getElementById('emp_allowance_position').value) || 0,
+            allowance_degree: parseInt(document.getElementById('emp_allowance_degree').value) || 0,
+            allowance_specialty: parseInt(document.getElementById('emp_allowance_specialty').value) || 0,
+            annual_leave_days: parseInt(document.getElementById('emp_annual_leave').value) || 0,
+            used_leave_days: parseInt(document.getElementById('emp_used_leave').value) || 0,
+            start_date: document.getElementById('emp_start_date').value || null,
+            base_salary: parseInt(document.getElementById('emp_base_salary').value) || 0,
+            agreed_salary: parseInt(document.getElementById('emp_agreed_salary').value) || 0
+        };
+
+        const method = empId ? 'PUT' : 'POST';
+
+        fetch('/api/employees/', {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success' || data.employee_id) {
+                window.location.href = '/admin/booking/employee/';
+            } else {
+                alert('Có lỗi xảy ra, vui lòng thử lại.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Lỗi mạng!');
+        });
+    }
+</script>
+{% endblock %}
+

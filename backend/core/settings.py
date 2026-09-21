@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.humanize',
     'cloudinary_storage',
     'django.contrib.staticfiles',
     'cloudinary',
@@ -416,3 +417,10 @@ TINYMCE_DEFAULT_CONFIG = {
 }
 # Default password for auto-created employee accounts
 DEFAULT_EMPLOYEE_PASSWORD = env('DEFAULT_EMPLOYEE_PASSWORD', default='')
+
+USE_THOUSAND_SEPARATOR = True
+
+USE_L10N = False
+DECIMAL_SEPARATOR = '.'
+THOUSAND_SEPARATOR = ','
+NUMBER_GROUPING = 3

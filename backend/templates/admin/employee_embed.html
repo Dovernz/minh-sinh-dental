@@ -1,0 +1,133 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="max-w-7xl mx-auto p-4 font-sans text-gray-800 flex flex-col md:flex-row gap-6">
+    <!-- Left Column: Employee List -->
+    <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-bold text-gray-800 border-b pb-4 mb-4">Danh sách Nhân viên</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-100 text-sm text-gray-700">
+                    <tr>
+                        <th class="p-3 font-semibold border-b">ID</th>
+                        <th class="p-3 font-semibold border-b">Tên nhân viên</th>
+                        <th class="p-3 font-semibold border-b">Email</th>
+                        <th class="p-3 font-semibold border-b text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="employee_tbody" class="divide-y divide-gray-100 text-sm">
+                    <!-- Data rendered via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right Column: Form Thêm/Sửa -->
+    <div class="w-full md:w-96 bg-white rounded-xl shadow-sm border border-gray-200 p-6 self-start">
+        <h3 id="form_title" class="text-lg font-bold text-blue-600 border-b pb-4 mb-4">Thêm Nhân viên</h3>
+        <form id="employeeForm" class="space-y-4">
+            <input type="hidden" id="emp_id">
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1 text-sm">Tên nhân viên *</label>
+                <input type="text" id="emp_name" required class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1 text-sm">Email</label>
+                <input type="email" id="emp_email" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1 text-sm">Số điện thoại</label>
+                <input type="text" id="emp_phone" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="resetForm()" class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-300 transition">Hủy</button>
+                <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md font-semibold shadow hover:bg-blue-700 transition">Lưu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadEmployees();
+
+        document.getElementById('employeeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveEmployee();
+        });
+    });
+
+    function loadEmployees() {
+        fetch('/api/employees/')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('employee_tbody');
+                tbody.innerHTML = '';
+                data.forEach(emp => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 transition";
+                    const safeEmp = JSON.stringify(emp).replace(/'/g, "\\'");
+                    tr.innerHTML = `
+                        <td class="p-3 text-gray-600">#${emp.employee_id || emp.id || ''}</td>
+                        <td class="p-3 font-semibold text-blue-700">${emp.full_name || emp.name || ''}</td>
+                        <td class="p-3 text-gray-600">${emp.email || ''}</td>
+                        <td class="p-3 text-center">
+                            <button onclick='editEmployee(${safeEmp})' class="text-indigo-600 hover:text-indigo-800 font-medium">Sửa</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => console.error("Error loading employees:", err));
+    }
+
+    function editEmployee(emp) {
+        document.getElementById('form_title').innerText = "Sửa Nhân viên";
+        document.getElementById('emp_id').value = emp.employee_id || emp.id || '';
+        document.getElementById('emp_name').value = emp.full_name || emp.name || '';
+        document.getElementById('emp_email').value = emp.email || '';
+        document.getElementById('emp_phone').value = emp.phone || '';
+    }
+
+    function resetForm() {
+        document.getElementById('form_title').innerText = "Thêm Nhân viên";
+        document.getElementById('employeeForm').reset();
+        document.getElementById('emp_id').value = '';
+    }
+
+    function saveEmployee() {
+        const id = document.getElementById('emp_id').value;
+        const payload = {
+            full_name: document.getElementById('emp_name').value,
+            email: document.getElementById('emp_email').value,
+            phone: document.getElementById('emp_phone').value
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? '/api/employees/' + id + '/' : '/api/employees/';
+
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if(res.ok) {
+                resetForm();
+                loadEmployees();
+            } else {
+                alert("Có lỗi xảy ra khi lưu nhân viên");
+            }
+        })
+        .catch(err => console.error(err));
+    }
+</script>
+{% endblock %}

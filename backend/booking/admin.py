@@ -463,14 +463,85 @@ class CustomerAdmin(BaseRBACAdmin):
 
     def customer_profile_view(self, request, object_id):
         from django.template.response import TemplateResponse
-        from .models import Customer, Booking, ConsultationDetail, Consultation
+        from .models import Customer, Booking, BookingDetail, ConsultationDetail, Consultation, ServiceDetail, Employee
         from django.shortcuts import get_object_or_404, redirect
         from django.contrib import messages
         from django.utils import timezone
+        from django.http import JsonResponse
+        import json
         
         customer = get_object_or_404(Customer, pk=object_id)
         
         if request.method == 'POST':
+            if request.content_type == 'application/json':
+                try:
+                    data = json.loads(request.body)
+                    action = data.get('action')
+                    if action == 'add_consultation':
+                        consulting_doctor_id = data.get('consulting_doctor_id')
+                        performing_doctor_id = data.get('performing_doctor_id')
+                        service_id = data.get('service_id')
+                        price = data.get('price', 0)
+                        qty = data.get('qty', 1)
+                        discount = data.get('discount', 0)
+                        note = data.get('note', '')
+                        
+                        service = get_object_or_404(ServiceDetail, pk=service_id)
+                        
+                        consultation = Consultation.objects.filter(customer=customer).order_by('-created_at').first()
+                        if not consultation:
+                            from booking.models import Clinic
+                            clinic = Clinic.objects.first() # basic fallback
+                            consultation = Consultation.objects.create(
+                                customer=customer,
+                                clinic=clinic,
+                                notes=note
+                            )
+                        
+                        consulting_doctor = Employee.objects.filter(pk=consulting_doctor_id).first() if consulting_doctor_id else None
+                        performing_doctor = Employee.objects.filter(pk=performing_doctor_id).first() if performing_doctor_id else None
+                        
+                        ConsultationDetail.objects.create(
+                            consultation=consultation,
+                            service_detail=service,
+                            consulting_doctor=consulting_doctor,
+                            performing_doctor=performing_doctor,
+                            proposed_price=price,
+                            quantity=qty,
+                            discount=discount,
+                            notes=note
+                        )
+                        return JsonResponse({"status": "ok"})
+                    elif action == 'update_consultation':
+                        detail_id = data.get('detail_id')
+                        price = data.get('price', 0)
+                        qty = data.get('qty', 1)
+                        discount = data.get('discount', 0)
+                        note = data.get('note', '')
+                        consulting_doctor_id = data.get('consulting_doctor_id')
+                        performing_doctor_id = data.get('performing_doctor_id')
+                        
+                        detail = get_object_or_404(ConsultationDetail, pk=detail_id)
+                        detail.proposed_price = price
+                        detail.quantity = qty
+                        detail.discount = discount
+                        detail.notes = note
+                        detail.consulting_doctor_id = consulting_doctor_id or None
+                        detail.performing_doctor_id = performing_doctor_id or None
+                        detail.save()
+                        return JsonResponse({"status": "ok"})
+                    elif action == 'bulk_delete_consultation':
+                        detail_ids = data.get('detail_ids', [])
+                        ConsultationDetail.objects.filter(pk__in=detail_ids).delete()
+                        return JsonResponse({"status": "ok"})
+                    elif action == 'delete_consultation':
+                        detail_id = data.get('detail_id')
+                        detail = get_object_or_404(ConsultationDetail, pk=detail_id)
+                        detail.delete()
+                        return JsonResponse({"status": "ok"})
+                except Exception as e:
+                    return JsonResponse({"status": "error", "message": str(e)}, status=400)
+            
             action = request.POST.get('action', 'update_info')
             if action == 'update_info':
                 customer.patient_code = request.POST.get('patient_code', customer.patient_code)
@@ -586,6 +657,26 @@ class EmployeeAdmin(BaseRBACAdmin):
     list_display = ('full_name', 'phone', 'specialty', 'role', 'created_on')
     list_filter = ('specialty', 'role')
     search_fields = ('full_name', 'phone', 'email')
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if request.GET.get('mode') == 'native':
+            return super().change_view(request, object_id, form_url, extra_context)
+        from django.template.response import TemplateResponse
+        from booking.models import Employee
+        employee = Employee.objects.get(pk=object_id)
+        context = dict(self.admin_site.each_context(request))
+        context['employee'] = employee
+        context['title'] = f'Hồ sơ cá nhân: {employee.full_name}'
+        return TemplateResponse(request, 'admin/employee_embed_form.html', context)
+
+    def add_view(self, request, form_url='', extra_context=None):
+        if request.GET.get('mode') == 'native':
+            return super().add_view(request, form_url, extra_context)
+        from django.template.response import TemplateResponse
+        context = dict(self.admin_site.each_context(request))
+        context['employee'] = None
+        context['title'] = 'Thêm mới nhân viên'
+        return TemplateResponse(request, 'admin/employee_embed_form.html', context)
 
     def save_model(self, request, obj, form, change):
         if obj.role == 'Admin' and not request.user.is_superuser:
@@ -1208,5 +1299,8 @@ class SiteSettingsAdmin(ModelAdmin):
 from booking.models import Consultation, ConsultationDetail, DoctorConsultationProxy
 from django.template.response import TemplateResponse
 from django.urls import path
+
+
+
 
 
