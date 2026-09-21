@@ -206,7 +206,7 @@
                 <tr>
                     <td class="border border-gray-300 p-2.5 font-bold bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">{{ row.time }}</td>
                     {% for c, b_list in row.chairs.items %}
-                        <td class="border border-gray-300 p-2.5 align-top dark:border-gray-700">
+                        <td class="matrix-td border border-gray-300 p-2.5 align-top dark:border-gray-700">
                             {% if b_list %}
                                 {% for b in b_list %}
                                 <div class="booking-item relative p-1.5 mb-2 rounded-md text-left text-xs {% if b.status == 'Completed' %}completed-booking{% elif b.status == 'Canceled' %}canceled-booking{% else %}bg-blue-50 dark:bg-blue-900/50 dark:text-blue-100{% endif %}" data-status="{{ b.status|default:'Upcoming' }}">
@@ -225,9 +225,8 @@
                                     {% endif %}
                                 </div>
                                 {% endfor %}
-                            {% else %}
-                                <span class="text-gray-400 dark:text-gray-600">Trống</span>
                             {% endif %}
+                            <span class="empty-text text-gray-400 dark:text-gray-600" {% if b_list %}style="display: none;"{% endif %}>Trống</span>
                         </td>
                     {% endfor %}
                 </tr>
@@ -262,6 +261,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.style.display = 'none';
             }
         });
+
+        const tds = document.querySelectorAll('.matrix-td');
+        tds.forEach(td => {
+            const bookingsInTd = td.querySelectorAll('.booking-item');
+            const emptyText = td.querySelector('.empty-text');
+            if (emptyText) {
+                let hasVisible = false;
+                bookingsInTd.forEach(b => {
+                    if (b.style.display !== 'none') {
+                        hasVisible = true;
+                    }
+                });
+                if (!hasVisible) {
+                    emptyText.style.display = 'inline';
+                } else {
+                    emptyText.style.display = 'none';
+                }
+            }
+        });
     }
 
     filterBtns.forEach(btn => {
@@ -275,12 +293,25 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.classList.add('border-blue-500', 'bg-blue-500', 'text-white');
 
             const filterStatus = e.target.dataset.filter;
+            sessionStorage.setItem('dailyFilter', filterStatus);
             applyFilter(filterStatus);
         });
     });
 
-    // Default filter: Upcoming
-    applyFilter('Upcoming');
+    const savedFilter = sessionStorage.getItem('dailyFilter') || 'Upcoming';
+    
+    // Update active button on load
+    const activeBtn = Array.from(filterBtns).find(btn => btn.dataset.filter === savedFilter);
+    if (activeBtn) {
+        filterBtns.forEach(b => {
+            b.classList.remove('border-blue-500', 'bg-blue-500', 'text-white');
+            b.classList.add('border-gray-300', 'text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-gray-200', 'dark:border-gray-600');
+        });
+        activeBtn.classList.remove('border-gray-300', 'text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-gray-200', 'dark:border-gray-600');
+        activeBtn.classList.add('border-blue-500', 'bg-blue-500', 'text-white');
+    }
+
+    applyFilter(savedFilter);
 });
 
 function completeBooking(bookingId) {

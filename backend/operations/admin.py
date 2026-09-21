@@ -158,6 +158,8 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                 if not b.start_time or not b.end_time: continue
                 b_start_local = localtime(b.start_time).time()
                 b_end_local = localtime(b.end_time).time()
+                if b_end_local <= b_start_local:
+                    b_end_local = (datetime.datetime.combine(datetime.date.today(), b_start_local) + datetime.timedelta(minutes=30)).time()
                 booking_spans.append({"booking": b, "start": b_start_local, "end": b_end_local, "chair": None})
             
             matrix = []
@@ -267,6 +269,8 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
                     b_date = localtime(b.start_time).date()
                     b_start_local = localtime(b.start_time).time()
                     b_end_local = localtime(b.end_time).time()
+                    if b_end_local <= b_start_local:
+                        b_end_local = (datetime.datetime.combine(datetime.date.today(), b_start_local) + datetime.timedelta(minutes=30)).time()
                     
                     for ts in time_slots:
                         eff_end = b_end_local
