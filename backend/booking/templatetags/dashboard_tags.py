@@ -46,12 +46,15 @@ def get_dashboard_charts_json():
         today = localtime(timezone.now()).date()
         dates = [today + timedelta(days=i) for i in range(7)]
         date_strs = [d.strftime('%d/%m') for d in dates]
+        full_date_strs = [d.strftime('%Y-%m-%d') for d in dates]
         
         # 1. LẤY CƠ SỞ ĐỘNG 100% TỪ DATABASE
         clinics = list(Clinic.objects.all().order_by('clinic_id'))
         clinic_names = [c.name for c in clinics]
+        clinic_ids = {c.name: c.clinic_id for c in clinics}
         if not clinic_names: 
             clinic_names = ["Chưa có cơ sở"] # Phao cứu sinh chống sập biểu đồ nếu DB trống
+            clinic_ids = {"Chưa có cơ sở": None}
             
         slots = []
         for s in TimeSlot.objects.all().order_by('start_time'):
@@ -88,7 +91,12 @@ def get_dashboard_charts_json():
                         heatmap_dict[s['id']][c_name] += 1
                         break
 
-        bar_json = {'categories': date_strs, 'series': [{'name': c, 'data': bar_series[c]} for c in clinic_names]}
+        bar_json = {
+            'categories': date_strs, 
+            'series': [{'name': c, 'data': bar_series[c]} for c in clinic_names],
+            'full_dates': full_date_strs,
+            'clinic_ids': clinic_ids
+        }
         
         heatmap_series = []
         for s in reversed(slots):

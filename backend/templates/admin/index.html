@@ -88,7 +88,23 @@
             // BAR CHART
             const barSeries = (chartData.bar.series && chartData.bar.series.length > 0) ? chartData.bar.series : [{name: 'Trống', data: [0,0,0,0,0,0,0]}];
             const barOptions = {
-                chart: { type: 'bar', height: 320, toolbar: { show: false }, foreColor: textColor, background: 'transparent' },
+                chart: { 
+                    type: 'bar', 
+                    height: 320, 
+                    toolbar: { show: false }, 
+                    foreColor: textColor, 
+                    background: 'transparent',
+                    events: {
+                        dataPointSelection: function(e, chart, config) {
+                            const clinicName = chartData.bar.series[config.seriesIndex].name;
+                            const clinicId = chartData.bar.clinic_ids[clinicName];
+                            const fullDate = chartData.bar.full_dates[config.dataPointIndex];
+                            if (clinicId && fullDate) {
+                                window.location.href = `/admin/operations/weeklyschedule/?custom_clinic=${clinicId}&custom_start_date=${fullDate}`;
+                            }
+                        }
+                    }
+                },
                 series: barSeries,
                 xaxis: { type: 'category', categories: chartData.bar.categories, axisBorder: { show: false }, axisTicks: { show: false } },
                 yaxis: { labels: { formatter: function(val) { return Math.round(val); } }, tickAmount: 5, min: 0 },
