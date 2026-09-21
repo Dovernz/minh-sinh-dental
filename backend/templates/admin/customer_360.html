@@ -108,7 +108,7 @@
 
     <!-- Tab 2: Tư vấn -->
     <div id="tab-consult" class="tab-content hidden">
-        <div class="flex justify-between items-center mb-6">
+        <div id="cons_list_header" class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-gray-800">Danh sách Dịch vụ</h2>
             <button onclick="openNewConsForm()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">
                 + Thêm dịch vụ mới
@@ -118,8 +118,12 @@
         <!-- Form Thêm dịch vụ -->
         <div id="newConsultForm" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="text-lg font-bold text-blue-600">🩺 Tạo Kế hoạch Điều trị / Dịch vụ</h3>
-                <button type="button" onclick="openNewConsForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold leading-none">&times;</button>
+                <div class="flex items-center gap-3">
+                      <button type="button" onclick="closeConsForm()" class="text-gray-500 hover:text-blue-600 font-medium">Danh sách Dịch vụ</button>
+                      <span class="text-gray-400">/</span>
+                      <h3 class="text-lg font-bold text-blue-600">🩺 Tạo Kế hoạch Điều trị</h3>
+                  </div>
+                <button type="button" onclick="closeConsForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold leading-none">&times;</button>
             </div>
             
             <div class="flex flex-col lg:flex-row gap-6">
@@ -210,12 +214,15 @@
                     <button id="btn_submit_consultation" type="button" class="w-full mt-6 bg-orange-500 text-white px-4 py-3 rounded-lg font-bold shadow hover:bg-orange-600 transition flex items-center justify-center gap-2">
                         💾 LƯU PHÁC ĐỒ
                     </button>
+                    <button type="button" onclick="closeConsForm()" class="w-full mt-3 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-bold shadow hover:bg-gray-300 transition flex items-center justify-center gap-2">
+                        ← QUAY LẠI
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Danh sách phiếu tư vấn cũ -->
-        <form method="POST" action="">
+        <form id="cons_table_form" method="POST" action="">
             {% csrf_token %}
             <input type="hidden" name="action" value="confirm_services">
             
@@ -677,6 +684,10 @@
             const form = document.getElementById('newConsultForm');
             form.classList.remove('hidden');
             form.classList.add('block');
+            document.getElementById('cons_list_header').classList.remove('flex');
+            document.getElementById('cons_list_header').classList.add('hidden');
+            document.getElementById('cons_table_form').classList.remove('block');
+            document.getElementById('cons_table_form').classList.add('hidden');
             calculateFormTotal();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -752,6 +763,16 @@
         });
     }
 
+                window.closeConsForm = function() {
+            document.getElementById('newConsultForm').classList.remove('block');
+            document.getElementById('newConsultForm').classList.add('hidden');
+            
+            document.getElementById('cons_list_header').classList.remove('hidden');
+            document.getElementById('cons_table_form').classList.remove('hidden');
+            document.getElementById('cons_list_header').classList.add('flex');
+            document.getElementById('cons_table_form').classList.add('block');
+        }
+
         window.rowClick = function(event, pk, service_id, price, qty, discount, cons_doc, perf_doc, notes, tooth, vat, discount_amount, discount_reason) {
             if (event.target.tagName.toLowerCase() === 'input' && event.target.type === 'checkbox') {
                 return;
@@ -791,6 +812,10 @@
             const form = document.getElementById('newConsultForm');
             form.classList.remove('hidden');
             form.classList.add('block');
+            document.getElementById('cons_list_header').classList.remove('flex');
+            document.getElementById('cons_list_header').classList.add('hidden');
+            document.getElementById('cons_table_form').classList.remove('block');
+            document.getElementById('cons_table_form').classList.add('hidden');
             calculateFormTotal();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
