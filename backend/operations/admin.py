@@ -107,6 +107,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
         request.GET = request.GET.copy()
         request.GET.pop('custom_clinic', None)
         request.GET.pop('custom_date', None)
+        request.GET.pop('custom_filter', None)
 
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and 'cl' in response.context_data:

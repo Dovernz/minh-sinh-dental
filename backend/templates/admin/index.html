@@ -100,7 +100,7 @@
                             const clinicId = chartData.bar.clinic_ids[clinicName];
                             const fullDate = chartData.bar.full_dates[config.dataPointIndex];
                             if (clinicId && fullDate) {
-                                window.location.href = `/admin/operations/weeklyschedule/?custom_clinic=${clinicId}&custom_start_date=${fullDate}`;
+                                window.location.href = `/admin/operations/dailyschedule/?custom_clinic=${clinicId}&custom_date=${fullDate}&custom_filter=Upcoming`;
                             }
                         }
                     }

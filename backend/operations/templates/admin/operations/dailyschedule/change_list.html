@@ -94,18 +94,18 @@
 
     /* Đổi màu ô trạng thái Completed, Canceled ở Dark Mode */
     html.dark table .completed-booking {
-        background-color: #374151 !important; 
-        border: 1px solid #4b5563 !important;
-        color: #9ca3af !important;
+        background-color: rgba(20, 83, 45, 0.4) !important; 
+        border: 1px solid #166534 !important;
+        color: #bbf7d0 !important;
         border-radius: 8px !important;
         margin: 10px !important;
         padding: 8px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
     }
     html.dark table .canceled-booking {
-        background-color: #451a1a !important; 
-        border: 1px solid #7f1d1d !important;
-        color: #fca5a5 !important;
+        background-color: rgba(127, 29, 29, 0.4) !important; 
+        border: 1px solid #991b1b !important;
+        color: #fecaca !important;
         border-radius: 8px !important;
         margin: 10px !important;
         padding: 8px !important;
@@ -121,10 +121,12 @@
         color: #e0e7ff !important;
     }
     html.dark table .completed-booking :not(button) {
-        color: #9ca3af !important;
+        color: #bbf7d0 !important;
     }
-    html.dark table .canceled-booking :not(button) {
-        color: #fca5a5 !important;
+    html.dark table .canceled-booking :not(button),
+    html.dark table .canceled-booking strong,
+    html.dark table .canceled-booking span {
+        color: #fecaca !important;
     }
 
     /* Đồng bộ form dáng (bo góc, khoảng hở) cho các ô ĐÃ CÓ LỊCH ở chế độ sáng */
@@ -140,9 +142,9 @@
 
     /* Đổi màu ô trạng thái Completed, Canceled ở Light Mode */
     html:not(.dark) table .completed-booking {
-        background-color: #e5e7eb !important; 
-        border: 1px solid #d1d5db !important;
-        color: #4b5563 !important;
+        background-color: #dcfce3 !important; 
+        border: 1px solid #bbf7d0 !important;
+        color: #166534 !important;
         border-radius: 8px !important;
         margin: 10px !important;
         padding: 8px !important;
@@ -150,7 +152,7 @@
     }
     html:not(.dark) table .canceled-booking {
         background-color: #fee2e2 !important; 
-        border: 1px solid #f87171 !important;
+        border: 1px solid #fecaca !important;
         color: #991b1b !important;
         border-radius: 8px !important;
         margin: 10px !important;
@@ -167,7 +169,7 @@
     html:not(.dark) table .completed-booking :not(button),
     html:not(.dark) table .completed-booking strong,
     html:not(.dark) table .completed-booking span {
-        color: #4b5563 !important;
+        color: #166534 !important;
     }
     html:not(.dark) table .canceled-booking :not(button),
     html:not(.dark) table .canceled-booking strong,
@@ -298,6 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const urlFilter = new URLSearchParams(window.location.search).get('custom_filter');
+    if (urlFilter) {
+        sessionStorage.setItem('dailyFilter', urlFilter);
+    }
     const savedFilter = sessionStorage.getItem('dailyFilter') || 'Upcoming';
     
     // Update active button on load
