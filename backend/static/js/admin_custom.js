@@ -164,4 +164,34 @@ setInterval(() => {
         }
     });
 }, 100);
+
+// --- TÍNH NĂNG MINI SIDEBAR ---
+document.addEventListener('DOMContentLoaded', function() {
     
+});
+
+
+
+
+// --- FIX SIDEBAR MINI ---
+document.addEventListener('DOMContentLoaded', function() {
+    let checkSidebar = setInterval(() => {
+        let sidebarWrapper = document.querySelector('[x-show="sidebarOpen"]');
+        if (sidebarWrapper) {
+            clearInterval(checkSidebar);
+            
+            // Watch for inline style "display: none;" added by Alpine.js
+            new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'style') {
+                        if (sidebarWrapper.style.display === 'none') {
+                            document.body.classList.add('sidebar-mini');
+                        } else {
+                            document.body.classList.remove('sidebar-mini');
+                        }
+                    }
+                });
+            }).observe(sidebarWrapper, { attributes: true, attributeFilter: ['style'] });
+        }
+    }, 200);
+});

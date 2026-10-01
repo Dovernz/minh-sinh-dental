@@ -31,3 +31,100 @@ html.dark select option {
     background-color: #111827 !important;
     color: #f9fafb !important;
 }
+
+/* --- MINIFIED SIDEBAR STYLES --- */
+body.sidebar-mini aside {
+    width: 80px !important; display: flex !important;
+    transition: all 0.3s ease;
+    overflow-x: hidden !important;
+    z-index: 50;
+    transform: translateX(0) !important;
+}
+
+body.sidebar-mini aside:hover {
+    width: 256px !important; /* Expand on hover */
+}
+
+/* Hide texts, titles, search bar when collapsed */
+body.sidebar-mini aside:not(:hover) span,
+body.sidebar-mini aside:not(:hover) h3,
+body.sidebar-mini aside:not(:hover) input,
+body.sidebar-mini aside:not(:hover) form,
+body.sidebar-mini aside:not(:hover) .flex-1,
+body.sidebar-mini aside:not(:hover) .mt-8 {
+    display: none !important;
+}
+
+/* Center icons */
+body.sidebar-mini aside:not(:hover) ul li a {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+body.sidebar-mini aside:not(:hover) ul li a i,
+body.sidebar-mini aside:not(:hover) ul li a svg,
+body.sidebar-mini aside:not(:hover) ul li a .material-symbols-outlined {
+    margin-right: 0 !important;
+    font-size: 24px;
+}
+/* --- DARK MODE PURPLE OVERRIDE --- */
+html.dark, html[data-theme="dark"] {
+    --color-primary-50: rgb(250, 245, 255) !important;
+    --color-primary-100: rgb(243, 232, 255) !important;
+    --color-primary-200: rgb(233, 213, 255) !important;
+    --color-primary-300: rgb(216, 180, 254) !important;
+    --color-primary-400: rgb(192, 132, 252) !important;
+    --color-primary-500: rgb(168, 85, 247) !important;
+    --color-primary-600: rgb(147, 51, 234) !important;
+    --color-primary-700: rgb(126, 34, 206) !important;
+    --color-primary-800: rgb(107, 33, 168) !important;
+    --color-primary-900: rgb(88, 28, 135) !important;
+    --color-primary-950: rgb(59, 7, 100) !important;
+}
+
+/* --- Tùy chỉnh Sidebar Mini --- */
+body.sidebar-mini [x-show="sidebarOpen"] {
+    display: block !important;
+    width: 80px !important;
+}
+body.sidebar-mini #nav-sidebar {
+    width: 80px !important;
+}
+body.sidebar-mini #nav-sidebar-inner {
+    overflow-x: hidden;
+}
+
+/* Ẩn các thành phần thừa khi thu gọn */
+body.sidebar-mini #nav-sidebar h2, 
+body.sidebar-mini [x-on\:click="$dispatch('opencommand')"], 
+body.sidebar-mini .flex-col.select-none,
+body.sidebar-mini .material-symbols-outlined.ml-auto {
+    display: none !important;
+}
+
+/* Xử lý text và icon trong thẻ a của menu */
+body.sidebar-mini #nav-sidebar-apps ol li a {
+    font-size: 0 !important; 
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+body.sidebar-mini #nav-sidebar-apps ol li a span.material-symbols-outlined,
+body.sidebar-mini #nav-sidebar-apps ol li a svg {
+    font-size: 20px !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Fix Branding Logo */
+body.sidebar-mini .navigation_header > div {
+    font-size: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    justify-content: center !important;
+    margin-left: 0 !important;
+}
+body.sidebar-mini .navigation_header img {
+    margin: 0 auto;
+}

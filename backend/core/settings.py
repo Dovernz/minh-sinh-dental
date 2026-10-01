@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 import environ
 
@@ -174,12 +174,27 @@ UNFOLD = {
 
     "STYLES": [
         lambda request: static("css/admin_mobile.css"),
-        lambda request: static("css/admin_custom.css"),
+        lambda request: static("css/admin_custom.css") + "?v=66666666",
     ],
     "SCRIPTS": [
-        lambda request: static("js/admin_custom.js") + "?v=1788946056",
+        lambda request: static("js/admin_custom.js") + "?v=55555555",
         '/static/js/live_search.js',
     ],
+    "COLORS": {
+        "primary": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
+        },
+    },
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
