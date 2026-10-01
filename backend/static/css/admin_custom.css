@@ -128,3 +128,12 @@ body.sidebar-mini .navigation_header > div {
 body.sidebar-mini .navigation_header img {
     margin: 0 auto;
 }
+
+/* Hide text span but keep icon */
+body.sidebar-mini #nav-sidebar-apps ol li a span:not(.material-symbols-outlined) {
+    display: none !important;
+}
+/* Revert font-size 0 on a tag just in case */
+body.sidebar-mini #nav-sidebar-apps ol li a {
+    font-size: unset !important;
+}

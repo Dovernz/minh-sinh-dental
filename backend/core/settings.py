@@ -177,7 +177,7 @@ UNFOLD = {
         lambda request: static("css/admin_custom.css") + "?v=66666666",
     ],
     "SCRIPTS": [
-        lambda request: static("js/admin_custom.js") + "?v=55555555",
+        lambda request: static("js/admin_custom.js") + "?v=88888888",
         '/static/js/live_search.js',
     ],
     "COLORS": {

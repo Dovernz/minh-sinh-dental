@@ -195,3 +195,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 200);
 });
+
+// --- TRIGGER THEME CHANGED CHO BIEU DO ---
+document.addEventListener('DOMContentLoaded', function() {
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class' || mutation.attributeName === 'data-theme') {
+                const isDark = document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+                document.dispatchEvent(new CustomEvent('themeChanged', { detail: { isDark: isDark } }));
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+});
