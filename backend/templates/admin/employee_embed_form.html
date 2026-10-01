@@ -1,4 +1,4 @@
-﻿{% extends "admin/base_site.html" %}
+{% extends "admin/base_site.html" %}
 {% load i18n static %}
 {% block content %}
 <script src="https://cdn.tailwindcss.com"></script>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Form Body -->
-    <div class="p-8 h-96 overflow-y-auto">
+    <div class="p-8 pb-12">
         <!-- Tab 1: Thông tin chung -->
         <div id="tab-thong-tin-chung" class="tab-content">
             <div class="flex gap-6 mb-6 items-center">
@@ -180,6 +180,44 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const isAllClinicsCheckbox = document.getElementById('emp_is_all_clinics');
+        const clinicSelect = document.getElementById('emp_clinic');
+        
+        // Initial setup
+        toggleClinicSelect();
+        
+        // Event listener
+        isAllClinicsCheckbox.addEventListener('change', toggleClinicSelect);
+        
+        function toggleClinicSelect() {
+            if (isAllClinicsCheckbox.checked) {
+                clinicSelect.disabled = true;
+                clinicSelect.classList.add('bg-gray-50', 'text-gray-400');
+                clinicSelect.value = '';
+            } else {
+                clinicSelect.disabled = false;
+                clinicSelect.classList.remove('bg-gray-50', 'text-gray-400');
+            }
+        }
+        
+        // Fetch clinics
+        fetch('/api/clinics/')
+            .then(res => res.json())
+            .then(data => {
+                const currentClinicId = "{% if employee and employee.clinic %}{{ employee.clinic.clinic_id }}{% endif %}";
+                data.forEach(clinic => {
+                    const option = document.createElement('option');
+                    option.value = clinic.clinic_id;
+                    option.textContent = clinic.name;
+                    if (currentClinicId == clinic.clinic_id) {
+                        option.selected = true;
+                    }
+                    clinicSelect.appendChild(option);
+                });
+            });
+    });
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
         document.getElementById('tab-' + tabId).classList.remove('hidden');
@@ -244,4 +282,5 @@
     }
 </script>
 {% endblock %}
+
 
