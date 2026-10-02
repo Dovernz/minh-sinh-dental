@@ -20,6 +20,7 @@
         <button onclick="switchTab('tab-general')" id="btn-tab-general" class="tab-btn px-6 py-3 font-semibold text-blue-600 border-b-2 border-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Thông tin chung</button>
         <button onclick="switchTab('tab-consult')" id="btn-tab-consult" class="tab-btn px-6 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Dịch vụ</button>
         <button onclick="switchTab('tab-service')" id="btn-tab-service" class="tab-btn px-6 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">Tư vấn</button>
+        <button onclick="switchTab('tab-dental-chart'); loadDentalChart()" id="btn-tab-dental-chart" class="tab-btn px-6 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-gray-50 focus:outline-none transition-colors">🦷 Sơ đồ Răng</button>
     </div>
 
     <!-- Tab 1: Thông tin chung -->
@@ -313,13 +314,31 @@
         </form>
     </div>
 
-    <!-- Tab 3: Dịch vụ -->
+    <!-- Tab 3: Tư vấn -->
     <div id="tab-service" class="tab-content hidden">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500 italic">
             Sẽ bổ sung chi tiết sau
         </div>
     </div>
-</div>
+
+    <!-- Tab 4: Sơ đồ Răng -->
+    <div id="tab-dental-chart" class="tab-content hidden">
+        <div class="overflow-hidden" style="height: calc(100vh - 160px); min-height: 700px;">
+            <div id="dental-chart-loading" class="flex flex-col items-center justify-center h-full text-gray-400">
+                <svg class="animate-spin h-10 w-10 mb-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p class="font-medium">Đang tải Sơ đồ Răng...</p>
+            </div>
+            <iframe id="dental-chart-iframe"
+                    src=""
+                    class="w-full border-none hidden"
+                    style="height: 100%;"
+                    onload="document.getElementById('dental-chart-loading').classList.add('hidden'); this.classList.remove('hidden');">
+            </iframe>
+        </div>
+    </div>
 
 <!-- Modal Sửa Thông tin -->
 <div id="editModal" class="fixed inset-0 bg-black/50 z-[9999] hidden items-center justify-center p-4">
@@ -717,11 +736,22 @@
         const tab = urlParams.get('tab');
         if (tab === 'consult') switchTab('tab-consult');
         else if (tab === 'service') switchTab('tab-service');
+        else if (tab === 'dental-chart') { switchTab('tab-dental-chart'); loadDentalChart(); }
         else switchTab('tab-general');
 
         // Tính tổng tiền ở tab Dịch vụ
         calculateTotalConfirmed();
     });
+
+    // Hàm load Iframe Sơ đồ Răng (lazy load - chỉ load khi người dùng bấm vào tab)
+    let dentalChartLoaded = false;
+    function loadDentalChart() {
+        if (dentalChartLoaded) return;
+        dentalChartLoaded = true;
+        const customerId = '{{ customer.pk }}';
+        const iframe = document.getElementById('dental-chart-iframe');
+        iframe.src = `http://localhost:3000/dental-chart?customerId=${customerId}`;
+    }
 
     function calculateTotalConfirmed() {
         let total = 0;

@@ -1,4 +1,4 @@
-﻿from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
 from django.conf import settings
@@ -949,5 +949,21 @@ class ServiceStatsAPIView(View):
         from django.db.models import Sum
         stats = BookingDetail.objects.filter(booking__status='Completed').values('service_detail__name').annotate(total=Sum('quantity'))
         return JsonResponse(list(stats), safe=False)
+
+
+from rest_framework import generics
+from .models import ToothRecord
+from .serializers import ToothRecordSerializer
+
+class ToothRecordListCreateView(generics.ListCreateAPIView):
+    serializer_class = ToothRecordSerializer
+    
+    def get_queryset(self):
+        customer_id = self.request.query_params.get('customer_id')
+        qs = ToothRecord.objects.all()
+        if customer_id:
+            qs = qs.filter(customer_id=customer_id)
+        return qs.order_by('tooth_number', 'surface')
+
 
 

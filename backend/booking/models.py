@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 # -*- coding: utf-8 -*-
 from django.db import models
 from cloudinary.models import CloudinaryField
@@ -508,6 +508,45 @@ class DoctorConsultationProxy(Consultation):
         proxy = True
         verbose_name = 'Phác đồ & Tư vấn (Bác sĩ)'
         verbose_name_plural = 'Phác đồ & Tư vấn (Bác sĩ)'
+
+
+class ToothRecord(models.Model):
+    """So do rang - Tooth chart records for EMR"""
+    record_id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(
+        Customer, 
+        on_delete=models.CASCADE, 
+        related_name='tooth_records',
+        verbose_name='Khach hang'
+    )
+    tooth_number = models.IntegerField(verbose_name='So rang (FDI)')
+    surface = models.CharField(
+        max_length=10, blank=True, null=True,
+        verbose_name='Mat rang (M/D/B/L/O hoac None)'
+    )
+    condition = models.CharField(
+        max_length=10, 
+        verbose_name='Ma benh ly (RN/CO/MT...)'
+    )
+    class_type = models.CharField(
+        max_length=5, blank=True, null=True,
+        verbose_name='Phan loai (P/N)'
+    )
+    treatment = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name='Dieu tri'
+    )
+    note = models.TextField(blank=True, null=True, verbose_name='Ghi chu')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'db_table_tooth_records'
+        verbose_name = 'Ho so So do rang'
+        verbose_name_plural = 'Ho so So do rang'
+
+    def __str__(self):
+        return f'Rang {self.tooth_number} - KH {self.customer_id}'
 
 
 

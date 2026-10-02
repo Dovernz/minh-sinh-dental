@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Clinic, ServiceDetail, ServiceCategory, Booking, Customer
+from .models import Clinic, ServiceDetail, ServiceCategory, Booking, Customer, ToothRecord
 
 class ClinicSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,3 +56,11 @@ class MenuLinkSerializer(serializers.ModelSerializer):
     def get_children(self, obj):
         children = obj.children.filter(is_active=True).order_by('order')
         return MenuLinkSerializer(children, many=True).data
+
+
+class ToothRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ToothRecord
+        fields = '__all__'
+        read_only_fields = ['record_id', 'created_at', 'updated_at']
+
