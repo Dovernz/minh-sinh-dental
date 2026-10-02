@@ -29,65 +29,65 @@ interface ConditionItem {
 }
 
 const CONDITIONS: ConditionItem[] = [
-  // --- Di chuyen / Nghieng ---
-  { code: 'MV_R', label: 'Dich Chuyen Phai',               color: '#ef4444' },
-  { code: 'MV_L', label: 'Dich Chuyen Trai',               color: '#ef4444' },
-  { code: 'TL_R', label: 'Nghieng Phai',                   color: '#ef4444' },
-  { code: 'TL_O', label: 'Nghieng Ra Ngoai',               color: '#ef4444' },
-  { code: 'TL_L', label: 'Nghieng Trai',                   color: '#ef4444' },
-  { code: 'TL_I', label: 'Nghieng Trong',                  color: '#ef4444' },
-  // --- Phuc hinh ---
-  { code: 'CRW', label: 'Mao Rang',                        color: '#3b82f6', badge: 'MR',  bgColor: '#3b82f6' },
+  // --- Di chuyển / Nghiêng ---
+  { code: 'MV_R', label: 'Dịch Chuyển Phải',               color: '#ef4444' },
+  { code: 'MV_L', label: 'Dịch Chuyển Trái',               color: '#ef4444' },
+  { code: 'TL_R', label: 'Nghiêng Phải',                   color: '#ef4444' },
+  { code: 'TL_O', label: 'Nghiêng Ra Ngoài',               color: '#ef4444' },
+  { code: 'TL_L', label: 'Nghiêng Trái',                   color: '#ef4444' },
+  { code: 'TL_I', label: 'Nghiêng Trong',                  color: '#ef4444' },
+  // --- Phục hình ---
+  { code: 'CRW', label: 'Mão Răng',                        color: '#3b82f6', badge: 'MR',  bgColor: '#3b82f6' },
   { code: 'VNR', label: 'Veneer',                          color: '#10b981', badge: 'VN',  bgColor: '#10b981' },
-  { code: 'EN_O', label: 'Noi Nha PK Khac',               color: '#60a5fa', badge: 'NN',  bgColor: '#60a5fa' },
-  { code: 'EN',  label: 'Noi Nha PK',                     color: '#ef4444', badge: 'NN',  bgColor: '#ef4444' },
-  { code: 'FRC', label: 'Gay Rang',                        color: '#6b7280' },
-  { code: 'CRK', label: 'Nut Rang',                        color: '#3b82f6' },
-  // --- Tinh trang rang ---
-  { code: 'RN',  label: 'Rang Ngam',                       color: '#ffffff', badge: 'RN',  bgColor: '#dc2626' },
-  { code: 'DN',  label: 'Rang Da Nho',                     color: '#ffffff', badge: 'DN',  bgColor: '#dc2626' },
-  { code: 'MCR', label: 'Mon Co Rang',                     color: '#f87171' },
-  { code: 'INF', label: 'Nhiem Trung',                     color: '#ef4444' },
-  { code: 'PT_O', label: 'Chot PK Khac',                  color: '#3b82f6' },
-  { code: 'PT',  label: 'Chot PK',                        color: '#ef4444' },
-  { code: 'ATR', label: 'Mon Rang',                        color: '#9ca3af' },
-  { code: 'BRG', label: 'Cau Rang',                       color: '#2563eb', badge: 'CR',  bgColor: '#2563eb' },
-  { code: 'RCN', label: 'Con Chan Rang',                   color: '#dc2626' },
-  { code: 'CF_O', label: 'Tram Co Rang PK Khac',          color: '#93c5fd' },
-  { code: 'CF_R', label: 'Tram Co Rang Sau Tai Phat',     color: '#fca5a5' },
-  { code: 'DST', label: 'Rang Thua',                      color: '#9ca3af' },
-  { code: 'ATP', label: 'Mon Lo Tuy',                     color: '#ef4444' },
-  // --- Benh ly voi/nhu ---
-  { code: 'MC',  label: 'MCR (Mon Co Rang)',              color: '#ffffff', badge: 'MC',  bgColor: '#2563eb' },
-  { code: 'CV',  label: 'Cao Voi Rang',                   color: '#ffffff', badge: 'CV',  bgColor: '#3b82f6' },
-  { code: 'VT',  label: 'Viem Tuy Rang',                  color: '#ffffff', badge: 'VT',  bgColor: '#4338ca' },
-  { code: 'RS',  label: 'Boc Rang Su',                    color: '#ffffff', badge: 'RS',  bgColor: '#2563eb' },
-  { code: 'CC',  label: 'Rang Moc Chen Chuc',             color: '#ffffff', badge: 'CC',  bgColor: '#3b82f6' },
-  { code: 'NHO', label: 'Rang Can Nho',                   color: '#ef4444' },
-  { code: 'TKR', label: 'Thua Ke Rang',                   color: '#9ca3af' },
-  { code: 'ROOT', label: 'Chan Rang',                     color: '#dc2626' },
-  { code: 'NMP', label: 'Co Num Phu',                     color: '#9ca3af' },
-  { code: 'TUT', label: 'Tut Nuou',                       color: '#f87171' },
-  { code: 'TNC', label: 'Tui Nha Chu',                    color: '#1f2937' },
-  { code: 'ATT', label: 'Luu y',                          color: '#ef4444' },
-  // --- Vat lieu tram ---
+  { code: 'EN_O', label: 'Nội Nha PK Khác',               color: '#60a5fa', badge: 'NN',  bgColor: '#60a5fa' },
+  { code: 'EN',  label: 'Nội Nha PK',                     color: '#ef4444', badge: 'NN',  bgColor: '#ef4444' },
+  { code: 'FRC', label: 'Gãy Răng',                        color: '#6b7280' },
+  { code: 'CRK', label: 'Nứt Răng',                        color: '#3b82f6' },
+  // --- Tình trạng răng ---
+  { code: 'RN',  label: 'Răng Ngầm',                       color: '#ffffff', badge: 'RN',  bgColor: '#dc2626' },
+  { code: 'DN',  label: 'Răng Đã Nhổ',                     color: '#ffffff', badge: 'DN',  bgColor: '#dc2626' },
+  { code: 'MCR', label: 'Mòn Cổ Răng',                     color: '#f87171' },
+  { code: 'INF', label: 'Nhiễm Trùng',                     color: '#ef4444' },
+  { code: 'PT_O', label: 'Chốt PK Khác',                  color: '#3b82f6' },
+  { code: 'PT',  label: 'Chốt PK',                        color: '#ef4444' },
+  { code: 'ATR', label: 'Mòn Răng',                        color: '#9ca3af' },
+  { code: 'BRG', label: 'Cầu Răng',                       color: '#2563eb', badge: 'CR',  bgColor: '#2563eb' },
+  { code: 'RCN', label: 'Còn Chân Răng',                   color: '#dc2626' },
+  { code: 'CF_O', label: 'Trám Cổ Răng PK Khác',          color: '#93c5fd' },
+  { code: 'CF_R', label: 'Trám Cổ Răng Sâu Tái Phát',     color: '#fca5a5' },
+  { code: 'DST', label: 'Răng Thưa',                      color: '#9ca3af' },
+  { code: 'ATP', label: 'Mòn Lộ Tủy',                     color: '#ef4444' },
+  // --- Bệnh lý vôi/nhú ---
+  { code: 'MC',  label: 'MCR (Mòn Cổ Răng)',              color: '#ffffff', badge: 'MC',  bgColor: '#2563eb' },
+  { code: 'CV',  label: 'Cao Vôi Răng',                   color: '#ffffff', badge: 'CV',  bgColor: '#3b82f6' },
+  { code: 'VT',  label: 'Viêm Tủy Răng',                  color: '#ffffff', badge: 'VT',  bgColor: '#4338ca' },
+  { code: 'RS',  label: 'Bọc Răng Sứ',                    color: '#ffffff', badge: 'RS',  bgColor: '#2563eb' },
+  { code: 'CC',  label: 'Răng Mọc Chen Chúc',             color: '#ffffff', badge: 'CC',  bgColor: '#3b82f6' },
+  { code: 'NHO', label: 'Răng Cần Nhổ',                   color: '#ef4444' },
+  { code: 'TKR', label: 'Thừa Kẽ Răng',                   color: '#9ca3af' },
+  { code: 'ROOT', label: 'Chân Răng',                     color: '#dc2626' },
+  { code: 'NMP', label: 'Có Núm Phụ',                     color: '#9ca3af' },
+  { code: 'TUT', label: 'Tụt Nướu',                       color: '#f87171' },
+  { code: 'TNC', label: 'Túi Nha Chu',                    color: '#1f2937' },
+  { code: 'ATT', label: 'Lưu ý',                          color: '#ef4444' },
+  // --- Vật liệu trám ---
   { code: 'EU',  label: 'Eugenat',                        color: '#ffffff', badge: 'EU',  bgColor: '#0d9488' },
   { code: 'GIC', label: 'GIC',                            color: '#ffffff', badge: 'GIC', bgColor: '#7c3aed' },
   { code: 'CO',  label: 'Composite',                      color: '#ffffff', badge: 'CO',  bgColor: '#2563eb' },
   { code: 'A',   label: 'Amalgam',                        color: '#ffffff', badge: 'A',   bgColor: '#ec4899' },
-  // --- Khac ---
-  { code: 'DRF', label: 'Di Chuyen',                      color: '#facc15' },
+  // --- Khác ---
+  { code: 'DRF', label: 'Di Chuyển',                      color: '#facc15' },
   { code: 'IM',  label: 'Implant',                        color: '#6b7280' },
-  { code: 'MT',  label: 'Mat Rang',                       color: '#4b5563' },
-  { code: 'RD',  label: 'Rang Du',                        color: '#9ca3af' },
-  { code: 'FCT', label: 'Mat Dan',                        color: '#6b7280' },
-  { code: 'RT_L', label: 'Xoay Trai',                    color: '#22c55e' },
-  { code: 'RT_R', label: 'Xoay Phai',                    color: '#22c55e' },
-  { code: 'TR',  label: 'Thieu Rang',                     color: '#ef4444' },
+  { code: 'MT',  label: 'Mất Răng',                       color: '#4b5563' },
+  { code: 'RD',  label: 'Răng Dư',                        color: '#9ca3af' },
+  { code: 'FCT', label: 'Mất Dần',                        color: '#6b7280' },
+  { code: 'RT_L', label: 'Xoay Trái',                    color: '#22c55e' },
+  { code: 'RT_R', label: 'Xoay Phải',                    color: '#22c55e' },
+  { code: 'TR',  label: 'Thiếu Răng',                     color: '#ef4444' },
   { code: 'LL',  label: 'Lung Lay',                       color: '#ffffff', badge: 'LL',  bgColor: '#2563eb' },
-  { code: 'DFT', label: 'Rang Khiem Khuyet',             color: '#fbbf24' },
-  { code: 'RST', label: 'Da Phuc Hoi',                   color: '#3b82f6' },
-  { code: 'OCL', label: 'Mat Nhai',                       color: '#9ca3af' },
+  { code: 'DFT', label: 'Răng Khiếm Khuyết',             color: '#fbbf24' },
+  { code: 'RST', label: 'Đã Phục Hồi',                   color: '#3b82f6' },
+  { code: 'OCL', label: 'Mặt Nhai',                       color: '#9ca3af' },
 ];
 
 const CONDITION_COLOR_MAP: Record<ConditionCode, string> = CONDITIONS.reduce(
@@ -104,12 +104,12 @@ const ALL_TEETH = [...Q1, ...Q2, ...Q3, ...Q4];
 const getToothWidth = (num: number): number => {
   const lastDigit = num % 10;
   if (lastDigit === 6 || lastDigit === 7 || lastDigit === 8) {
-    return 32; // molars
+    return 64; // molars (enlarged 2x)
   }
   if (lastDigit === 1 || lastDigit === 2 || lastDigit === 3) {
-    return 20; // incisors / canines
+    return 40; // incisors / canines (enlarged 2x)
   }
-  return 24; // premolars
+  return 48; // premolars (enlarged 2x)
 };
 
 interface SurfaceCircleProps {
@@ -132,8 +132,8 @@ function SurfaceCircle({ surfaces, onSurfaceClick }: SurfaceCircleProps) {
 
   return (
     <svg
-      width="28"
-      height="28"
+      width="32"
+      height="32"
       viewBox="0 0 28 28"
       className="overflow-visible select-none shrink-0"
     >
@@ -383,7 +383,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
   // Save all tooth records to backend
   const handleSave = useCallback(async () => {
-    if (!customerId) { setSaveMsg('Khong co customerId'); return; }
+    if (!customerId) { setSaveMsg('Không có customerId'); return; }
     setIsSaving(true);
     setSaveMsg('');
     try {
@@ -400,9 +400,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      setSaveMsg('Da luu!');
+      setSaveMsg('Đã lưu!');
     } catch {
-      setSaveMsg('Luu that bai!');
+      setSaveMsg('Lưu thất bại!');
     } finally {
       setIsSaving(false);
     }
@@ -498,11 +498,11 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
     }> = [];
 
     const surfaceNameMap: Record<Surface, string> = {
-      M: 'Mat Gan (M)',
-      D: 'Mat Xa (D)',
-      B: 'Mat Ngoai (B)',
-      L: 'Mat Trong (L)',
-      O: 'Mat Nhai (O)',
+      M: 'Mặt Gần (M)',
+      D: 'Mặt Xa (D)',
+      B: 'Mặt Ngoài (B)',
+      L: 'Mặt Trong (L)',
+      O: 'Mặt Nhai (O)',
     };
 
     Object.entries(teeth).forEach(([numStr, data]) => {
@@ -511,7 +511,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         const condObj = CONDITIONS.find((c) => c.code === data.wholeCondition);
         rows.push({
           toothNum,
-          surface: 'Toan bo rang',
+          surface: 'Toàn bộ răng',
           isWhole: true,
           code: data.wholeCondition,
           label: condObj?.label || data.wholeCondition,
@@ -559,7 +559,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   const handleReset = () => {
     if (
       typeof window !== 'undefined' &&
-      window.confirm('Ban co chac chan muon dong va dat lai du lieu?')
+      window.confirm('Bạn có chắc chắn muốn đóng và đặt lại dữ liệu?')
     ) {
       setActiveCondition(null);
       setSelectedTooth(null);
@@ -582,12 +582,12 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
       <div
         key={toothNum}
         onClick={() => handleToothClick(toothNum)}
-        className={`flex flex-col items-center p-1 rounded-lg cursor-pointer transition-all ${
+        className={`flex flex-col items-center p-1.5 rounded-lg cursor-pointer transition-all ${
           isSelected
             ? 'bg-blue-50 ring-2 ring-blue-500 shadow-sm'
             : 'hover:bg-gray-100'
         }`}
-        style={{ minWidth: `${width + 6}px` }}
+        style={{ minWidth: `${width + 8}px` }}
       >
         {/* Tooth number */}
         <span
@@ -609,7 +609,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         {/* Tooth SVG */}
         <ToothSvg
           width={width}
-          height={36}
+          height={80}
           toothNum={toothNum}
           data={toothData}
           isSelected={isSelected}
@@ -619,15 +619,15 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   };
 
   return (
-    <div className="flex flex-row bg-white w-full overflow-hidden text-gray-800" style={{ height: '100vh' }}>
+    <div className="flex flex-row bg-white w-full overflow-hidden text-gray-800 h-screen">
       {/* LEFT SIDEBAR (w-72) */}
-      <aside className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col p-4 print:hidden overflow-hidden" style={{ height: '100vh' }}>
+      <aside className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col p-4 print:hidden overflow-hidden h-screen">
         <div className="mb-4 flex-shrink-0">
           <h2 className="text-base font-bold text-gray-800 uppercase tracking-wide">
-            Tinh trang rang
+            Tình trạng răng
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Benh ly rang nguoi truong thanh va tre em
+            Bệnh lý răng người trưởng thành và trẻ em
           </p>
         </div>
 
@@ -637,7 +637,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tim kiem benh ly..."
+            placeholder="Tìm kiếm bệnh lý..."
             className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -646,7 +646,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         {activeCondition && (
           <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 overflow-hidden">
-              <span className="font-semibold text-blue-800 shrink-0">Dang chon:</span>
+              <span className="font-semibold text-blue-800 shrink-0">Đang chọn:</span>
               <span
                 className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
                 style={{
@@ -666,7 +666,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               onClick={() => setActiveCondition(null)}
               className="text-[10px] text-blue-600 hover:text-blue-800 font-bold ml-1 shrink-0"
             >
-              Bo chon
+              Bỏ chọn
             </button>
           </div>
         )}
@@ -710,27 +710,27 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
           })}
           {filteredConditions.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-4 italic">
-              Khong tim thay benh ly
+              Không tìm thấy bệnh lý
             </p>
           )}
         </div>
       </aside>
 
       {/* CENTER (flex-1) */}
-      <main className="flex-1 flex flex-col p-6 overflow-y-auto bg-gray-50 print:p-2 print:w-full" style={{ height: '100vh' }}>
+      <main className="flex-1 flex flex-col p-6 overflow-y-auto bg-gray-50 print:p-2 print:w-full h-screen">
         {/* Top bar info */}
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
           <div>
             <h1 className="text-lg font-bold text-gray-800">
-              So do rang EMR
+              Sơ đồ răng EMR
             </h1>
             <p className="text-xs text-gray-500">
-              {customerId ? `Benh nhan: #${customerId}` : 'Chon benh ly ben trai va thao tac len rang'}
+              {customerId ? `Bệnh nhân: #${customerId}` : 'Chọn bệnh lý bên trái và thao tác lên răng'}
             </p>
           </div>
           {activeCondition && (
             <div className="hidden sm:flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg">
-              <span>Dang o che do ap dung benh ly:</span>
+              <span>Đang ở chế độ áp dụng bệnh lý:</span>
               <span className="font-bold underline">{activeCondition}</span>
             </div>
           )}
@@ -738,9 +738,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
         {/* TOOTH CHART */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
-          {/* HAM TREN label */}
+          {/* HÀM TRÊN label */}
           <div className="text-center text-xs font-bold text-gray-500 tracking-wider mb-3 uppercase">
-            HAM TREN
+            HÀM TRÊN
           </div>
 
           {/* Upper Row: Q1 | Q2 */}
@@ -752,7 +752,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               </div>
 
               {/* Midline divider */}
-              <div className="w-0.5 bg-gray-400 h-20 mx-2 self-center rounded-full" />
+              <div className="w-0.5 bg-gray-400 h-40 mx-4 self-center rounded-full" />
 
               {/* Q2: 21 up to 28 */}
               <div className="flex items-center gap-1">
@@ -773,7 +773,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               </div>
 
               {/* Midline divider */}
-              <div className="w-0.5 bg-gray-400 h-20 mx-2 self-center rounded-full" />
+              <div className="w-0.5 bg-gray-400 h-28 mx-2 self-center rounded-full" />
 
               {/* Q4: 31 up to 38 */}
               <div className="flex items-center gap-1">
@@ -782,9 +782,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
             </div>
           </div>
 
-          {/* HAM DUOI label */}
+          {/* HÀM DƯỚI label */}
           <div className="text-center text-xs font-bold text-gray-500 tracking-wider mt-3 uppercase">
-            HAM DUOI
+            HÀM DƯỚI
           </div>
         </div>
 
@@ -801,7 +801,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Chi tiet rang ({toothDetails.length})
+              Chi tiết răng ({toothDetails.length})
             </button>
             <button
               type="button"
@@ -812,7 +812,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Benh ly ({conditionRows.length})
+              Bệnh lý ({conditionRows.length})
             </button>
           </div>
 
@@ -822,31 +822,31 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs text-gray-500">
-                    Click len rang de them vao danh sach hoac chon rang ben duoi:
+                    Click lên răng để thêm vào danh sách hoặc chọn răng bên dưới:
                   </span>
                   <button
                     type="button"
                     onClick={() => handleAddDetailRow()}
                     className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors"
                   >
-                    + Them rang
+                    + Thêm răng
                   </button>
                 </div>
 
                 {toothDetails.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-6 italic">
-                    Chua co rang nao duoc chon. Hay click vao rang tren so do de them chi tiet.
+                    Chưa có răng nào được chọn. Hãy click vào răng trên sơ đồ để thêm chi tiết.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gray-200 text-gray-600 bg-gray-50">
-                          <th className="p-2 font-bold w-24">So rang</th>
-                          <th className="p-2 font-bold w-28">Phan loai</th>
-                          <th className="p-2 font-bold">Dieu tri</th>
-                          <th className="p-2 font-bold">Ghi chu</th>
-                          <th className="p-2 font-bold w-16 text-center">Xoa</th>
+                          <th className="p-2 font-bold w-24">Số răng</th>
+                          <th className="p-2 font-bold w-28">Phân loại</th>
+                          <th className="p-2 font-bold">Điều trị</th>
+                          <th className="p-2 font-bold">Ghi chú</th>
+                          <th className="p-2 font-bold w-16 text-center">Xóa</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -895,7 +895,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                 onChange={(e) =>
                                   handleUpdateDetail(idx, 'dieuTri', e.target.value)
                                 }
-                                placeholder="Nhap dieu tri..."
+                                placeholder="Nhập điều trị..."
                                 className="w-full p-1 border border-gray-300 rounded"
                               />
                             </td>
@@ -906,7 +906,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                 onChange={(e) =>
                                   handleUpdateDetail(idx, 'ghiChu', e.target.value)
                                 }
-                                placeholder="Nhap ghi chu..."
+                                placeholder="Nhập ghi chú..."
                                 className="w-full p-1 border border-gray-300 rounded"
                               />
                             </td>
@@ -916,7 +916,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                 onClick={() => handleDeleteDetail(idx)}
                                 className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
                               >
-                                Xoa
+                                Xóa
                               </button>
                             </td>
                           </tr>
@@ -930,18 +930,18 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               <div>
                 {conditionRows.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-6 italic">
-                    Chua co benh ly nao duoc ghi nhan. Hay chon benh ly o menu ben trai va click len rang hoac mat rang.
+                    Chưa có bệnh lý nào được ghi nhận. Hãy chọn bệnh lý ở menu bên trái và click lên răng hoặc mặt răng.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gray-200 text-gray-600 bg-gray-50">
-                          <th className="p-2 font-bold w-24">So rang</th>
-                          <th className="p-2 font-bold w-48">Mat rang</th>
-                          <th className="p-2 font-bold w-28">Ma benh ly</th>
-                          <th className="p-2 font-bold">Ten benh ly</th>
-                          <th className="p-2 font-bold w-16 text-center">Xoa</th>
+                          <th className="p-2 font-bold w-24">Số răng</th>
+                          <th className="p-2 font-bold w-48">Mặt răng</th>
+                          <th className="p-2 font-bold w-28">Mã bệnh lý</th>
+                          <th className="p-2 font-bold">Tên bệnh lý</th>
+                          <th className="p-2 font-bold w-16 text-center">Xóa</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -971,7 +971,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                 onClick={() => handleRemoveCondition(row)}
                                 className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
                               >
-                                Xoa
+                                Xóa
                               </button>
                             </td>
                           </tr>
@@ -989,49 +989,49 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
-              Ghi chu
+              Ghi chú
             </label>
             <textarea
               value={ghiChu}
               onChange={(e) => setGhiChu(e.target.value)}
               rows={3}
-              placeholder="Nhap ghi chu tong quat..."
+              placeholder="Nhập ghi chú tổng quát..."
               className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
-              Can lam sang
+              Cận lâm sàng
             </label>
             <textarea
               value={canLamSang}
               onChange={(e) => setCanLamSang(e.target.value)}
               rows={3}
-              placeholder="Nhap ket qua can lam sang (X-Quang, xet nghiem...)..."
+              placeholder="Nhập kết quả cận lâm sàng (X-Quang, xét nghiệm...)..."
               className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
-              Chan doan
+              Chẩn đoán
             </label>
             <textarea
               value={chanDoan}
               onChange={(e) => setChanDoan(e.target.value)}
               rows={3}
-              placeholder="Nhap chan doan benh..."
+              placeholder="Nhập chẩn đoán bệnh..."
               className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">
-              Chi dinh dieu tri
+              Chỉ định điều trị
             </label>
             <textarea
               value={chiDinhDieuTri}
               onChange={(e) => setChiDinhDieuTri(e.target.value)}
               rows={3}
-              placeholder="Nhap chi dinh phac do dieu tri..."
+              placeholder="Nhập chỉ định phác đồ điều trị..."
               className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -1040,7 +1040,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         {/* ACTION BUTTONS: Luu, In & Dong */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 print:hidden items-center">
           {saveMsg && (
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${saveMsg === 'Da luu!' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${saveMsg === 'Đã lưu!' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
               {saveMsg}
             </span>
           )}
@@ -1050,7 +1050,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
             disabled={isSaving}
             className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
           >
-            {isSaving ? 'Dang luu...' : 'Luu Benh An'}
+            {isSaving ? 'Đang lưu...' : 'Lưu Bệnh Án'}
           </button>
           <button
             type="button"
@@ -1068,7 +1068,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
             onClick={handleReset}
             className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-lg transition-colors"
           >
-            Dong
+            Đóng
           </button>
         </div>
       </main>
