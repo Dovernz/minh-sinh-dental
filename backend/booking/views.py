@@ -951,19 +951,26 @@ class ServiceStatsAPIView(View):
         return JsonResponse(list(stats), safe=False)
 
 
-from rest_framework import generics
-from .models import ToothRecord
-from .serializers import ToothRecordSerializer
+from rest_framework import viewsets
+from .models import DentalChart
+from .serializers import DentalChartSerializer
+from django.db.models import Max
 
-class ToothRecordListCreateView(generics.ListCreateAPIView):
-    serializer_class = ToothRecordSerializer
+class DentalChartViewSet(viewsets.ModelViewSet):
+    serializer_class = DentalChartSerializer
     
     def get_queryset(self):
         customer_id = self.request.query_params.get('customer_id')
-        qs = ToothRecord.objects.all()
+        qs = DentalChart.objects.all()
         if customer_id:
             qs = qs.filter(customer_id=customer_id)
-        return qs.order_by('tooth_number', 'surface')
+        return qs.order_by('-sequence_num')
+
+    def perform_create(self, serializer):
+        customer = serializer.validated_data.get('customer')
+        max_seq = DentalChart.objects.filter(customer=customer).aggregate(Max('sequence_num'))['sequence_num__max']
+        next_seq = (max_seq or 0) + 1
+        serializer.save(sequence_num=next_seq)
 
 
 

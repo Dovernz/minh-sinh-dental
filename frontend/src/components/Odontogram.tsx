@@ -341,7 +341,17 @@ function ToothSvg({ width, height, toothNum, data, isSelected }: ToothSvgProps) 
   );
 }
 
-export default function Odontogram({ customerId }: { customerId?: string | number }) {
+export default function Odontogram({ 
+  customerId, 
+  initialChartId, 
+  initialClonedFromId,
+  onSaved 
+}: { 
+  customerId?: string | number;
+  initialChartId?: number | null;
+  initialClonedFromId?: number | null;
+  onSaved?: () => void;
+}) {
   const [activeCondition, setActiveCondition] = useState<ConditionCode | null>(null);
   const [teeth, setTeeth] = useState<Record<number, ToothData>>({});
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -361,52 +371,112 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
+  const [charts, setCharts] = useState<any[]>([]);
+  const [currentChartId, setCurrentChartId] = useState<number | null>(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [clonedFromId, setClonedFromId] = useState<number | null>(null);
+
   const API_BASE = 'http://localhost:8000';
 
-  // Load existing ToothRecord data for this customer on mount
   useEffect(() => {
     if (!customerId) return;
-    fetch(`${API_BASE}/api/tooth-records/?customer_id=${customerId}`)
+    fetch(`${API_BASE}/api/dental-charts/?customer_id=${customerId}`)
       .then((r) => r.json())
-      .then((records: Array<{tooth_number: number; condition: string; class_type: string; treatment: string; note: string}>) => {
-        const loaded: Record<number, ToothData> = {};
-        const details: Array<{toothNum: number; loai: 'P'|'N'|''; dieuTri: string; ghiChu: string}> = [];
-        records.forEach((rec) => {
-          loaded[rec.tooth_number] = { surfaces: {}, wholeCondition: rec.condition as ConditionCode };
-          details.push({ toothNum: rec.tooth_number, loai: (rec.class_type as 'P'|'N'|'') || '', dieuTri: rec.treatment || '', ghiChu: rec.note || '' });
-        });
-        setTeeth(loaded);
-        setToothDetails(details);
+      .then((data: any[]) => {
+        setCharts(data);
+        if (initialChartId) {
+          const chart = data.find((c: any) => c.id === initialChartId);
+          if (chart) {
+            loadChartData(chart, true, null);
+          }
+        } else if (initialClonedFromId) {
+          const chart = data.find((c: any) => c.id === initialClonedFromId);
+          if (chart) {
+            loadChartData(chart, false, initialClonedFromId);
+          }
+        } else {
+          handleCreateNew();
+        }
       })
       .catch(() => {});
-  }, [customerId]);
+  }, [customerId, initialChartId, initialClonedFromId]);
 
-  // Save all tooth records to backend
+  const loadChartData = (chart: any, readOnly: boolean, clonedId: number | null) => {
+    setCurrentChartId(readOnly ? chart.id : null);
+    setIsReadOnly(readOnly);
+    setClonedFromId(readOnly ? chart.cloned_from || null : clonedId);
+    
+    if (chart.tooth_data) {
+      setTeeth(chart.tooth_data.teeth || {});
+      setToothDetails(chart.tooth_data.details || []);
+    } else {
+      setTeeth({});
+      setToothDetails([]);
+    }
+
+    if (chart.notes_data) {
+      setGhiChu(chart.notes_data.ghiChu || '');
+      setCanLamSang(chart.notes_data.canLamSang || '');
+      setChanDoan(chart.notes_data.chanDoan || '');
+      setChiDinhDieuTri(chart.notes_data.chiDinhDieuTri || '');
+    } else {
+      setGhiChu('');
+      setCanLamSang('');
+      setChanDoan('');
+      setChiDinhDieuTri('');
+    }
+  };
+
+  const handleCreateNew = () => {
+    setCurrentChartId(null);
+    setIsReadOnly(false);
+    setClonedFromId(null);
+    setTeeth({});
+    setToothDetails([]);
+    setGhiChu('');
+    setCanLamSang('');
+    setChanDoan('');
+    setChiDinhDieuTri('');
+  };
+
+  const handleContinue = () => {
+    setClonedFromId(currentChartId);
+    setCurrentChartId(null);
+    setIsReadOnly(false);
+  };
+
   const handleSave = useCallback(async () => {
     if (!customerId) { setSaveMsg('Không có customerId'); return; }
     setIsSaving(true);
     setSaveMsg('');
     try {
-      const payload = toothDetails.map((d) => ({
-        customer_id: customerId,
-        tooth_number: d.toothNum,
-        condition: teeth[d.toothNum]?.wholeCondition || '',
-        class_type: d.loai,
-        treatment: d.dieuTri,
-        note: d.ghiChu,
-      }));
-      await fetch(`${API_BASE}/api/tooth-records/?customer_id=${customerId}`, {
+      const payload = {
+        customer: customerId,
+        cloned_from: clonedFromId,
+        tooth_data: { teeth, details: toothDetails },
+        notes_data: { ghiChu, canLamSang, chanDoan, chiDinhDieuTri }
+      };
+      
+      const res = await fetch(`${API_BASE}/api/dental-charts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      setSaveMsg('Đã lưu!');
+      if (res.ok) {
+        const newChart = await res.json();
+        setCharts((prev) => [...prev, newChart]);
+        loadChartData(newChart, true, null);
+        setSaveMsg('Đã lưu!');
+        if (onSaved) onSaved();
+      } else {
+        setSaveMsg('Lưu thất bại!');
+      }
     } catch {
       setSaveMsg('Lưu thất bại!');
     } finally {
       setIsSaving(false);
     }
-  }, [customerId, toothDetails, teeth]);
+  }, [customerId, toothDetails, teeth, ghiChu, canLamSang, chanDoan, chiDinhDieuTri, clonedFromId]);
 
   // Filtered conditions for search input
   const filteredConditions = useMemo(() => {
@@ -419,6 +489,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
   // Click on tooth wrapper
   const handleToothClick = (toothNum: number) => {
+    if (isReadOnly) return;
     if (activeCondition) {
       setTeeth((prev) => {
         const current = prev[toothNum] || { surfaces: {} };
@@ -439,6 +510,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
   // Click on surface segment
   const handleSurfaceClick = (toothNum: number, surface: Surface) => {
+    if (isReadOnly) return;
     if (!activeCondition) return;
     setTeeth((prev) => {
       const current = prev[toothNum] || { surfaces: {} };
@@ -458,6 +530,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
   // Details tab actions
   const handleAddDetailRow = (toothNum?: number) => {
+    if (isReadOnly) return;
     const targetTooth =
       toothNum ||
       selectedTooth ||
@@ -474,6 +547,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
     field: 'toothNum' | 'loai' | 'dieuTri' | 'ghiChu',
     value: any
   ) => {
+    if (isReadOnly) return;
     setToothDetails((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -482,6 +556,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   };
 
   const handleDeleteDetail = (index: number) => {
+    if (isReadOnly) return;
     setToothDetails((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -540,6 +615,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   }, [teeth]);
 
   const handleRemoveCondition = (row: (typeof conditionRows)[0]) => {
+    if (isReadOnly) return;
     setTeeth((prev) => {
       const current = prev[row.toothNum];
       if (!current) return prev;
@@ -557,6 +633,7 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
 
   // Reset form handler
   const handleReset = () => {
+    if (isReadOnly) return;
     if (
       typeof window !== 'undefined' &&
       window.confirm('Bạn có chắc chắn muốn đóng và đặt lại dữ liệu?')
@@ -621,100 +698,102 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
   return (
     <div className="flex flex-row bg-white w-full overflow-hidden text-gray-800 h-screen">
       {/* LEFT SIDEBAR (w-72) */}
-      <aside className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col p-4 print:hidden overflow-hidden h-screen">
-        <div className="mb-4 flex-shrink-0">
-          <h2 className="text-base font-bold text-gray-800 uppercase tracking-wide">
-            Tình trạng răng
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Bệnh lý răng người trưởng thành và trẻ em
-          </p>
-        </div>
-
-        {/* Search input */}
-        <div className="mb-3">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm bệnh lý..."
-            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* Active condition indicator */}
-        {activeCondition && (
-          <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 overflow-hidden">
-              <span className="font-semibold text-blue-800 shrink-0">Đang chọn:</span>
-              <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
-                style={{
-                  backgroundColor:
-                    CONDITIONS.find((c) => c.code === activeCondition)?.color || '#3b82f6',
-                  color: activeCondition === 'NL' ? '#065f46' : '#ffffff',
-                }}
-              >
-                {activeCondition}
-              </span>
-              <span className="text-blue-900 truncate">
-                {CONDITIONS.find((c) => c.code === activeCondition)?.label}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveCondition(null)}
-              className="text-[10px] text-blue-600 hover:text-blue-800 font-bold ml-1 shrink-0"
-            >
-              Bỏ chọn
-            </button>
+      {!isReadOnly && (
+        <aside className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col p-4 print:hidden overflow-hidden h-screen">
+          <div className="mb-4 flex-shrink-0">
+            <h2 className="text-base font-bold text-gray-800 uppercase tracking-wide">
+              Tình trạng răng
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Bệnh lý răng người trưởng thành và trẻ em
+            </p>
           </div>
-        )}
 
-        {/* Conditions list badges */}
-        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-          {filteredConditions.map((c) => {
-            const isActive = activeCondition === c.code;
-            return (
-              <button
-                key={c.code}
-                type="button"
-                onClick={() =>
-                  setActiveCondition((prev) => (prev === c.code ? null : c.code))
-                }
-                className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs transition-all border ${
-                  isActive
-                    ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-300 shadow-sm'
-                    : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'
-                }`}
-              >
-                {/* Badge: hiển thị badge text với bgColor nếu có, fallback sang code */}
+          {/* Search input */}
+          <div className="mb-3">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm bệnh lý..."
+              className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Active condition indicator */}
+          {activeCondition && (
+            <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <span className="font-semibold text-blue-800 shrink-0">Đang chọn:</span>
                 <span
-                  className="w-9 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm"
+                  className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
                   style={{
-                    backgroundColor: c.bgColor || c.color,
-                    color: '#ffffff',
+                    backgroundColor:
+                      CONDITIONS.find((c) => c.code === activeCondition)?.color || '#3b82f6',
+                    color: activeCondition === 'NL' ? '#065f46' : '#ffffff',
                   }}
                 >
-                  {c.badge || c.code}
+                  {activeCondition}
                 </span>
-                <span
-                  className={`truncate font-medium ${
-                    isActive ? 'text-blue-900 font-semibold' : 'text-gray-700'
+                <span className="text-blue-900 truncate">
+                  {CONDITIONS.find((c) => c.code === activeCondition)?.label}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveCondition(null)}
+                className="text-[10px] text-blue-600 hover:text-blue-800 font-bold ml-1 shrink-0"
+              >
+                Bỏ chọn
+              </button>
+            </div>
+          )}
+
+          {/* Conditions list badges */}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+            {filteredConditions.map((c) => {
+              const isActive = activeCondition === c.code;
+              return (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() =>
+                    setActiveCondition((prev) => (prev === c.code ? null : c.code))
+                  }
+                  className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs transition-all border ${
+                    isActive
+                      ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-300 shadow-sm'
+                      : 'border-gray-100 hover:bg-gray-50 hover:border-gray-200'
                   }`}
                 >
-                  {c.label}
-                </span>
-              </button>
-            );
-          })}
-          {filteredConditions.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-4 italic">
-              Không tìm thấy bệnh lý
-            </p>
-          )}
-        </div>
-      </aside>
+                  {/* Badge: hiển thị badge text với bgColor nếu có, fallback sang code */}
+                  <span
+                    className="w-9 h-6 rounded flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm"
+                    style={{
+                      backgroundColor: c.bgColor || c.color,
+                      color: '#ffffff',
+                    }}
+                  >
+                    {c.badge || c.code}
+                  </span>
+                  <span
+                    className={`truncate font-medium ${
+                      isActive ? 'text-blue-900 font-semibold' : 'text-gray-700'
+                    }`}
+                  >
+                    {c.label}
+                  </span>
+                </button>
+              );
+            })}
+            {filteredConditions.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-4 italic">
+                Không tìm thấy bệnh lý
+              </p>
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* CENTER (flex-1) */}
       <main className="flex-1 flex flex-col p-6 overflow-y-auto bg-gray-50 print:p-2 print:w-full h-screen">
@@ -722,18 +801,54 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
           <div>
             <h1 className="text-lg font-bold text-gray-800">
-              Sơ đồ răng EMR
+              {customerId ? `Bệnh nhân: #${customerId}` : 'Sơ đồ răng EMR'}
             </h1>
             <p className="text-xs text-gray-500">
-              {customerId ? `Bệnh nhân: #${customerId}` : 'Chọn bệnh lý bên trái và thao tác lên răng'}
+              {clonedFromId && (
+                <span className="mr-3 text-blue-600 font-semibold cursor-pointer hover:underline" onClick={() => {
+                  const chart = charts.find(c => c.id === clonedFromId);
+                  if (chart) loadChartData(chart);
+                }}>
+                  Tiếp nối từ Sơ đồ {charts.find(c => c.id === clonedFromId)?.sequence_num}
+                </span>
+              )}
+              {isReadOnly ? 'Chế độ xem sơ đồ (Chỉ đọc)' : 'Chọn bệnh lý bên trái và thao tác lên răng'}
             </p>
           </div>
-          {activeCondition && (
-            <div className="hidden sm:flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg">
-              <span>Đang ở chế độ áp dụng bệnh lý:</span>
-              <span className="font-bold underline">{activeCondition}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {activeCondition && !isReadOnly && (
+              <div className="hidden sm:flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg">
+                <span>Đang ở chế độ áp dụng bệnh lý:</span>
+                <span className="font-bold underline">{activeCondition}</span>
+              </div>
+            )}
+            
+            {/* Lịch sử sơ đồ dropdown */}
+            <select
+              value={currentChartId || 'new'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'new') {
+                  handleCreateNew();
+                } else if (val === 'continue') {
+                  handleContinue();
+                } else {
+                  const chart = charts.find(c => c.id === Number(val));
+                  if (chart) loadChartData(chart);
+                }
+              }}
+              className="p-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Lịch sử Sơ đồ...</option>
+              {charts.map(c => (
+                <option key={c.id} value={c.id}>
+                  Sơ đồ {c.sequence_num} ({new Date(c.created_at).toLocaleDateString()}) - Xem
+                </option>
+              ))}
+              <option value="new">Tạo sơ đồ mới</option>
+              {currentChartId && isReadOnly && <option value="continue">Tiếp nối sơ đồ này</option>}
+            </select>
+          </div>
         </div>
 
         {/* TOOTH CHART */}
@@ -862,7 +977,8 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                     parseInt(e.target.value, 10)
                                   )
                                 }
-                                className="w-full p-1 border border-gray-300 rounded font-bold text-gray-700 bg-white"
+                                disabled={isReadOnly}
+                                className="w-full p-1 border border-gray-300 rounded font-bold text-gray-700 bg-white disabled:opacity-75 disabled:bg-gray-100"
                               >
                                 {ALL_TEETH.map((n) => (
                                   <option key={n} value={n}>
@@ -881,7 +997,8 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                     e.target.value as 'P' | 'N' | ''
                                   )
                                 }
-                                className="w-full p-1 border border-gray-300 rounded bg-white"
+                                disabled={isReadOnly}
+                                className="w-full p-1 border border-gray-300 rounded bg-white disabled:opacity-75 disabled:bg-gray-100"
                               >
                                 <option value="">--</option>
                                 <option value="P">P</option>
@@ -896,7 +1013,8 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                   handleUpdateDetail(idx, 'dieuTri', e.target.value)
                                 }
                                 placeholder="Nhập điều trị..."
-                                className="w-full p-1 border border-gray-300 rounded"
+                                readOnly={isReadOnly}
+                                className="w-full p-1 border border-gray-300 rounded read-only:bg-gray-100 read-only:opacity-75"
                               />
                             </td>
                             <td className="p-2">
@@ -907,17 +1025,20 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
                                   handleUpdateDetail(idx, 'ghiChu', e.target.value)
                                 }
                                 placeholder="Nhập ghi chú..."
-                                className="w-full p-1 border border-gray-300 rounded"
+                                readOnly={isReadOnly}
+                                className="w-full p-1 border border-gray-300 rounded read-only:bg-gray-100 read-only:opacity-75"
                               />
                             </td>
                             <td className="p-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDetail(idx)}
-                                className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
-                              >
-                                Xóa
-                              </button>
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDetail(idx)}
+                                  className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
+                                >
+                                  Xóa
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -995,8 +1116,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               value={ghiChu}
               onChange={(e) => setGhiChu(e.target.value)}
               rows={3}
+              readOnly={isReadOnly}
               placeholder="Nhập ghi chú tổng quát..."
-              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
             />
           </div>
           <div>
@@ -1007,8 +1129,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               value={canLamSang}
               onChange={(e) => setCanLamSang(e.target.value)}
               rows={3}
+              readOnly={isReadOnly}
               placeholder="Nhập kết quả cận lâm sàng (X-Quang, xét nghiệm...)..."
-              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
             />
           </div>
           <div>
@@ -1019,8 +1142,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               value={chanDoan}
               onChange={(e) => setChanDoan(e.target.value)}
               rows={3}
+              readOnly={isReadOnly}
               placeholder="Nhập chẩn đoán bệnh..."
-              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
             />
           </div>
           <div>
@@ -1031,8 +1155,9 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               value={chiDinhDieuTri}
               onChange={(e) => setChiDinhDieuTri(e.target.value)}
               rows={3}
+              readOnly={isReadOnly}
               placeholder="Nhập chỉ định phác đồ điều trị..."
-              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 read-only:bg-gray-100"
             />
           </div>
         </div>
@@ -1044,14 +1169,24 @@ export default function Odontogram({ customerId }: { customerId?: string | numbe
               {saveMsg}
             </span>
           )}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
-          >
-            {isSaving ? 'Đang lưu...' : 'Lưu Bệnh Án'}
-          </button>
+          {isReadOnly ? (
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              Tạo tiếp nối
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              {isSaving ? 'Đang lưu...' : 'Lưu Bệnh Án'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

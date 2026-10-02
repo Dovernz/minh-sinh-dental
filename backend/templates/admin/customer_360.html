@@ -760,7 +760,7 @@
         dentalChartLoaded = true;
         const customerId = '{{ customer.pk }}';
         const iframe = document.getElementById('dental-chart-iframe');
-        iframe.src = `http://localhost:3000/dental-chart?customerId=${customerId}`;
+        iframe.src = 'http://localhost:3000/dental-chart?customerId=' + customerId;
     }
 
     function calculateTotalConfirmed() {

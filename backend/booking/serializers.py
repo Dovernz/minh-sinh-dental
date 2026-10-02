@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Clinic, ServiceDetail, ServiceCategory, Booking, Customer, ToothRecord
+from .models import Clinic, ServiceDetail, ServiceCategory, Booking, Customer, DentalChart
 
 class ClinicSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,9 +58,10 @@ class MenuLinkSerializer(serializers.ModelSerializer):
         return MenuLinkSerializer(children, many=True).data
 
 
-class ToothRecordSerializer(serializers.ModelSerializer):
+class DentalChartSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    
     class Meta:
-        model = ToothRecord
+        model = DentalChart
         fields = '__all__'
-        read_only_fields = ['record_id', 'created_at', 'updated_at']
-
+        read_only_fields = ['sequence_num', 'created_at']

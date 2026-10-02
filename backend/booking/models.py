@@ -510,43 +510,35 @@ class DoctorConsultationProxy(Consultation):
         verbose_name_plural = 'Phác đồ & Tư vấn (Bác sĩ)'
 
 
-class ToothRecord(models.Model):
-    """So do rang - Tooth chart records for EMR"""
-    record_id = models.AutoField(primary_key=True)
+class DentalChart(models.Model):
+    """So do rang - JSON format for easy versioning"""
     customer = models.ForeignKey(
-        Customer, 
-        on_delete=models.CASCADE, 
-        related_name='tooth_records',
+        Customer,
+        on_delete=models.CASCADE,
+        related_name='dental_charts',
         verbose_name='Khach hang'
     )
-    tooth_number = models.IntegerField(verbose_name='So rang (FDI)')
-    surface = models.CharField(
-        max_length=10, blank=True, null=True,
-        verbose_name='Mat rang (M/D/B/L/O hoac None)'
+    sequence_num = models.IntegerField(default=1, verbose_name='Phien ban so')
+    cloned_from = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clones',
+        verbose_name='Phien ban goc'
     )
-    condition = models.CharField(
-        max_length=10, 
-        verbose_name='Ma benh ly (RN/CO/MT...)'
-    )
-    class_type = models.CharField(
-        max_length=5, blank=True, null=True,
-        verbose_name='Phan loai (P/N)'
-    )
-    treatment = models.CharField(
-        max_length=255, blank=True, null=True,
-        verbose_name='Dieu tri'
-    )
-    note = models.TextField(blank=True, null=True, verbose_name='Ghi chu')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    tooth_data = models.JSONField(default=dict, verbose_name='Du lieu so do rang')
+    notes_data = models.JSONField(default=dict, blank=True, null=True, verbose_name='Du lieu ghi chu')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ngay tao')
 
     class Meta:
-        db_table = 'db_table_tooth_records'
-        verbose_name = 'Ho so So do rang'
-        verbose_name_plural = 'Ho so So do rang'
+        db_table = 'db_table_dental_charts'
+        verbose_name = 'Phien ban So do rang'
+        verbose_name_plural = 'Phien ban So do rang'
+        unique_together = ('customer', 'sequence_num')
 
     def __str__(self):
-        return f'Rang {self.tooth_number} - KH {self.customer_id}'
+        return f'Chart KH {self.customer_id} - Ver {self.sequence_num}'
 
 
 

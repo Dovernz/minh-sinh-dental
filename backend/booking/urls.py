@@ -1,6 +1,6 @@
 from django.urls import path
 import django.views.generic
-from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, ToothRecordListCreateView
+from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
 
 urlpatterns = [
     path('admin-clinics/', ClinicListAPIView.as_view(), name='api-admin-clinics'),
@@ -28,6 +28,6 @@ urlpatterns = [
     path('employees/', EmployeeEmbedAPIView.as_view(), name='api-employees'),
     path('commission-stats/', CommissionStatsAPIView.as_view(), name='api-commission-stats'),
     path('service-stats/', ServiceStatsAPIView.as_view(), name='api-service-stats'),
-    path('tooth-records/', ToothRecordListCreateView.as_view(), name='api-tooth-records'),
+    path('dental-charts/', DentalChartViewSet.as_view({'get': 'list', 'post': 'create'}), name='api-dental-charts'),
 ]
 
