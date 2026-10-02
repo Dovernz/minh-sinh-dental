@@ -777,9 +777,22 @@ class BookingStatusHistoryAdmin(BaseRBACAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(BaseRBACAdmin):
-    list_display = ('payment_id', 'get_customer', 'formatted_amount', 'payment_method', 'formatted_remain', 'created_at')
+    list_display = ('payment_id', 'get_clinic', 'get_booking', 'formatted_total', 'formatted_amount', 'formatted_remain', 'payment_method', 'created_at', 'print_invoice_button')
     list_filter = ('payment_method', 'created_at')
-    search_fields = ('billing__booking__customer__name', 'billing__booking__customer__phone')
+    search_fields = ('billing__booking__customer__name', 'billing__booking__customer__phone', 'billing__booking__booking_id')
+    readonly_fields = ('payment_qr_code',)
+
+    def get_clinic(self, obj):
+        if obj.billing and obj.billing.clinic:
+            return obj.billing.clinic.name
+        return "N/A"
+    get_clinic.short_description = 'Cơ sở khám'
+
+    def get_booking(self, obj):
+        if obj.billing and obj.billing.booking:
+            return f"Booking {obj.billing.booking.booking_id}"
+        return "N/A"
+    get_booking.short_description = 'Lịch khám'
 
     def get_customer(self, obj):
         if obj.billing and obj.billing.booking and obj.billing.booking.customer:
@@ -787,13 +800,99 @@ class PaymentAdmin(BaseRBACAdmin):
         return "N/A"
     get_customer.short_description = 'Khách hàng'
 
+    def formatted_total(self, obj):
+        return f"{int(obj.total_billing or 0):,}"
+    formatted_total.short_description = "Tổng tiền gốc"
+
     def formatted_amount(self, obj):
         return f"{int(obj.amount or 0):,}"
-    formatted_amount.short_description = "Số tiền thanh toán"
+    formatted_amount.short_description = "Thành tiền (Thanh toán)"
 
     def formatted_remain(self, obj):
         return f"{int(obj.amount_remain or 0):,}"
     formatted_remain.short_description = "Dư nợ còn lại"
+
+    def payment_qr_code(self, obj):
+        if obj.pk and obj.amount > 0:
+            from booking.models import TopupInfo
+            topup = TopupInfo.objects.filter(is_default=True).first()
+            if not topup:
+                topup = TopupInfo.objects.first()
+            if topup:
+                from urllib.parse import quote
+                bank = topup.bank_name
+                account = topup.account_number
+                name = topup.account_name.replace(' ', '%20') if topup.account_name else ''
+                amount = int(obj.amount)
+                try:
+                    c_name = obj.billing.booking.customer.name if (obj.billing and obj.billing.booking and obj.billing.booking.customer) else 'KHACH'
+                    from booking.admin import remove_vietnamese_accents
+                    f_name = remove_vietnamese_accents(c_name).strip().split(' ')[-1]
+                    d_str = obj.created_at.strftime('%d%m') if getattr(obj, 'created_at', None) else '0000'
+                    info = quote(f"{f_name} {d_str} PT{obj.payment_id}"[:40])
+                except Exception:
+                    info = f"PT{obj.payment_id}"
+                url = f"https://img.vietqr.io/image/{bank}-{account}-qr_only.png?amount={amount}&addInfo={info}&accountName={name}"
+                from django.utils.safestring import mark_safe
+                return mark_safe(f'<img src="{url}" alt="QR Code" style="max-width: 300px;"/>')
+        return "Chưa có thông tin"
+    payment_qr_code.short_description = "QR Thanh Toán"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        from django.urls import path
+        my_urls = [
+            path('<int:payment_id>/print/', self.admin_site.admin_view(self.print_invoice_view), name='payment-print-invoice'),
+        ]
+        return my_urls + urls
+
+    def print_invoice_view(self, request, payment_id):
+        from django.shortcuts import get_object_or_404, render
+        from booking.models import Payment, TopupInfo
+        from urllib.parse import quote
+        payment = get_object_or_404(Payment, pk=payment_id)
+        billing = payment.billing
+        booking = billing.booking if billing else None
+        details = booking.details.all() if booking else []
+        customer = booking.customer if booking else None
+        
+        qr_url = ""
+        if payment.amount > 0:
+            topup = TopupInfo.objects.filter(is_default=True).first()
+            if not topup:
+                topup = TopupInfo.objects.first()
+            if topup:
+                bank = topup.bank_name
+                account = topup.account_number
+                name = topup.account_name.replace(' ', '%20') if topup.account_name else ''
+                amount = int(payment.amount)
+                try:
+                    c_name = customer.name if customer else 'KHACH'
+                    from booking.admin import remove_vietnamese_accents
+                    f_name = remove_vietnamese_accents(c_name).strip().split(' ')[-1]
+                    d_str = payment.created_at.strftime('%d%m') if getattr(payment, 'created_at', None) else '0000'
+                    info = quote(f"{f_name} {d_str} PT{payment.payment_id}"[:40])
+                except Exception:
+                    info = f"PT{payment.payment_id}"
+                qr_url = f"https://img.vietqr.io/image/{bank}-{account}-qr_only.png?amount={amount}&addInfo={info}&accountName={name}"
+
+        context = {
+            'payment': payment,
+            'billing': billing,
+            'booking': booking,
+            'details': details,
+            'customer': customer,
+            'qr_url': qr_url,
+        }
+        return render(request, 'admin/booking/payment/invoice.html', context)
+
+    def print_invoice_button(self, obj):
+        from django.utils.html import format_html
+        if obj.pk:
+            return format_html('<a href="/admin/booking/payment/{}/print/" target="_blank" class="button" style="background-color:#007bff; color:white; padding:5px 10px; border-radius:3px; text-decoration:none;">🖨️ In Hóa Đơn</a>', obj.pk)
+        return ""
+    print_invoice_button.short_description = "In Hóa Đơn"
+
 
 @admin.register(InventoryDetail)
 class InventoryDetailAdmin(BaseRBACAdmin):
@@ -1119,7 +1218,8 @@ class BillingAdmin(BaseRBACAdmin):
         customer = booking.customer
         
         qr_url = ""
-        if billing.final_total > 0:
+        amount_to_pay = billing.remaining_balance
+        if amount_to_pay > 0:
             topup = TopupInfo.objects.filter(is_default=True).first()
             if not topup:
                 topup = TopupInfo.objects.first()
@@ -1127,7 +1227,8 @@ class BillingAdmin(BaseRBACAdmin):
                 bank = topup.bank_name
                 account = topup.account_number
                 name = topup.account_name.replace(' ', '%20') if topup.account_name else ''
-                amount = int(billing.final_total)
+                amount = int(amount_to_pay)
+
                 try:
                     c_name = booking.customer.name if (booking and getattr(booking, 'customer', None)) else 'KHACH'
                     f_name = remove_vietnamese_accents(c_name).strip().split(' ')[-1]
@@ -1135,7 +1236,7 @@ class BillingAdmin(BaseRBACAdmin):
                     info = quote(f"{f_name} {d_str} HD{billing.billing_id}"[:40])
                 except Exception:
                     info = f"HD{billing.billing_id}"
-                qr_url = f"https://img.vietqr.io/image/{bank}-{account}-compact2.png?amount={amount}&addInfo={info}&accountName={name}"
+                qr_url = f"https://img.vietqr.io/image/{bank}-{account}-qr_only.png?amount={amount}&addInfo={info}&accountName={name}"
 
         context = {
             'billing': billing,
@@ -1170,7 +1271,7 @@ class BillingAdmin(BaseRBACAdmin):
                     info = quote(f"{f_name} {d_str} HD{obj.billing_id}"[:40])
                 except Exception:
                     info = f"HD{obj.billing_id}"
-                url = f"https://img.vietqr.io/image/{bank}-{account}-compact2.png?amount={amount}&addInfo={info}&accountName={name}"
+                url = f"https://img.vietqr.io/image/{bank}-{account}-qr_only.png?amount={amount}&addInfo={info}&accountName={name}"
                 return mark_safe(f'<img src="{url}" alt="QR Code" style="max-width: 300px;"/>')
         return "Chưa có thông tin hoặc tổng tiền = 0"
     payment_qr_code.short_description = "QR Thanh Toán"
@@ -1180,8 +1281,10 @@ class BillingAdmin(BaseRBACAdmin):
     formatted_subtotal.short_description = "Tổng tiền gốc"
 
     def formatted_final_total(self, obj):
+        if obj.status in ['UNPAID', 'INSTALLMENT']:
+            return f"{int(obj.remaining_balance):,}"
         return f"{int(obj.final_total or 0):,}"
-    formatted_final_total.short_description = "Thành tiền"
+    formatted_final_total.short_description = "Thành tiền (Cần thu)"
 
 @admin.register(BookingDetail)
 class BookingDetailAdmin(BaseRBACAdmin):

@@ -50,9 +50,14 @@
             <p id="qr_content" class="text-sm font-mono bg-blue-50 text-blue-800 border border-blue-200 mt-4 py-2 px-3 rounded font-bold break-all"></p>
         </div>
 
-        <button onclick="submitPayment()" class="w-full max-w-md mx-auto block bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 text-lg">
-            ✅ XÁC NHẬN ĐÃ THU TIỀN
-        </button>
+                <div class="flex flex-col md:flex-row gap-4 w-full max-w-xl mx-auto justify-center">
+            <button onclick="submitPayment()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 text-lg">
+                <i class="material-symbols-outlined align-middle mr-2">check_circle</i> Xác Nhận Thu
+            </button>
+            <button onclick="submitAndPrint()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 text-lg">
+                <i class="material-symbols-outlined align-middle mr-2">print</i> Thu & In Hóa Đơn
+            </button>
+        </div>
     </div>
 </div>
 
@@ -132,7 +137,25 @@
         let content = `${namePart} ${dateStr} HD${currentDebt.id}`.substring(0, 35);
 
         document.getElementById('qr_content').innerText = "Nội dung CK: " + content;
-        document.getElementById('qr_image').src = `https://img.vietqr.io/image/${bankId}-${accNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
+        document.getElementById('qr_image').src = `https://img.vietqr.io/image/${bankId}-${accNo}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
+    }
+
+    function submitAndPrint() {
+        if(!currentDebt) return;
+        let amount = parseNumber(document.getElementById('pay_amount').value);
+        if(amount <= 0 || amount > currentDebt.remain_amount) {
+            alert("Số tiền không hợp lệ! Vui lòng kiểm tra lại Dư nợ."); return;
+        }
+
+        fetch('/api/pos/confirm-payment/', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ billing_id: currentDebt.id, amount: amount, payment_method: document.getElementById('pay_method').value })
+        }).then(r => r.json()).then(res => {
+            if(res.status === 'success') {
+                window.open('/admin/booking/payment/' + res.payment_id + '/print/', '_blank');
+                setTimeout(() => { window.location.reload(); }, 500);
+            } else { alert('❌ Lỗi: ' + res.error); }
+        });
     }
 
     function submitPayment() {

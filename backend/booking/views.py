@@ -728,7 +728,7 @@ class POSConfirmPaymentAPIView(View):
                 remain = total - float(prev_payments) - pay_amount
                 if remain < 0: remain = 0
                 
-                Payment.objects.create(
+                payment = Payment.objects.create(
                     billing=billing,
                     amount=pay_amount,
                     payment_method=data.get('payment_method', 'CASH'),
@@ -739,7 +739,7 @@ class POSConfirmPaymentAPIView(View):
                 billing.status = 'PAID' if remain <= 0 else 'INSTALLMENT'
                 billing.save()
                 
-            return JsonResponse({'status': 'success', 'remain': remain, 'bill_status': billing.status})
+            return JsonResponse({'status': 'success', 'remain': remain, 'bill_status': billing.status, 'payment_id': payment.payment_id})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 

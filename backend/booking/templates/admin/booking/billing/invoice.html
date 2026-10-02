@@ -85,8 +85,18 @@
                 <td>{{ billing.adjustment|floatformat:0 }} ₫</td>
             </tr>
             <tr>
-                <th style="font-size: 1.2em; color: #d9534f;">TỔNG THANH TOÁN:</th>
-                <td style="font-size: 1.2em; color: #d9534f;">{{ billing.final_total|floatformat:0 }} ₫</td>
+                <th style="font-size: 1.2em;">TỔNG HÓA ĐƠN:</th>
+                <td style="font-size: 1.2em;">{{ billing.final_total|floatformat:0 }} ₫</td>
+            </tr>
+            {% if billing.total_paid > 0 %}
+            <tr>
+                <th style="font-size: 1.1em; color: #5cb85c;">ĐÃ THANH TOÁN:</th>
+                <td style="font-size: 1.1em; color: #5cb85c;">{{ billing.total_paid|floatformat:0 }} ₫</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <th style="font-size: 1.2em; color: #d9534f;">CẦN THANH TOÁN:</th>
+                <td style="font-size: 1.2em; color: #d9534f;">{{ billing.remaining_balance|floatformat:0 }} ₫</td>
             </tr>
         </table></div>
     </div>

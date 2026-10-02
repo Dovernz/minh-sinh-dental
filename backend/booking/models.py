@@ -20,6 +20,15 @@ class Clinic(models.Model):
     class Meta:
         db_table = 'db_table_clinic'
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return str(self.name)
 
@@ -33,6 +42,15 @@ class ServiceCategory(models.Model):
         db_table = 'db_table_service_categories'
         verbose_name = 'Danh mục Dịch vụ'
         verbose_name_plural = 'Danh mục Dịch vụ'
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return str(self.name)
@@ -62,6 +80,15 @@ class ServiceDetail(models.Model):
             models.UniqueConstraint(fields=['category', 'name'], name='unique_service_detail')
         ]
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -73,6 +100,15 @@ class TimeSlot(models.Model):
 
     class Meta:
         db_table = 'db_table_time_slots'
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
@@ -122,6 +158,15 @@ class Customer(models.Model):
     class Meta:
         db_table = 'db_table_customers'
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return str(self.name)
 
@@ -159,6 +204,15 @@ class Employee(models.Model):
     class Meta:
         db_table = 'db_table_employees'
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return self.full_name
 
@@ -178,6 +232,15 @@ class Booking(models.Model):
     class Meta:
         db_table = 'db_table_bookings'
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return f"{self.customer.name} - {self.start_time}"
 
@@ -190,6 +253,15 @@ class BookingStatusHistory(models.Model):
 
     class Meta:
         db_table = 'db_table_booking_status_history'
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return f"{self.booking.booking_id} - {self.status}"
@@ -228,6 +300,15 @@ class InventoryDetail(models.Model):
 
     class Meta:
         db_table = 'db_table_inventory_details'
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return self.item_name
@@ -278,6 +359,15 @@ class Article(models.Model):
     class Meta:
         db_table = 'db_table_articles'
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return self.title
 
@@ -299,6 +389,15 @@ class TopupInfo(models.Model):
         if self.is_default:
             TopupInfo.objects.filter(is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return f'{self.bank_name} - {self.account_number}'
@@ -325,6 +424,15 @@ class Discount(models.Model):
         db_table = "db_table_discounts"
         verbose_name = "Khuyến mãi"
         verbose_name_plural = "Khuyến mãi"
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return f"{self.code} ({self.value} {self.discount_type})"
@@ -361,6 +469,15 @@ class BookingDetail(models.Model):
             self.performing_commission = Decimal('0')
 
         super().save(*args, **kwargs)
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         return f"{self.booking.booking_id} - {self.service_detail.name if self.service_detail else ''}"
@@ -409,6 +526,15 @@ class Billing(models.Model):
                 self.booking.status = 'Completed'
                 self.booking.save(update_fields=['status'])
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return f"Bill #{self.billing_id} - Booking {self.booking.booking_id}"
 
@@ -425,6 +551,15 @@ class MenuLink(models.Model):
         verbose_name = "Cấu hình Header"
         verbose_name_plural = "Cấu hình Header"
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return f"{self.parent.title} > {self.title}" if self.parent else self.title
 
@@ -439,6 +574,15 @@ class SiteSettings(models.Model):
         verbose_name = "Cấu hình Footer"
         verbose_name_plural = "Cấu hình Footer"
         
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return "Chi tiết Cấu hình Footer"
 
@@ -538,6 +682,15 @@ class DentalChart(models.Model):
         verbose_name_plural = 'Phien ban So do rang'
         unique_together = ('customer', 'sequence_num')
 
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
+
     def __str__(self):
         return f'Chart KH {self.customer_id} - Ver {self.sequence_num}'
 
@@ -557,6 +710,15 @@ class CommissionRate(models.Model):
         db_table = 'db_table_commission_rates'
         verbose_name = 'Tỷ lệ hoa hồng'
         verbose_name_plural = 'Tỷ lệ hoa hồng'
+
+    @property
+    def total_paid(self):
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def remaining_balance(self):
+        return self.final_total - self.total_paid
 
     def __str__(self):
         end = self.end_date.strftime('%Y-%m-%d') if self.end_date else 'Vô thời hạn'

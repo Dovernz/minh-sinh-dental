@@ -131,6 +131,7 @@
 
         <div class="flex justify-center gap-4 mt-6">
             <button class="px-5 py-2.5 bg-gray-200 text-gray-800 rounded font-bold hover:bg-gray-300 transition-colors" onclick="window.location.reload()">Đóng (Khách nợ/Thanh toán sau)</button>
+            <button id="btn_confirm_print" class="px-5 py-2.5 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition-colors shadow hidden" onclick="confirmAndPrint()">Xác nhận & In Hóa Đơn</button>
             <button id="btn_confirm_payment" class="px-5 py-2.5 bg-green-600 text-white rounded font-bold hover:bg-green-700 transition-colors shadow hidden" onclick="confirmPayment()">Xác nhận Đã Thu Tiền</button>
         </div>
     </div>
@@ -399,7 +400,7 @@ function updateModalQR() {
         let content = `${custName} ${dateStr} HD${current_billing_id}`.substring(0, 40);
         document.getElementById('modal_qr_text').innerText = "Nội dung: " + content;
         
-        let qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
+        let qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(accName)}`;
         document.getElementById('modal_qr_image').src = qrUrl;
     } else {
         qrContainer.classList.add('hidden');
@@ -412,6 +413,18 @@ function removeVietnameseTones(str) {
     return str.toUpperCase();
 }
 
+function confirmAndPrint() {
+    if(!current_billing_id) return;
+    fetch('/api/pos/confirm-payment/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billing_id: current_billing_id, amount: parseNumber(document.getElementById('modal_pay_amount').value), payment_method: document.getElementById('payment_method').value })
+    }).then(r => r.json()).then(res => {
+        if(res.status === 'success') {
+            window.open('/admin/booking/payment/' + res.payment_id + '/print/', '_blank');
+            setTimeout(() => { window.location.reload(); }, 500);
+        } else { alert('Lỗi: ' + res.error); }
+    });
+}
 function confirmPayment() {
     if(!current_billing_id) return;
     fetch('/api/pos/confirm-payment/', {
@@ -464,6 +477,7 @@ function submitPOS() {
                 current_billing_id = res.billing_id;
                 document.getElementById('modal_billing_id').innerText = "#" + res.billing_id;
                 document.getElementById('btn_confirm_payment').classList.remove('hidden');
+                document.getElementById('btn_confirm_print').classList.remove('hidden');
                 
                 let modalPayInput = document.getElementById('modal_pay_amount');
                 let finalT = parseNumber(document.getElementById('final_total').value);
