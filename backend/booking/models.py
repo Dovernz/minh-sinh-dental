@@ -1,3 +1,4 @@
+from django.utils import timezone
 import requests
 # -*- coding: utf-8 -*-
 from django.db import models
@@ -544,3 +545,19 @@ class DentalChart(models.Model):
 
 
 
+
+class CommissionRate(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Tên kỳ hoa hồng")
+    start_date = models.DateField(verbose_name="Từ ngày", default=timezone.now)
+    end_date = models.DateField(verbose_name="Đến ngày", null=True, blank=True)
+    performing_rate_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10, verbose_name="% Thực hiện")
+    consulting_rate_percent = models.DecimalField(max_digits=5, decimal_places=2, default=5, verbose_name="% Tư vấn")
+
+    class Meta:
+        db_table = 'db_table_commission_rates'
+        verbose_name = 'Tỷ lệ hoa hồng'
+        verbose_name_plural = 'Tỷ lệ hoa hồng'
+
+    def __str__(self):
+        end = self.end_date.strftime('%Y-%m-%d') if self.end_date else 'Vô thời hạn'
+        return f"{self.name} ({self.start_date.strftime('%Y-%m-%d')} - {end})"

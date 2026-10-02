@@ -17,6 +17,12 @@ def pos_embed_view(request):
     context['title'] = 'Thanh toán (POS)'
     return render(request, 'admin/pos_embed.html', context)
 
+@staff_member_required
+def admin_commissions_embed_view(request):
+    context = admin.site.each_context(request)
+    context['title'] = 'Hoa hồng Bác sĩ'
+    return render(request, 'admin/commissions_embed.html', context)
+
 from django.views.generic import TemplateView
 from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView, DebtCollectionEmbedView, DebtCollectionRawView, POSDebtListAPIView
 urlpatterns = [
@@ -31,6 +37,7 @@ urlpatterns = [
     path('admin/password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path('admin/commissions-embed/', admin_commissions_embed_view, name='admin_commissions_embed'),
     path('admin/pos-system/', pos_embed_view, name='pos_embed'),
     path('admin/booking-embed/', admin_booking_embed_view, name='admin_booking_embed'),
     path('admin-employee-embed/', TemplateView.as_view(template_name='admin/employee_embed.html'), name='admin-employee-embed'),

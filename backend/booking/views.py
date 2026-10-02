@@ -1,3 +1,4 @@
+from .commission_apis import calculate_commissions, get_commission_rates
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 from django.db.models import Q
@@ -926,20 +927,32 @@ class EmployeeEmbedAPIView(View):
 class CommissionStatsAPIView(View):
     def get(self, request):
         from booking.models import BookingDetail
-        details = BookingDetail.objects.filter(booking__status='Completed')
+        details = BookingDetail.objects.filter(booking__status='Completed').select_related('booking', 'service_detail', 'consulting_doctor', 'performing_doctor')
+        
+        # Optional: filter by month/year if needed, or return all and let frontend filter
         data = []
+        rates = get_commission_rates()
         for d in details:
-            if d.consulting_doctor:
+            date_str = d.booking.start_time.isoformat() if d.booking.start_time else d.booking.created_on.isoformat()
+            service_name = d.service_detail.name if d.service_detail else "Khám/Dịch vụ"
+            c_val, p_val = calculate_commissions(d, rates)
+            if d.consulting_doctor and c_val > 0:
                 data.append({
+                    'doctor_id': d.consulting_doctor.employee_id,
                     'doctor': d.consulting_doctor.full_name,
-                    'type': 'Consulting',
-                    'commission': float(d.consulting_commission)
+                    'type': 'Tư vấn',
+                    'service': service_name,
+                    'date': date_str,
+                    'commission': c_val
                 })
-            if d.performing_doctor:
+            if d.performing_doctor and p_val > 0:
                 data.append({
+                    'doctor_id': d.performing_doctor.employee_id,
                     'doctor': d.performing_doctor.full_name,
-                    'type': 'Performing',
-                    'commission': float(d.performing_commission)
+                    'type': 'Thực hiện',
+                    'service': service_name,
+                    'date': date_str,
+                    'commission': p_val
                 })
         return JsonResponse(data, safe=False)
 

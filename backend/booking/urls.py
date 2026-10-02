@@ -1,8 +1,11 @@
 from django.urls import path
 import django.views.generic
 from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
+from .commission_apis import CommissionOverviewAPIView, CommissionDetailAPIView
 
 urlpatterns = [
+    path('reports/commissions/', CommissionOverviewAPIView.as_view(), name='api-commission-overview'),
+    path('reports/commissions/<int:doctor_id>/', CommissionDetailAPIView.as_view(), name='api-commission-detail'),
     path('admin-clinics/', ClinicListAPIView.as_view(), name='api-admin-clinics'),
     path('admin-timeslots/', AdminTimeSlotListView.as_view(), name='api-admin-timeslots'),
     path('settings/', SiteSettingsAPIView.as_view(), name='api-settings'),

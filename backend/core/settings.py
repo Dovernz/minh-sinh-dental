@@ -1,16 +1,16 @@
-import os
+﻿import os
 from pathlib import Path
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Khá»Ÿi tạo django-environ
+# KhÃ¡Â»Å¸i táº¡o django-environ
 env = environ.Env(
     DEBUG=(bool, False)
 )
 
-# Đọc các biến môi trường từ file .env
+# Ã„ÂÃ¡Â»Âc cÃ¡c biáº¿n mÃ´i trÆ°Ã¡Â»Âng tá»« file .env
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -167,7 +167,7 @@ from django.urls import reverse_lazy
 from django.templatetags.static import static
 
 UNFOLD = {
-    "INDEX_TITLE": "Bảng điều khiển",
+    "INDEX_TITLE": "Báº£ng Ä‘iÃ¡Â»Âu khiÃ¡Â»Æ’n",
     "SITE_TITLE": "Nha Khoa Minh Sinh",
     "SITE_HEADER": "Nha Khoa Minh Sinh",
     # "SITE_LOGO": "/static/img/logo.jpg",
@@ -198,31 +198,15 @@ UNFOLD = {
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
-        "navigation": [       
+                "navigation": [
             {
                 "title": "Quản lý Booking",
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Lịch Ngày",
-                        "icon": "calendar_today",
-                        "link": "/admin/operations/dailyschedule/",
-                    },
-                    {
-                        "title": "Lịch Tuần",
-                        "icon": "calendar_view_week",
-                        "link": "/admin/operations/weeklyschedule/",
-                    },
-                    {
-                        "title": "Chi tiết Bookings",
-                        "icon": "list_alt",
-                        "link": "/admin/operations/managebooking/",
-                    },
-                    {
-                        "title": "Tạo Booking",
-                        "icon": "add_circle",
-                        "link": "/admin/booking-embed/",
-                    },
+                    {"title": "Lịch Ngày", "icon": "calendar_today", "link": "/admin/operations/dailyschedule/"},
+                    {"title": "Lịch Tuần", "icon": "calendar_view_week", "link": "/admin/operations/weeklyschedule/"},
+                    {"title": "Chi tiết Bookings", "icon": "list_alt", "link": "/admin/operations/managebooking/"},
+                    {"title": "Tạo Booking", "icon": "add_circle", "link": "/admin/booking-embed/"},
                 ],
             },
             {
@@ -230,21 +214,9 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Thanh toán (POS)",
-                        "icon": "point_of_sale",
-                        "link": "/admin/pos-system/",
-                                            },
-                    {
-                        "title": "Thu hồi Công nợ",
-                        "icon": "price_check", 
-                        "link": "/admin/pos-debt/",
-                    },
-                    {
-                        "title": "Danh sách Hóa đơn",
-                        "icon": "receipt_long",
-                        "link": "/admin/booking/billing/",
-                    },
+                    {"title": "Thanh toán (POS)", "icon": "point_of_sale", "link": "/admin/pos-system/"},
+                    {"title": "Thu hồi Công nợ", "icon": "price_check", "link": "/admin/pos-debt/"},
+                    {"title": "Danh sách Hóa đơn", "icon": "receipt_long", "link": "/admin/booking/billing/"},
                 ],
             },
             {
@@ -252,36 +224,12 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Khách hàng",
-                        "icon": "people",
-                        "link": "/admin/booking/customer/",
-                    },
-                    {
-                        "title": "Cơ sở (Clinics)",
-                        "icon": "store",
-                        "link": "/admin/booking/clinic/",
-                    },
-                    {
-                        "title": "Danh mục Dịch vụ",
-                        "icon": "category",
-                        "link": "/admin/booking/servicecategory/",
-                    },
-                    {
-                        "title": "Chi tiết Dịch vụ",
-                        "icon": "medical_services",
-                        "link": "/admin/booking/servicedetail/",
-                    },
-                    {
-                        "title": "Khung giờ",
-                        "icon": "schedule",
-                        "link": "/admin/booking/timeslot/",
-                    },
-                    {
-                        "title": "Khuyến mãi",
-                        "icon": "local_offer",
-                        "link": reverse_lazy("admin:services_menu_catalogdiscount_changelist"),
-                    },
+                    {"title": "Khách hàng", "icon": "people", "link": "/admin/booking/customer/"},
+                    {"title": "Cơ sở (Clinics)", "icon": "store", "link": "/admin/booking/clinic/"},
+                    {"title": "Danh mục Dịch vụ", "icon": "category", "link": "/admin/booking/servicecategory/"},
+                    {"title": "Chi tiết Dịch vụ", "icon": "medical_services", "link": "/admin/booking/servicedetail/"},
+                    {"title": "Khung giờ", "icon": "schedule", "link": "/admin/booking/timeslot/"},
+                    {"title": "Khuyến mãi", "icon": "local_offer", "link": reverse_lazy("admin:services_menu_catalogdiscount_changelist")},
                 ],
             },
             {
@@ -289,27 +237,11 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-        {
-            "title": "Cấu hình Thanh toán",
-            "icon": "account_balance_wallet",
-            "link": reverse_lazy("admin:booking_topupinfo_changelist"),
-        },
-                    
-                    {
-                        "title": "Thanh toán",
-                        "icon": "payments",
-                        "link": "/admin/booking/payment/",
-                    },
-                    {
-                        "title": "Vật tư Kho",
-                        "icon": "inventory_2",
-                        "link": "/admin/booking/inventorydetail/",
-                    },
-                    {
-                        "title": "Tiêu hao Vật tư",
-                        "icon": "history",
-                        "link": "/admin/booking/inventoryusage/",
-                    },
+                    {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/"},
+                    {"title": "Cấu hình Thanh toán", "icon": "account_balance_wallet", "link": reverse_lazy("admin:booking_topupinfo_changelist")},
+                    {"title": "Thanh toán", "icon": "payments", "link": "/admin/booking/payment/"},
+                    {"title": "Vật tư Kho", "icon": "inventory_2", "link": "/admin/booking/inventorydetail/"},
+                    {"title": "Tiêu hao Vật tư", "icon": "history", "link": "/admin/booking/inventoryusage/"},
                 ],
             },
             {
@@ -318,11 +250,7 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Bài viết",
-                        "icon": "article",
-                        "link": "/admin/booking/article/",
-                    },
+                    {"title": "Bài viết", "icon": "article", "link": "/admin/booking/article/"},
                 ],
             },
             {
@@ -331,18 +259,8 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Cấu hình Header",
-                        "icon": "info",
-                        "link": reverse_lazy("admin:booking_menulink_changelist"),
-                    },
-
-                    {
-                        "title": "Cấu hình Footer",
-                        "icon": "info",
-                        "link": reverse_lazy("admin:booking_sitesettings_changelist"),
-                    },
-
+                    {"title": "Cấu hình Header", "icon": "info", "link": reverse_lazy("admin:booking_menulink_changelist")},
+                    {"title": "Cấu hình Footer", "icon": "info", "link": reverse_lazy("admin:booking_sitesettings_changelist")},
                 ],
             },
             {
@@ -350,24 +268,12 @@ UNFOLD = {
                 "separator": True,
                 "collapsible": True,
                 "items": [
-                    {
-                        "title": "Quản trị Users (Users)",
-                        "icon": "manage_accounts",
-                        "link": "/admin/auth/user/",
-                    },
-                    {
-                        "title": "Nhóm quyền (Groups)",
-                        "icon": "group",
-                        "link": "/admin/auth/group/",
-                    },
-                    {
-                        "title": "Nhân viên",
-                        "icon": "badge",
-                        "link": "/admin/booking/employee/",
-                    },
+                    {"title": "Cấu hình Commission Rate", "icon": "settings", "link": reverse_lazy("admin:booking_commissionrate_changelist")},
+                    {"title": "Phân quyền", "icon": "security", "link": reverse_lazy("admin:auth_group_changelist")},
+                    {"title": "Người dùng", "icon": "person", "link": reverse_lazy("admin:auth_user_changelist")},
+                    {"title": "Nhân viên", "icon": "badge", "link": "/admin/booking/employee/"},
                 ],
             },
-            
         ],
     },
 }
@@ -377,11 +283,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')  # Thay bằng email thật
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='') # Mật khẩu ứng dụng
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')  # Thay báº±ng email tháº­t
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='') # Máº­t kháº©u á»©ng dá»¥ng
 DEFAULT_FROM_EMAIL = f'Nha Khoa Minh Sinh <{EMAIL_HOST_USER}>'
 
-# Điều hÆ°á»›ng sau khi ÄÄƒng nhập/ÄÄƒng xuất
+# Ã„ÂiÃ¡Â»Âu hÆ°Ã¡Â»â€ºng sau khi Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng nháº­p/Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng xuáº¥t
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/admin/login/'
 
@@ -401,7 +307,7 @@ cloudinary.config(
 )
 
 
-# C?u hình luu tr? file upload (Media) lên Cloudinary
+# C?u hÃ¬nh luu tr? file upload (Media) lÃªn Cloudinary
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 
@@ -439,3 +345,4 @@ USE_L10N = False
 DECIMAL_SEPARATOR = '.'
 THOUSAND_SEPARATOR = ','
 NUMBER_GROUPING = 3
+

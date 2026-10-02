@@ -1296,10 +1296,43 @@ class SiteSettingsAdmin(ModelAdmin):
             instance.save()
         formset.save_m2m()
 
-from booking.models import Consultation, ConsultationDetail, DoctorConsultationProxy
+from booking.models import Consultation, CommissionRate, ConsultationDetail, DoctorConsultationProxy
 from django.template.response import TemplateResponse
 from django.urls import path
 
+
+
+
+
+
+@admin.register(CommissionRate)
+class CommissionRateAdmin(ModelAdmin):
+    list_display = ("name", "start_date", "get_end_date", "performing_rate_percent", "consulting_rate_percent")
+    exclude = ("end_date",)
+    search_fields = ("name",)
+    list_filter = ("start_date",)
+    
+    def get_end_date(self, obj):
+        from booking.models import CommissionRate
+        if obj.end_date:
+            return obj.end_date
+        next_rate = CommissionRate.objects.filter(start_date__gt=obj.start_date).order_by('start_date').first()
+        if next_rate:
+            return next_rate.start_date
+        return "----"
+    get_end_date.short_description = "Đến ngày"
+    
+    def has_module_permission(self, request):
+        return request.user.is_superuser or request.user.is_staff
+        
+    def has_add_permission(self, request):
+        return True
+        
+    def has_change_permission(self, request, obj=None):
+        return True
+        
+    def has_delete_permission(self, request, obj=None):
+        return True
 
 
 
