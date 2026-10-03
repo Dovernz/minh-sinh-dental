@@ -5,10 +5,37 @@
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <style>
-.ts-control { height: 48px !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; padding: 0 12px !important; display: flex !important; align-items: center !important; background-color: #ffffff !important; }
-.ts-dropdown { font-size: 14px; z-index: 9999; }
-.ts-wrapper.single .ts-control:after { right: 12px !important; }
-.ts-wrapper + select, .ts-wrapper select.tomselected { display: none !important; }
+/* 1. Ẩn dứt điểm và tuyệt đối 4 thẻ select gốc */
+#cons_consulting_doctor,
+#cons_performing_doctor,
+#cons_category,
+#cons_service,
+select.tomselected {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* 2. Giữ nguyên ô VAT và ô đơn vị chiết khấu (vì 2 ô này không dùng TomSelect) */
+#cons_vat,
+#cons_discount_type {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* Chuẩn hóa kích thước khung TomSelect */
+.ts-wrapper { width: 100% !important; }
+.ts-control { height: 44px !important; min-height: 44px !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; padding: 0 12px !important; display: flex !important; align-items: center !important; background-color: #ffffff !important; }
+.ts-dropdown { font-size: 14px !important; z-index: 99999 !important; border-radius: 8px !important; }
+.ts-wrapper.single .ts-control:after { right: 14px !important; }
 </style>
 
 <style>
@@ -200,15 +227,29 @@
 
         <!-- Form Thêm dịch vụ -->
         <style>
-#newConsultForm input[type="text"], #newConsultForm input[type="number"], #newConsultForm select {
-    height: 48px !important;
+#newConsultForm input[type="text"], 
+#newConsultForm input[type="number"], 
+#newConsultForm select:not(.tomselected) {
+    height: 44px !important;
     padding: 0 12px !important;
     color-scheme: light !important;
     background-color: #ffffff !important;
     color: #111827 !important;
     border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
 }
 #newConsultForm option { background-color: #ffffff !important; color: #111827 !important; }
+
+/* FIX LỖI Ô INPUT LỒNG NHAU CỦA TOMSELECT */
+#newConsultForm .ts-control input[type="text"] {
+    height: auto !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
 </style>
         <div id="newConsultForm" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
             <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -277,31 +318,33 @@
                     </div>
                     
                     <!-- Row 4 -->
-                    <div style="display: flex; gap: 1rem; width: 100%; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 1rem; width: 100%; flex-wrap: wrap;">
+                        <!-- Thẻ ẩn lưu số tiền chiết khấu thật để không làm lỗi logic Javascript -->
+                        <input type="hidden" id="cons_discount_amount" value="0">
+                        
                         <div style="width: 80px;">
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">SL</label>
-                            <input type="number" id="cons_qty" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="1" min="1">
+                            <input type="number" id="cons_qty" style="color-scheme: light; background-color: #f3f4f6; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm cursor-not-allowed" value="0" min="0" readonly>
                         </div>
-                        <div style="width: 130px;">
-                            <label class="block font-semibold text-gray-700 mb-1 text-sm">C.Khấu</label>
+                        
+                        <!-- Ô Chiết khấu được set flex: 1 để tự động chiếm vùng trống -->
+                        <div style="flex: 1; min-width: 150px;">
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Chiết Khấu</label>
                             <div style="display: flex; gap: 4px;">
-                                <input type="number" id="cons_discount" style="color-scheme: light; background-color: #ffffff; color: #111827; flex: 1; min-width: 0;" class="h-11 px-2 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0">
-                                <select id="cons_discount_type" style="width: 65px; height: 48px; color-scheme: light; background-color: #ffffff; color: #111827; border: 1px solid #d1d5db; border-radius: 8px; text-align: center; font-size: 13px; padding: 0 2px;">
+                                <input type="number" id="cons_discount" style="color-scheme: light; background-color: #ffffff; color: #111827; flex: 1; min-width: 0;" class="h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0">
+                                <select id="cons_discount_type" style="width: 75px; height: 44px; color-scheme: light; background-color: #ffffff; color: #111827; border: 1px solid #d1d5db; border-radius: 8px; text-align: center; font-size: 13px; padding: 0 2px;">
                                     <option value="percent">%</option>
                                     <option value="vnd">VNĐ</option>
                                 </select>
                             </div>
                         </div>
-                        <div style="flex: 1; min-width: 100px;">
-                            <label class="block font-semibold text-gray-700 mb-1 text-sm">Tiền C.Khấu</label>
-                            <input type="text" id="cons_discount_amount" style="color-scheme: light; background-color: #f3f4f6; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg outline-none text-sm" value="0" readonly>
-                        </div>
-                        <div style="flex: 1.5; min-width: 150px;">
+                        
+                        <!-- Ô Lý do được set flex: 1.5 để cân đối với ô Chiết khấu -->
+                        <div style="flex: 1.5; min-width: 200px;">
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">Lý do giảm giá</label>
                             <input type="text" id="cons_discount_reason" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Nhập lý do">
                         </div>
                     </div>
-
                     <!-- Sơ đồ chọn răng -->
                     <div class="border border-dashed border-gray-300 p-4 rounded-lg" style="width: 100%;">
                         <input type="hidden" id="cons_tooth_position" value="">
@@ -1190,7 +1233,7 @@
             if (window.ts_service) { window.ts_service.clear(); }
             else { document.getElementById('cons_service').innerHTML = '<option value="">-- Chọn Dịch vụ --</option>'; }
             
-            document.getElementById('cons_qty').value = 1;
+            document.getElementById('cons_qty').value = 0;
             document.getElementById('cons_price').value = 0;
             document.getElementById('cons_discount').value = 0;
             
@@ -1475,12 +1518,25 @@
                 calculateFormTotal();
                 return;
             }
+            
             const srv = window.ts_service.options[value];
-            if (srv && srv.base_price) {
-                priceInput.value = parseFloat(srv.base_price).toLocaleString('en-US');
+            if (srv) {
+                // TỰ ĐỘNG ĐIỀN NHÓM DỊCH VỤ
+                // Dùng tham số 'true' (silent) để bỏ qua việc trigger event change, giúp Dịch vụ không bị xóa ngược lại
+                if (srv.category_id && window.ts_category.getValue() != srv.category_id) {
+                    window.ts_category.setValue(srv.category_id, true); 
+                }
+                
+                // CẬP NHẬT GIÁ TIỀN
+                if (srv.base_price) {
+                    priceInput.value = parseFloat(srv.base_price).toLocaleString('en-US');
+                } else {
+                    priceInput.value = 0;
+                }
             } else {
                 priceInput.value = 0;
             }
+            
             calculateFormTotal();
         });
 
@@ -1611,17 +1667,28 @@ document.addEventListener("DOMContentLoaded", function() {
     const toothInput = document.getElementById('cons_tooth_position');
     const allToothCheckboxes = document.querySelectorAll('.tooth-label input[type="checkbox"]');
 
-    function updateToothInput() {
+        function updateToothInput() {
         const checked = Array.from(allToothCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         toothInput.value = checked.join(', ');
-        // Auto-update quantity based on number of selected teeth (VTTech style)
+        
         const qtyInput = document.getElementById('cons_qty');
-        if (checked.length > 0) {
-            qtyInput.value = checked.length;
+        const toothTypeRadio = document.querySelector('input[name="tooth_type"]:checked');
+        const toothType = toothTypeRadio ? toothTypeRadio.value : 'adult';
+        
+        if (toothType === 'none') {
+            qtyInput.readOnly = false;
+            qtyInput.style.backgroundColor = '#ffffff';
+            qtyInput.classList.remove('cursor-not-allowed');
+            if (parseInt(qtyInput.value) === 0 || isNaN(parseInt(qtyInput.value))) {
+                qtyInput.value = 1;
+            }
         } else {
-            qtyInput.value = 1;
+            qtyInput.readOnly = true;
+            qtyInput.style.backgroundColor = '#f3f4f6';
+            qtyInput.classList.add('cursor-not-allowed');
+            qtyInput.value = checked.length;
         }
-        // Recalculate total price
+
         if (typeof calculateFormTotal === 'function') {
             calculateFormTotal();
         }
@@ -1665,6 +1732,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 adultChart.classList.add('hidden');
                 childChart.classList.add('hidden');
             }
+            updateToothInput();
         });
     });
 
