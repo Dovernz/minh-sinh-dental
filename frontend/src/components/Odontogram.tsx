@@ -345,12 +345,14 @@ export default function Odontogram({
   customerId, 
   initialChartId, 
   initialClonedFromId,
-  onSaved 
+  onSaved,
+  onClose
 }: { 
   customerId?: string | number;
   initialChartId?: number | null;
   initialClonedFromId?: number | null;
   onSaved?: () => void;
+  onClose?: () => void;
 }) {
   const [activeCondition, setActiveCondition] = useState<ConditionCode | null>(null);
   const [teeth, setTeeth] = useState<Record<number, ToothData>>({});
@@ -362,6 +364,7 @@ export default function Odontogram({
   const [toothDetails, setToothDetails] = useState<
     Array<{ toothNum: number; loai: 'P' | 'N' | ''; dieuTri: string; ghiChu: string }>
   >([]);
+  const [conditionNotes, setConditionNotes] = useState<Record<string, { phanLoai: string; dieuTri: string; ghiChu: string }>>({});
 
   // 4 textareas state
   const [ghiChu, setGhiChu] = useState('');
@@ -409,9 +412,11 @@ export default function Odontogram({
     if (chart.tooth_data) {
       setTeeth(chart.tooth_data.teeth || {});
       setToothDetails(chart.tooth_data.details || []);
+      setConditionNotes(chart.tooth_data.conditionNotes || {});
     } else {
       setTeeth({});
       setToothDetails([]);
+      setConditionNotes({});
     }
 
     if (chart.notes_data) {
@@ -433,6 +438,7 @@ export default function Odontogram({
     setClonedFromId(null);
     setTeeth({});
     setToothDetails([]);
+    setConditionNotes({});
     setGhiChu('');
     setCanLamSang('');
     setChanDoan('');
@@ -453,7 +459,7 @@ export default function Odontogram({
       const payload = {
         customer: customerId,
         cloned_from: clonedFromId,
-        tooth_data: { teeth, details: toothDetails },
+        tooth_data: { teeth, details: toothDetails, conditionNotes },
         notes_data: { ghiChu, canLamSang, chanDoan, chiDinhDieuTri }
       };
       
@@ -476,7 +482,7 @@ export default function Odontogram({
     } finally {
       setIsSaving(false);
     }
-  }, [customerId, toothDetails, teeth, ghiChu, canLamSang, chanDoan, chiDinhDieuTri, clonedFromId]);
+  }, [customerId, toothDetails, conditionNotes, teeth, ghiChu, canLamSang, chanDoan, chiDinhDieuTri, clonedFromId]);
 
   // Filtered conditions for search input
   const filteredConditions = useMemo(() => {
@@ -616,6 +622,8 @@ export default function Odontogram({
 
   const handleRemoveCondition = (row: (typeof conditionRows)[0]) => {
     if (isReadOnly) return;
+    const rowKey = `${row.toothNum}_${row.isWhole ? 'whole' : row.surfaceKey}`;
+    
     setTeeth((prev) => {
       const current = prev[row.toothNum];
       if (!current) return prev;
@@ -629,23 +637,30 @@ export default function Odontogram({
       }
       return prev;
     });
+
+    setConditionNotes((prev) => {
+      const updated = { ...prev };
+      delete updated[rowKey];
+      return updated;
+    });
   };
 
   // Reset form handler
-  const handleReset = () => {
-    if (isReadOnly) return;
-    if (
-      typeof window !== 'undefined' &&
-      window.confirm('Bạn có chắc chắn muốn đóng và đặt lại dữ liệu?')
-    ) {
-      setActiveCondition(null);
-      setSelectedTooth(null);
-      setTeeth({});
-      setToothDetails([]);
-      setGhiChu('');
-      setCanLamSang('');
-      setChanDoan('');
-      setChiDinhDieuTri('');
+    const handleReset = () => {
+    if (window.confirm('Bạn có chắc chắn muốn đóng? (Những dữ liệu chưa Lưu sẽ bị mất)')) {
+      if (onClose) {
+        onClose();
+      } else {
+        setTeeth({});
+        setConditionNotes({});
+        setGhiChu('');
+        setCanLamSang('');
+        setChanDoan('');
+        setChiDinhDieuTri('');
+        setToothDetails([]);
+        setSelectedTooth(null);
+        setActiveCondition(null);
+      }
     }
   };
 
@@ -903,209 +918,106 @@ export default function Odontogram({
           </div>
         </div>
 
-        {/* BOTTOM SECTION: 2 TABS */}
+                {/* BẢNG TÓM TẮT BỆNH LÝ */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-          {/* Tabs header */}
-          <div className="flex border-b border-gray-200 bg-gray-50 px-4 pt-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('detail')}
-              className={`px-4 py-2 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === 'detail'
-                  ? 'border-blue-600 text-blue-600 bg-white rounded-t-lg'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Chi tiết răng ({toothDetails.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('condition')}
-              className={`px-4 py-2 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === 'condition'
-                  ? 'border-blue-600 text-blue-600 bg-white rounded-t-lg'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Bệnh lý ({conditionRows.length})
-            </button>
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+              Bảng Ghi nhận Tình trạng Răng
+            </h3>
           </div>
-
-          {/* Tab Content */}
-          <div className="p-4">
-            {activeTab === 'detail' ? (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs text-gray-500">
-                    Click lên răng để thêm vào danh sách hoặc chọn răng bên dưới:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleAddDetailRow()}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    + Thêm răng
-                  </button>
-                </div>
-
-                {toothDetails.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-6 italic">
-                    Chưa có răng nào được chọn. Hãy click vào răng trên sơ đồ để thêm chi tiết.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-200 text-gray-600 bg-gray-50">
-                          <th className="p-2 font-bold w-24">Số răng</th>
-                          <th className="p-2 font-bold w-28">Phân loại</th>
-                          <th className="p-2 font-bold">Điều trị</th>
-                          <th className="p-2 font-bold">Ghi chú</th>
-                          <th className="p-2 font-bold w-16 text-center">Xóa</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {toothDetails.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="p-2">
-                              <select
-                                value={row.toothNum}
-                                onChange={(e) =>
-                                  handleUpdateDetail(
-                                    idx,
-                                    'toothNum',
-                                    parseInt(e.target.value, 10)
-                                  )
-                                }
-                                disabled={isReadOnly}
-                                className="w-full p-1 border border-gray-300 rounded font-bold text-gray-700 bg-white disabled:opacity-75 disabled:bg-gray-100"
-                              >
-                                {ALL_TEETH.map((n) => (
-                                  <option key={n} value={n}>
-                                    R{n}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="p-2">
-                              <select
-                                value={row.loai}
-                                onChange={(e) =>
-                                  handleUpdateDetail(
-                                    idx,
-                                    'loai',
-                                    e.target.value as 'P' | 'N' | ''
-                                  )
-                                }
-                                disabled={isReadOnly}
-                                className="w-full p-1 border border-gray-300 rounded bg-white disabled:opacity-75 disabled:bg-gray-100"
-                              >
-                                <option value="">--</option>
-                                <option value="P">P</option>
-                                <option value="N">N</option>
-                              </select>
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={row.dieuTri}
-                                onChange={(e) =>
-                                  handleUpdateDetail(idx, 'dieuTri', e.target.value)
-                                }
-                                placeholder="Nhập điều trị..."
-                                readOnly={isReadOnly}
-                                className="w-full p-1 border border-gray-300 rounded read-only:bg-gray-100 read-only:opacity-75"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <input
-                                type="text"
-                                value={row.ghiChu}
-                                onChange={(e) =>
-                                  handleUpdateDetail(idx, 'ghiChu', e.target.value)
-                                }
-                                placeholder="Nhập ghi chú..."
-                                readOnly={isReadOnly}
-                                className="w-full p-1 border border-gray-300 rounded read-only:bg-gray-100 read-only:opacity-75"
-                              />
-                            </td>
-                            <td className="p-2 text-center">
-                              {!isReadOnly && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteDetail(idx)}
-                                  className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
-                                >
-                                  Xóa
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+          <div className="p-0">
+            {conditionRows.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6 italic">
+                Chưa có bệnh lý nào được ghi nhận. Hãy chọn bệnh lý ở menu bên trái và click lên răng hoặc mặt răng.
+              </p>
             ) : (
-              <div>
-                {conditionRows.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-6 italic">
-                    Chưa có bệnh lý nào được ghi nhận. Hãy chọn bệnh lý ở menu bên trái và click lên răng hoặc mặt răng.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-200 text-gray-600 bg-gray-50">
-                          <th className="p-2 font-bold w-24">Số răng</th>
-                          <th className="p-2 font-bold w-48">Mặt răng</th>
-                          <th className="p-2 font-bold w-28">Mã bệnh lý</th>
-                          <th className="p-2 font-bold">Tên bệnh lý</th>
-                          <th className="p-2 font-bold w-16 text-center">Xóa</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {conditionRows.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="p-2 font-bold text-gray-800">
-                              R{row.toothNum}
-                            </td>
-                            <td className="p-2 text-gray-600">{row.surface}</td>
-                            <td className="p-2">
-                              <span
-                                className="px-2 py-0.5 rounded text-[11px] font-bold"
-                                style={{
-                                  backgroundColor: row.color,
-                                  color: row.code === 'NL' ? '#065f46' : '#ffffff',
-                                }}
-                              >
-                                {row.code}
-                              </span>
-                            </td>
-                            <td className="p-2 font-medium text-gray-700">
-                              {row.label}
-                            </td>
-                            <td className="p-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCondition(row)}
-                                className="text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50"
-                              >
-                                Xóa
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+              <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="sticky top-0 bg-gray-50 shadow-sm">
+                    <tr className="border-b border-gray-200 text-gray-600">
+                      <th className="p-3 font-bold w-24">Số răng</th>
+                      <th className="p-3 font-bold w-48">Mặt răng</th>
+                      <th className="p-3 font-bold w-32">Mã bệnh lý</th>
+                      <th className="p-3 font-bold">Tên bệnh lý</th>
+                      <th className="p-3 font-bold w-24">Phân loại</th>
+                      <th className="p-3 font-bold">Điều trị</th>
+                      <th className="p-3 font-bold">Ghi chú</th>
+                      <th className="p-3 font-bold w-20 text-center">Xóa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {conditionRows.map((row, idx) => {
+                      const rowKey = `${row.toothNum}_${row.isWhole ? 'whole' : row.surfaceKey}`;
+                      const notes = conditionNotes[rowKey] || { phanLoai: '', dieuTri: '', ghiChu: '' };
+                      return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-3 font-bold text-gray-800 text-base">
+                          R{row.toothNum}
+                        </td>
+                        <td className="p-3 text-gray-600 font-medium">{row.surface}</td>
+                        <td className="p-3">
+                          <span
+                            className="px-3 py-1 rounded text-xs font-bold shadow-sm"
+                            style={{
+                              backgroundColor: row.color,
+                              color: row.code === 'NL' ? '#065f46' : '#ffffff',
+                            }}
+                          >
+                            {row.code}
+                          </span>
+                        </td>
+                        <td className="p-3 font-bold text-gray-800 text-sm">
+                          {row.label}
+                        </td>
+                        <td className="p-3">
+                          <select
+                            className="w-full p-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                            value={notes.phanLoai}
+                            onChange={(e) => setConditionNotes(prev => ({ ...prev, [rowKey]: { ...notes, phanLoai: e.target.value } }))}
+                            disabled={isReadOnly}
+                          >
+                            <option value=""></option>
+                            <option value="P">P</option>
+                            <option value="N">N</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            className="w-full p-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white read-only:bg-gray-100"
+                            value={notes.dieuTri}
+                            onChange={(e) => setConditionNotes(prev => ({ ...prev, [rowKey]: { ...notes, dieuTri: e.target.value } }))}
+                            readOnly={isReadOnly}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            className="w-full p-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white read-only:bg-gray-100"
+                            value={notes.ghiChu}
+                            onChange={(e) => setConditionNotes(prev => ({ ...prev, [rowKey]: { ...notes, ghiChu: e.target.value } }))}
+                            readOnly={isReadOnly}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCondition(row)}
+                              className="text-red-500 hover:text-red-700 font-bold px-3 py-1.5 rounded border border-red-200 hover:bg-red-50 transition-colors"
+                            >
+                              Xóa
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )})}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
         </div>
-
         {/* TEXTAREA SECTION (2x2 grid) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>

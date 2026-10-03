@@ -7,7 +7,7 @@ import Odontogram from '@/components/Odontogram';
 function DentalChartContent() {
     const searchParams = useSearchParams();
     const customerId = searchParams.get('customerId') || 'preview';
-    const [customerName, setCustomerName] = useState('');
+    const customerName = searchParams.get('customerName') || '';
     
     const [view, setView] = useState<'list' | 'chart'>('list');
     const [charts, setCharts] = useState<any[]>([]);
@@ -19,14 +19,7 @@ function DentalChartContent() {
     useEffect(() => {
         if (customerId && customerId !== 'preview') {
             // Fetch customer name
-            fetch(`http://localhost:8000/api/customers/${customerId}/`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.full_name) {
-                        setCustomerName(data.full_name);
-                    }
-                })
-                .catch(err => console.error(err));
+            // API fetch removed to prevent JSON error
                 
             // Fetch charts
             fetchCharts();
@@ -69,7 +62,7 @@ function DentalChartContent() {
 
     if (view === 'chart') {
         return (
-            <main className="min-h-screen bg-gray-100 flex flex-col">
+            <main className="min-h-screen bg-white flex flex-col">
                 <div className="p-4 bg-white border-b flex justify-between items-center shrink-0">
                     <h1 className="text-xl font-bold">{customerDisplayName}</h1>
                     <button 
@@ -85,6 +78,7 @@ function DentalChartContent() {
                         initialChartId={selectedChartId}
                         initialClonedFromId={clonedFromId}
                         onSaved={fetchCharts}
+                        onClose={handleBackToList}
                     />
                 </div>
             </main>
@@ -92,8 +86,8 @@ function DentalChartContent() {
     }
 
     return (
-        <main className="min-h-screen bg-gray-100 p-6">
-            <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
+        <main className="min-h-screen bg-white">
+            <div className="w-full h-full p-4">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">
                         Danh sách Sơ đồ răng - {customerDisplayName}
