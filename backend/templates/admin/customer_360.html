@@ -1,7 +1,15 @@
-﻿{% extends "admin/base_site.html" %}
+{% extends "admin/base_site.html" %}
 {% load humanize %}
 {% load i18n static %}
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<style>
+.ts-control { height: 48px !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; padding: 0 12px !important; display: flex !important; align-items: center !important; background-color: #ffffff !important; }
+.ts-dropdown { font-size: 14px; z-index: 9999; }
+.ts-wrapper.single .ts-control:after { right: 12px !important; }
+.ts-wrapper + select, .ts-wrapper select.tomselected { display: none !important; }
+</style>
 
 <style>
     #newConsultForm option { background-color: #ffffff !important; color: #111827 !important; }
@@ -258,7 +266,13 @@
                         </div>
                         <div style="flex: 1;">
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">VAT (%)</label>
-                            <input type="number" id="cons_vat" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                            <select id="cons_vat" style="color-scheme: light; background-color: #ffffff; color: #111827; height: 48px;" class="w-full px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                                <option value="0">0%</option>
+                                <option value="5">5%</option>
+                                <option value="8" selected>8%</option>
+                                <option value="10">10%</option>
+                                <option value="12">12%</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -268,13 +282,19 @@
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">SL</label>
                             <input type="number" id="cons_qty" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="1" min="1">
                         </div>
-                        <div style="width: 100px;">
-                            <label class="block font-semibold text-gray-700 mb-1 text-sm">C.Khấu (%)</label>
-                            <input type="number" id="cons_discount" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0" max="100">
+                        <div style="width: 130px;">
+                            <label class="block font-semibold text-gray-700 mb-1 text-sm">C.Khấu</label>
+                            <div style="display: flex; gap: 4px;">
+                                <input type="number" id="cons_discount" style="color-scheme: light; background-color: #ffffff; color: #111827; flex: 1; min-width: 0;" class="h-11 px-2 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0" min="0">
+                                <select id="cons_discount_type" style="width: 65px; height: 48px; color-scheme: light; background-color: #ffffff; color: #111827; border: 1px solid #d1d5db; border-radius: 8px; text-align: center; font-size: 13px; padding: 0 2px;">
+                                    <option value="percent">%</option>
+                                    <option value="vnd">VNĐ</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style="flex: 1; min-width: 120px;">
+                        <div style="flex: 1; min-width: 100px;">
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">Tiền C.Khấu</label>
-                            <input type="text" id="cons_discount_amount" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="0">
+                            <input type="text" id="cons_discount_amount" style="color-scheme: light; background-color: #f3f4f6; color: #111827;" class="w-full h-11 px-3 py-0 leading-[44px] border border-gray-300 rounded-lg outline-none text-sm" value="0" readonly>
                         </div>
                         <div style="flex: 1.5; min-width: 150px;">
                             <label class="block font-semibold text-gray-700 mb-1 text-sm">Lý do giảm giá</label>
@@ -663,9 +683,23 @@
                 <div style="width: 320px; flex-shrink: 0;" class="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col justify-between shadow-sm">
                     <div>
                         <h4 class="font-bold text-gray-800 border-b border-slate-200 pb-3 mb-4 text-center">Tóm tắt Chi phí</h4>
-                        <div class="flex justify-between items-center mb-3 text-sm">
-                            <span class="text-gray-600 font-medium">Tổng tiền:</span>
-                            <span class="font-bold text-blue-600 text-lg" id="cons_total_price">0 VNĐ</span>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Giá tiền:</span>
+                                <span class="font-semibold text-gray-800" id="cons_summary_subtotal">0 VNĐ</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Giảm chiết khấu:</span>
+                                <span class="font-semibold text-red-500" id="cons_summary_discount">0 VNĐ</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">VAT:</span>
+                                <span class="font-semibold text-orange-500" id="cons_summary_vat">0 VNĐ</span>
+                            </div>
+                            <div class="border-t border-slate-200 pt-2 mt-2 flex justify-between items-center">
+                                <span class="text-gray-800 font-bold">Thành tiền:</span>
+                                <span class="font-bold text-blue-600 text-lg" id="cons_total_price">0 VNĐ</span>
+                            </div>
                         </div>
                         <label class="flex items-center mt-6 cursor-pointer bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
                             <input type="checkbox" id="cons_accept_now" style="color-scheme: light; background-color: #ffffff; color: #111827;" class="w-5 h-5 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer">
@@ -1149,13 +1183,23 @@
     // Toggle Form Tư vấn
             function openNewConsForm() {
             document.getElementById('cons_detail_id').value = '';
-            document.getElementById('cons_category').value = '';
-            document.getElementById('cons_service').innerHTML = '<option value="">-- Chọn Dịch vụ --</option>';
+            
+            if (window.ts_category) { window.ts_category.clear(); }
+            else { document.getElementById('cons_category').value = ''; }
+            
+            if (window.ts_service) { window.ts_service.clear(); }
+            else { document.getElementById('cons_service').innerHTML = '<option value="">-- Chọn Dịch vụ --</option>'; }
+            
             document.getElementById('cons_qty').value = 1;
             document.getElementById('cons_price').value = 0;
             document.getElementById('cons_discount').value = 0;
-            document.getElementById('cons_consulting_doctor').value = '';
-            document.getElementById('cons_performing_doctor').value = '';
+            
+            if (window.ts_consulting) { window.ts_consulting.clear(); }
+            else { document.getElementById('cons_consulting_doctor').value = ''; }
+            
+            if (window.ts_performing) { window.ts_performing.clear(); }
+            else { document.getElementById('cons_performing_doctor').value = ''; }
+            
             document.getElementById('cons_tooth_position').value = '';
             document.getElementById('cons_vat').value = 0;
             document.getElementById('cons_discount_amount').value = 0;
@@ -1278,8 +1322,13 @@
             document.getElementById('cons_qty').value = qty || 1;
             document.getElementById('cons_price').value = parseInt(price || 0).toLocaleString('en-US');
             document.getElementById('cons_discount').value = discount || 0;
-            document.getElementById('cons_consulting_doctor').value = cons_doc || '';
-            document.getElementById('cons_performing_doctor').value = perf_doc || '';
+            
+            if (window.ts_consulting) { window.ts_consulting.setValue(cons_doc || ''); }
+            else { document.getElementById('cons_consulting_doctor').value = cons_doc || ''; }
+            
+            if (window.ts_performing) { window.ts_performing.setValue(perf_doc || ''); }
+            else { document.getElementById('cons_performing_doctor').value = perf_doc || ''; }
+            
             document.getElementById('cons_tooth_position').value = tooth || '';
             document.getElementById('cons_vat').value = vat || 0;
             document.getElementById('cons_discount_amount').value = parseInt(discount_amount || 0).toLocaleString('en-US');
@@ -1295,10 +1344,18 @@
                     }
                 }
                 if (categoryId) {
-                    const catSelect = document.getElementById('cons_category');
-                    catSelect.value = categoryId;
-                    catSelect.dispatchEvent(new Event('change'));
-                    document.getElementById('cons_service').value = service_id;
+                    if (window.ts_category) {
+                        window.ts_category.setValue(categoryId);
+                    } else {
+                        const catSelect = document.getElementById('cons_category');
+                        catSelect.value = categoryId;
+                        catSelect.dispatchEvent(new Event('change'));
+                    }
+                    if (window.ts_service) {
+                        window.ts_service.setValue(service_id);
+                    } else {
+                        document.getElementById('cons_service').value = service_id;
+                    }
                 }
             }
 
@@ -1343,51 +1400,84 @@
         }
 
     document.addEventListener("DOMContentLoaded", () => {
+        const priceInput = document.getElementById('cons_price');
+        
+        window.ts_consulting = new TomSelect('#cons_consulting_doctor', { create: false, placeholder: '-- Chọn Bác sĩ --' });
+        window.ts_performing = new TomSelect('#cons_performing_doctor', { create: false, placeholder: '-- Chọn Bác sĩ --' });
+        window.ts_category = new TomSelect('#cons_category', { create: false, placeholder: '-- Chọn Nhóm dịch vụ --' });
+        
+        window.ts_service = new TomSelect('#cons_service', {
+            valueField: 'service_id',
+            labelField: 'name',
+            searchField: ['name', 'code'],
+            placeholder: '-- Chọn Dịch vụ --',
+            options: [],
+            render: {
+                option: function(data, escape) {
+                    return '<div style="display: flex; gap: 8px; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 8px 4px;">' +
+                           '<div style="flex: 1; font-weight: 500; color: #3b82f6;">' + escape(data.code || '') + '</div>' +
+                           '<div style="flex: 3; color: #111827;">' + escape(data.name || '') + '</div>' +
+                           '<div style="flex: 1; color: #6b7280; font-size: 12px;">' + escape(data.unit || '') + '</div>' +
+                           '<div style="flex: 1.5; color: #111827; text-align: right; font-weight: 500;">' + parseFloat(data.base_price).toLocaleString('en-US') + '</div>' +
+                           '</div>';
+                },
+                item: function(data, escape) { return '<div>' + escape(data.name || '') + '</div>'; }
+            }
+        });
+
         fetch('/api/doctors/')
             .then(res => res.json())
             .then(data => {
-                const consultSelect = document.getElementById('cons_consulting_doctor');
-                const performSelect = document.getElementById('cons_performing_doctor');
                 data.forEach(doctor => {
-                    consultSelect.add(new Option(doctor.full_name, doctor.employee_id));
-                    performSelect.add(new Option(doctor.full_name, doctor.employee_id));
+                    window.ts_consulting.addOption({value: doctor.employee_id, text: doctor.full_name});
+                    window.ts_performing.addOption({value: doctor.employee_id, text: doctor.full_name});
                 });
             })
             .catch(err => console.error(err));
 
         window.currentCategories = [];
+        window.allServices = [];
+        
         fetch('/api/service-tree/')
             .then(res => res.json())
             .then(data => {
                 window.currentCategories = data;
-                const catSelect = document.getElementById('cons_category');
                 data.forEach(cat => {
-                    catSelect.add(new Option(cat.name, cat.category_id));
+                    window.ts_category.addOption({value: cat.category_id, text: cat.name});
+                    if (cat.services) {
+                        cat.services.forEach(srv => {
+                            window.allServices.push({
+                                ...srv,
+                                category_id: cat.category_id
+                            });
+                        });
+                    }
                 });
+                window.ts_service.addOption(window.allServices);
             })
             .catch(err => console.error(err));
 
-        const catSelect = document.getElementById('cons_category');
-        const serviceSelect = document.getElementById('cons_service');
-        const priceInput = document.getElementById('cons_price');
-
-        catSelect.addEventListener('change', (e) => {
-            const catId = e.target.value;
-            serviceSelect.innerHTML = '<option value="">-- Chọn Dịch vụ --</option>';
-            const category = window.currentCategories.find(c => c.category_id == catId);
-            if (category && category.services) {
-                category.services.forEach(srv => {
-                    const opt = new Option(srv.name, srv.service_id);
-                    opt.dataset.price = srv.base_price;
-                    serviceSelect.add(opt);
-                });
+        window.ts_category.on('change', function(value) {
+            window.ts_service.clear();
+            window.ts_service.clearOptions();
+            if (value) {
+                const filtered = window.allServices.filter(s => s.category_id == value);
+                window.ts_service.addOption(filtered);
+            } else {
+                window.ts_service.addOption(window.allServices);
             }
+            window.ts_service.refreshOptions(false);
         });
 
-        serviceSelect.addEventListener('change', (e) => {
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.price) {
-                priceInput.value = parseFloat(selectedOption.dataset.price).toLocaleString('en-US');
+        window.ts_service.on('change', function(value) {
+            if (!value) {
+                priceInput.value = 0;
+                calculateFormTotal();
+                return;
+            }
+            const srv = window.ts_service.options[value];
+            if (srv && srv.base_price) {
+                priceInput.value = parseFloat(srv.base_price).toLocaleString('en-US');
             } else {
                 priceInput.value = 0;
             }
@@ -1417,17 +1507,57 @@
 
                 function calculateFormTotal() {
             const price = parseInt(document.getElementById('cons_price').value.replace(/,/g, '') || 0, 10);
-            const discount = parseInt(document.getElementById('cons_discount_amount').value.replace(/,/g, '') || 0, 10);
             const qty = parseInt(document.getElementById('cons_qty').value || 1, 10);
-            const total = (price * qty) - discount;
-            document.getElementById('cons_total_price').innerText = Math.max(0, total).toLocaleString('en-US') + ' VNĐ';
+            const subtotal = price * qty;
+
+            // VAT
+            const vatPercent = parseInt(document.getElementById('cons_vat').value || 0, 10);
+            const vatAmount = Math.round(subtotal * vatPercent / 100);
+
+            // Chiết khấu
+            const discountTypeEl = document.getElementById('cons_discount_type');
+            const discountType = discountTypeEl ? discountTypeEl.value : 'percent';
+            const discountInput = parseInt(document.getElementById('cons_discount').value || 0, 10);
+            let discountAmount = 0;
+            if (discountType === 'percent') {
+                discountAmount = Math.round(subtotal * discountInput / 100);
+            } else {
+                discountAmount = discountInput;
+            }
+
+            // Tiền C.Khấu (read-only)
+            const discountAmountEl = document.getElementById('cons_discount_amount');
+            if (discountAmountEl) {
+                discountAmountEl.value = discountAmount.toLocaleString('en-US');
+            }
+
+            const total = subtotal + vatAmount - discountAmount;
+
+            // Panel tóm tắt
+            const subtotalEl = document.getElementById('cons_summary_subtotal');
+            if (subtotalEl) subtotalEl.innerText = subtotal.toLocaleString('vi-VN') + ' VNĐ';
+
+            const discLine = document.getElementById('cons_summary_discount');
+            if (discLine) {
+                const discLabel = discountType === 'percent' ? '(' + discountInput + '%) ' : '';
+                discLine.innerText = discLabel + discountAmount.toLocaleString('vi-VN') + ' VNĐ';
+            }
+
+            const vatLine = document.getElementById('cons_summary_vat');
+            if (vatLine) vatLine.innerText = '(' + vatPercent + '%) ' + vatAmount.toLocaleString('vi-VN') + ' VNĐ';
+
+            document.getElementById('cons_total_price').innerText = Math.max(0, total).toLocaleString('vi-VN') + ' VNĐ';
         }
 
         // Attach events
-        ['cons_price', 'cons_qty', 'cons_discount_amount'].forEach(id => {
+        ['cons_price', 'cons_qty', 'cons_discount'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', calculateFormTotal);
         });
+        const vatEl = document.getElementById('cons_vat');
+        if (vatEl) vatEl.addEventListener('change', calculateFormTotal);
+        const discTypeEl = document.getElementById('cons_discount_type');
+        if (discTypeEl) discTypeEl.addEventListener('change', calculateFormTotal);
 
         // Trigger on editCons
 
@@ -1484,6 +1614,17 @@ document.addEventListener("DOMContentLoaded", function() {
     function updateToothInput() {
         const checked = Array.from(allToothCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         toothInput.value = checked.join(', ');
+        // Auto-update quantity based on number of selected teeth (VTTech style)
+        const qtyInput = document.getElementById('cons_qty');
+        if (checked.length > 0) {
+            qtyInput.value = checked.length;
+        } else {
+            qtyInput.value = 1;
+        }
+        // Recalculate total price
+        if (typeof calculateFormTotal === 'function') {
+            calculateFormTotal();
+        }
     }
 
     function syncChartFromInput() {

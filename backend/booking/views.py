@@ -848,7 +848,7 @@ class ServiceTreeAPIView(View):
         categories = ServiceCategory.objects.prefetch_related('services').all()
         data = []
         for cat in categories:
-            services = [{'service_id': s.service_id, 'name': s.name, 'base_price': s.price} for s in cat.services.all()]
+            services = [{'service_id': s.service_id, 'code': getattr(s, 'code', ''), 'name': s.name, 'base_price': s.price, 'unit': 'Răng' if 'răng' in s.name.lower() or 'trám' in s.name.lower() or 'nhổ' in s.name.lower() else 'Lần'} for s in cat.services.all()]
             data.append({
                 'category_id': cat.category_id,
                 'name': cat.name,
