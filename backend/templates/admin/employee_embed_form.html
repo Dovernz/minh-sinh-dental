@@ -1,25 +1,67 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 {% block content %}
-<script src="https://cdn.tailwindcss.com"></script>
 
-<div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden font-sans mt-4 relative">
+<style>
+    /* Dark mode guarantee for Employee profile form */
+    html.dark .employee-card-wrapper {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    html.dark .employee-header-bar,
+    html.dark .employee-footer-bar {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    html.dark .employee-card-wrapper input:not([type="checkbox"]):not([type="radio"]),
+    html.dark .employee-card-wrapper select {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    html.dark .employee-card-wrapper input:disabled,
+    html.dark .employee-card-wrapper select:disabled {
+        background-color: rgba(30, 41, 59, 0.5) !important;
+        color: #64748b !important;
+    }
+    html.dark .employee-card-wrapper label {
+        color: #cbd5e1 !important;
+    }
+    html.dark .employee-card-wrapper h2 {
+        color: #f8fafc !important;
+    }
+    html.dark .employee-card-wrapper p {
+        color: #94a3b8 !important;
+    }
+    html.dark .employee-tab-btn-inactive {
+        background-color: transparent !important;
+        border-color: #475569 !important;
+        color: #cbd5e1 !important;
+    }
+    html.dark .employee-tab-btn-inactive:hover {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }
+</style>
+
+<div class="employee-card-wrapper max-w-5xl mx-auto bg-white dark:bg-slate-900 rounded-xl shadow border border-gray-200 dark:border-slate-800 overflow-hidden font-sans mt-4 relative text-gray-800 dark:text-gray-100">
     
     <!-- Header -->
-    <div class="flex justify-between items-center border-b px-6 py-4 bg-gray-50">
+    <div class="employee-header-bar flex justify-between items-center border-b border-gray-200 dark:border-slate-800 px-6 py-4 bg-gray-50 dark:bg-slate-800/70">
         <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-lg bg-white border flex items-center justify-center p-2 shadow-sm">
+            <div class="w-16 h-16 rounded-lg bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 flex items-center justify-center p-2 shadow-sm">
                 <img src="https://dental.minhsinh.com/logo.png" onerror="this.src='https://via.placeholder.com/64'" class="max-w-full max-h-full">
             </div>
             <div>
-                <h2 class="text-xl font-bold text-gray-800">Hồ sơ cá nhân</h2>
-                <p class="text-sm text-gray-500">Thông tin nhân viên – Khi thay đổi giá trị cần bấm Lưu để áp dụng</p>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-font-default-dark">Hồ sơ cá nhân</h2>
+                <p class="text-sm text-gray-500 dark:text-font-subtle-dark">Thông tin nhân viên – Khi thay đổi giá trị cần bấm Lưu để áp dụng</p>
             </div>
         </div>
         <div class="flex gap-2" id="tab-buttons">
-            <button onclick="switchTab('thong-tin-chung')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold bg-white text-gray-700 shadow-sm" data-tab="thong-tin-chung">Thông tin chung</button>
-            <button onclick="switchTab('phu-cap')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold text-gray-500 hover:bg-gray-50" data-tab="phu-cap">Phụ cấp</button>
-            <button onclick="switchTab('khac')" class="tab-btn px-4 py-2 border rounded-full text-sm font-semibold text-gray-500 hover:bg-gray-50" data-tab="khac">Khác</button>
+            <button type="button" onclick="switchTab('thong-tin-chung')" class="tab-btn px-4 py-2 border border-primary-600 rounded-full text-sm font-semibold bg-primary-600 text-white shadow-sm" data-tab="thong-tin-chung">Thông tin chung</button>
+            <button type="button" onclick="switchTab('phu-cap')" class="tab-btn px-4 py-2 border border-gray-300 dark:border-base-700 rounded-full text-sm font-semibold text-gray-600 dark:text-font-subtle-dark hover:bg-gray-100 dark:hover:bg-base-800" data-tab="phu-cap">Phụ cấp</button>
+            <button type="button" onclick="switchTab('khac')" class="tab-btn px-4 py-2 border border-gray-300 dark:border-base-700 rounded-full text-sm font-semibold text-gray-600 dark:text-font-subtle-dark hover:bg-gray-100 dark:hover:bg-base-800" data-tab="khac">Khác</button>
         </div>
     </div>
 
@@ -29,47 +71,47 @@
         <div id="tab-thong-tin-chung" class="tab-content">
             <div class="flex gap-6 mb-6 items-center">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="gender" class="w-4 h-4 text-blue-600 focus:ring-blue-500" checked>
-                    <span class="text-gray-700 font-medium">Nam</span>
+                    <input type="radio" name="gender" class="w-4 h-4 text-primary-600 focus:ring-primary-500" checked>
+                    <span class="text-gray-800 dark:text-font-default-dark font-medium">Nam</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="gender" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
-                    <span class="text-gray-700 font-medium">Nữ</span>
+                    <input type="radio" name="gender" class="w-4 h-4 text-primary-600 focus:ring-primary-500">
+                    <span class="text-gray-800 dark:text-font-default-dark font-medium">Nữ</span>
                 </label>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nhân viên *</label>
-                    <input type="text" id="emp_name" value="{% if employee %}{{ employee.full_name }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Nhân viên *</label>
+                    <input type="text" id="emp_name" value="{% if employee %}{{ employee.full_name }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mã (SĐT)</label>
-                    <input type="text" id="emp_phone" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Mã (SĐT)</label>
+                    <input type="text" id="emp_phone" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày sinh</label>
-                    <input type="date" id="emp_dob" value="{% if employee and employee.dob %}{{ employee.dob|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Ngày sinh</label>
+                    <input type="date" id="emp_dob" value="{% if employee and employee.dob %}{{ employee.dob|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Điện thoại (10 ký tự số)</label>
-                    <input type="text" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" disabled>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Điện thoại (10 ký tự số)</label>
+                    <input type="text" value="{% if employee %}{{ employee.phone }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-gray-100 dark:bg-base-800/50 text-gray-500 dark:text-font-subtle-dark outline-none cursor-not-allowed" disabled>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                    <input type="email" id="emp_email" value="{% if employee %}{{ employee.email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Email</label>
+                    <input type="email" id="emp_email" value="{% if employee %}{{ employee.email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mail công ty</label>
-                    <input type="email" id="emp_company_email" value="{% if employee %}{{ employee.company_email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Mail công ty</label>
+                    <input type="email" id="emp_company_email" value="{% if employee %}{{ employee.company_email|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div class="md:col-span-1">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nickname</label>
-                    <input type="text" id="emp_nickname" value="{% if employee %}{{ employee.nickname|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Nickname</label>
+                    <input type="text" id="emp_nickname" value="{% if employee %}{{ employee.nickname|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Bộ phận</label>
-                    <select id="emp_department" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Bộ phận</label>
+                    <select id="emp_department" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                         <option value="">-- Chọn bộ phận --</option>
                         <option value="Quản lí" {% if employee and employee.department == 'Quản lí' %}selected{% endif %}>Quản lí</option>
                         <option value="Bác sĩ" {% if employee and employee.department == 'Bác sĩ' %}selected{% endif %}>Bác sĩ</option>
@@ -78,13 +120,12 @@
                 </div>
                 <div class="col-span-3">
                     <label class="flex items-center gap-2 cursor-pointer mb-2">
-                        <input type="checkbox" id="emp_is_all_clinics" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-gray-300" {% if employee and employee.is_all_clinics %}checked{% endif %}>
-                        <span class="font-semibold text-gray-700 text-sm">Tất cả chi nhánh</span>
+                        <input type="checkbox" id="emp_is_all_clinics" class="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded border-gray-300 dark:border-base-700" {% if employee and employee.is_all_clinics %}checked{% endif %}>
+                        <span class="font-semibold text-gray-800 dark:text-font-default-dark text-sm">Tất cả chi nhánh</span>
                     </label>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chi nhánh</label>
-                    <select id="emp_clinic" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-400 bg-gray-50" disabled>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Chi nhánh</label>
+                    <select id="emp_clinic" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-gray-100 dark:bg-base-800/50 text-gray-400 dark:text-font-subtle-dark outline-none" disabled>
                         <option value="">chọn chi nhánh</option>
-                        <!-- Add clinics dynamically if needed -->
                     </select>
                 </div>
             </div>
@@ -93,26 +134,26 @@
         <!-- Tab 2: Phụ cấp -->
         <div id="tab-phu-cap" class="tab-content hidden">
             <div class="space-y-4">
-                <div class="flex items-center justify-between border-b pb-4">
+                <div class="flex items-center justify-between border-b border-gray-200 dark:border-base-800 pb-4">
                     <label class="flex items-center gap-3">
-                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_position %}checked{% endif %}>
-                        <span class="text-gray-700 font-medium">Chức vụ</span>
+                        <input type="checkbox" class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-base-700" {% if employee.allowance_position %}checked{% endif %}>
+                        <span class="text-gray-800 dark:text-font-default-dark font-medium">Chức vụ</span>
                     </label>
-                    <input type="number" id="emp_allowance_position" value="{% if employee %}{{ employee.allowance_position|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="number" id="emp_allowance_position" value="{% if employee %}{{ employee.allowance_position|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
-                <div class="flex items-center justify-between border-b pb-4">
+                <div class="flex items-center justify-between border-b border-gray-200 dark:border-base-800 pb-4">
                     <label class="flex items-center gap-3">
-                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_degree %}checked{% endif %}>
-                        <span class="text-gray-700 font-medium">Bằng cấp, Chứng chỉ</span>
+                        <input type="checkbox" class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-base-700" {% if employee.allowance_degree %}checked{% endif %}>
+                        <span class="text-gray-800 dark:text-font-default-dark font-medium">Bằng cấp, Chứng chỉ</span>
                     </label>
-                    <input type="number" id="emp_allowance_degree" value="{% if employee %}{{ employee.allowance_degree|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="number" id="emp_allowance_degree" value="{% if employee %}{{ employee.allowance_degree|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
-                <div class="flex items-center justify-between border-b pb-4">
+                <div class="flex items-center justify-between border-b border-gray-200 dark:border-base-800 pb-4">
                     <label class="flex items-center gap-3">
-                        <input type="checkbox" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" {% if employee.allowance_specialty %}checked{% endif %}>
-                        <span class="text-gray-700 font-medium">Chuyên môn</span>
+                        <input type="checkbox" class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-base-700" {% if employee.allowance_specialty %}checked{% endif %}>
+                        <span class="text-gray-800 dark:text-font-default-dark font-medium">Chuyên môn</span>
                     </label>
-                    <input type="number" id="emp_allowance_specialty" value="{% if employee %}{{ employee.allowance_specialty|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="number" id="emp_allowance_specialty" value="{% if employee %}{{ employee.allowance_specialty|default:0 }}{% else %}0{% endif %}" class="w-64 p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
             </div>
         </div>
@@ -121,51 +162,51 @@
         <div id="tab-khac" class="tab-content hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chức vụ</label>
-                    <select id="emp_role" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Chức vụ</label>
+                    <select id="emp_role" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                         <option value="Doctor" {% if employee and employee.role == 'Doctor' %}selected{% endif %}>Bác sĩ</option>
                         <option value="Staff" {% if employee and employee.role == 'Staff' %}selected{% endif %}>Nhân viên</option>
                         <option value="Admin" {% if employee and employee.role == 'Admin' %}selected{% endif %}>Quản lý</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Loại hợp đồng</label>
-                    <select id="emp_contract" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Loại hợp đồng</label>
+                    <select id="emp_contract" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                         <option value="Full-time" {% if employee and employee.contract_type == 'Full-time' %}selected{% endif %}>Full-time</option>
                         <option value="Part-time" {% if employee and employee.contract_type == 'Part-time' %}selected{% endif %}>Part-time</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Số ngày phép năm</label>
-                    <input type="number" id="emp_annual_leave" value="{% if employee %}{{ employee.annual_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Số ngày phép năm</label>
+                    <input type="number" id="emp_annual_leave" value="{% if employee %}{{ employee.annual_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày nhận việc</label>
-                    <input type="date" id="emp_start_date" value="{% if employee and employee.start_date %}{{ employee.start_date|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày phép đã sử dụng</label>
-                    <input type="number" id="emp_used_leave" value="{% if employee %}{{ employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày phép còn lại</label>
-                    <input type="number" disabled value="{% if employee %}{{ employee.annual_leave_days|add:'-'|add:employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-100 cursor-not-allowed">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Ngày nhận việc</label>
+                    <input type="date" id="emp_start_date" value="{% if employee and employee.start_date %}{{ employee.start_date|date:'Y-m-d' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Lương căn bản</label>
-                    <input type="number" id="emp_base_salary" value="{% if employee %}{{ employee.base_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Ngày phép đã sử dụng</label>
+                    <input type="number" id="emp_used_leave" value="{% if employee %}{{ employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Lương thỏa thuận</label>
-                    <input type="number" id="emp_agreed_salary" value="{% if employee %}{{ employee.agreed_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Ngày phép còn lại</label>
+                    <input type="number" disabled value="{% if employee %}{{ employee.annual_leave_days|add:'-'|add:employee.used_leave_days|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-gray-100 dark:bg-base-800/50 text-gray-500 dark:text-font-subtle-dark outline-none text-sm cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Lương căn bản</label>
+                    <input type="number" id="emp_base_salary" value="{% if employee %}{{ employee.base_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Lương thỏa thuận</label>
+                    <input type="number" id="emp_agreed_salary" value="{% if employee %}{{ employee.agreed_salary|default:0 }}{% else %}0{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none text-sm">
                 </div>
                 
                 <div class="col-span-2 hidden">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Chuyên môn</label>
-                    <input type="text" id="emp_specialty" value="{% if employee %}{{ employee.specialty|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-font-default-dark mb-1">Chuyên môn</label>
+                    <input type="text" id="emp_specialty" value="{% if employee %}{{ employee.specialty|default:'' }}{% endif %}" class="w-full p-2.5 border border-gray-300 dark:border-base-700 rounded-lg bg-white dark:bg-base-800 text-gray-900 dark:text-font-default-dark focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
             </div>
         </div>
@@ -173,9 +214,9 @@
     </div>
 
     <!-- Footer -->
-    <div class="border-t px-8 py-5 flex justify-end gap-3 bg-white">
-        <button onclick="window.history.back()" class="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white font-semibold rounded-lg shadow transition">Đóng</button>
-        <button onclick="saveEmployee()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition">Lưu</button>
+    <div class="employee-footer-bar border-t border-gray-200 dark:border-slate-800 px-8 py-5 flex justify-end gap-3 bg-gray-50 dark:bg-slate-800/70">
+        <button type="button" onclick="window.history.back()" class="px-6 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-base-700 dark:hover:bg-base-600 text-white font-semibold rounded-lg shadow transition">Đóng</button>
+        <button type="button" onclick="saveEmployee()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow transition">Lưu</button>
     </div>
 </div>
 
@@ -188,16 +229,19 @@
         toggleClinicSelect();
         
         // Event listener
-        isAllClinicsCheckbox.addEventListener('change', toggleClinicSelect);
+        if (isAllClinicsCheckbox && clinicSelect) {
+            isAllClinicsCheckbox.addEventListener('change', toggleClinicSelect);
+        }
         
         function toggleClinicSelect() {
+            if (!clinicSelect || !isAllClinicsCheckbox) return;
             if (isAllClinicsCheckbox.checked) {
                 clinicSelect.disabled = true;
-                clinicSelect.classList.add('bg-gray-50', 'text-gray-400');
+                clinicSelect.classList.add('bg-gray-100', 'dark:bg-base-800/50', 'text-gray-400');
                 clinicSelect.value = '';
             } else {
                 clinicSelect.disabled = false;
-                clinicSelect.classList.remove('bg-gray-50', 'text-gray-400');
+                clinicSelect.classList.remove('bg-gray-100', 'dark:bg-base-800/50', 'text-gray-400');
             }
         }
         
@@ -213,22 +257,26 @@
                     if (currentClinicId == clinic.clinic_id) {
                         option.selected = true;
                     }
-                    clinicSelect.appendChild(option);
+                    if (clinicSelect) clinicSelect.appendChild(option);
                 });
-            });
+            })
+            .catch(err => console.log('Clinics fetch error:', err));
     });
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        const targetTab = document.getElementById('tab-' + tabId);
+        if (targetTab) targetTab.classList.remove('hidden');
         
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('bg-white', 'text-gray-700');
-            btn.classList.add('text-gray-500');
+            btn.classList.remove('bg-primary-600', 'text-white', 'border-primary-600');
+            btn.classList.add('border-gray-300', 'dark:border-base-700', 'text-gray-600', 'dark:text-font-subtle-dark');
         });
         const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-        activeBtn.classList.remove('text-gray-500');
-        activeBtn.classList.add('bg-white', 'text-gray-700');
+        if (activeBtn) {
+            activeBtn.classList.remove('border-gray-300', 'dark:border-base-700', 'text-gray-600', 'dark:text-font-subtle-dark');
+            activeBtn.classList.add('bg-primary-600', 'text-white', 'border-primary-600');
+        }
     }
 
     function saveEmployee() {
@@ -282,5 +330,3 @@
     }
 </script>
 {% endblock %}
-
-

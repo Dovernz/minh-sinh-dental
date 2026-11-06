@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 import environ
 
@@ -166,6 +166,61 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 from django.urls import reverse_lazy
 from django.templatetags.static import static
 
+SSO_SECRET_KEY = env('SSO_SECRET_KEY', default='minhsinh_dental_sso_secure_key_2026')
+
+def check_section_perm(request, perms):
+    if not request.user or not request.user.is_authenticated:
+        return False
+    if request.user.is_superuser:
+        return True
+    return any(request.user.has_perm(p) for p in perms)
+
+def has_booking_perm(request):
+    return check_section_perm(request, [
+        'booking.view_booking', 'booking.add_booking', 'booking.change_booking',
+        'operations.view_managebooking', 'operations.view_dailyschedule', 'operations.view_weeklyschedule'
+    ])
+
+def has_transaction_perm(request):
+    return check_section_perm(request, [
+        'booking.view_payment', 'booking.add_payment', 'booking.change_payment',
+        'booking.view_bookingbill', 'booking.add_bookingbill'
+    ])
+
+def has_customer_service_perm(request):
+    return check_section_perm(request, [
+        'booking.view_customer', 'booking.add_customer', 'booking.change_customer',
+        'booking.view_clinic', 'booking.view_service', 'booking.view_servicedetail',
+        'booking.view_servicecategory', 'booking.view_timeslot', 'booking.view_catalogdiscount'
+    ])
+
+def has_finance_inventory_perm(request):
+    return check_section_perm(request, [
+        'booking.view_inventorydetail', 'booking.add_inventorydetail', 'booking.change_inventorydetail',
+        'booking.view_inventoryusage', 'booking.add_inventoryusage',
+        'booking.view_topupinfo', 'booking.view_commissionrate', 'booking.view_payment'
+    ])
+
+def has_wordpress_perm(request):
+    return check_section_perm(request, [
+        'booking.manage_wordpress_posts',
+        'booking.view_article', 'booking.add_article', 'booking.change_article',
+        'booking.view_marketingarticle'
+    ])
+
+def has_web_config_perm(request):
+    return check_section_perm(request, [
+        'booking.view_menulink', 'booking.add_menulink', 'booking.change_menulink',
+        'booking.view_sitesettings', 'booking.change_sitesettings'
+    ])
+
+def has_system_user_perm(request):
+    return check_section_perm(request, [
+        'auth.view_user', 'auth.add_user', 'auth.change_user',
+        'auth.view_group', 'auth.add_group', 'auth.change_group',
+        'booking.view_employee', 'booking.add_employee', 'booking.change_employee'
+    ])
+
 UNFOLD = {
     "INDEX_TITLE": "Báº£ng Ä‘iÃ¡Â»Âu khiÃ¡Â»Æ’n",
     "SITE_TITLE": "Nha Khoa Minh Sinh",
@@ -202,20 +257,22 @@ UNFOLD = {
             {
                 "title": "Quản lý Booking",
                 "collapsible": True,
+                "permission": has_booking_perm,
                 "items": [
-                    {"title": "Lịch Ngày", "icon": "calendar_today", "link": "/admin/operations/dailyschedule/"},
-                    {"title": "Lịch Tuần", "icon": "calendar_view_week", "link": "/admin/operations/weeklyschedule/"},
-                    {"title": "Chi tiết Bookings", "icon": "list_alt", "link": "/admin/operations/managebooking/"},
-                    {"title": "Tạo Booking", "icon": "add_circle", "link": "/admin/booking-embed/"},
+                    {"title": "Lịch Ngày", "icon": "calendar_today", "link": "/admin/operations/dailyschedule/", "permission": has_booking_perm},
+                    {"title": "Lịch Tuần", "icon": "calendar_view_week", "link": "/admin/operations/weeklyschedule/", "permission": has_booking_perm},
+                    {"title": "Chi tiết Bookings", "icon": "list_alt", "link": "/admin/operations/managebooking/", "permission": has_booking_perm},
+                    {"title": "Tạo Booking", "icon": "add_circle", "link": "/admin/booking-embed/", "permission": has_booking_perm},
                 ],
             },
             {
                 "title": "Giao dịch",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_transaction_perm,
                 "items": [
-                    {"title": "Thanh toán (POS)", "icon": "point_of_sale", "link": "/admin/pos-system/"},
-                    {"title": "Thu hồi Công nợ", "icon": "price_check", "link": "/admin/pos-debt/"},
+                    {"title": "Thanh toán (POS)", "icon": "point_of_sale", "link": "/admin/pos-system/", "permission": has_transaction_perm},
+                    {"title": "Thu hồi Công nợ", "icon": "price_check", "link": "/admin/pos-debt/", "permission": has_transaction_perm},
                     {"title": "Danh sách Hóa đơn", "icon": "receipt_long", "link": "/admin/booking/payment/"},
                 ],
             },
@@ -223,6 +280,7 @@ UNFOLD = {
                 "title": "Khách hàng & Dịch vụ",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_customer_service_perm,
                 "items": [
                     {"title": "Khách hàng", "icon": "people", "link": "/admin/booking/customer/"},
                     {"title": "Cơ sở (Clinics)", "icon": "store", "link": "/admin/booking/clinic/"},
@@ -236,8 +294,9 @@ UNFOLD = {
                 "title": "Tài chính & Vật tư",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_finance_inventory_perm,
                 "items": [
-                    {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/"},
+                    {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/", "permission": has_finance_inventory_perm},
                     {"title": "Cấu hình Thanh toán", "icon": "account_balance_wallet", "link": reverse_lazy("admin:booking_topupinfo_changelist")},
                     {"title": "Thanh toán", "icon": "payments", "link": "/admin/booking/payment/"},
                     {"title": "Vật tư Kho", "icon": "inventory_2", "link": "/admin/booking/inventorydetail/"},
@@ -245,12 +304,33 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "Bài viết & Marketing",
+                "title": "Bài viết & Blog (WordPress)",
                 "icon": "campaign",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_wordpress_perm,
                 "items": [
-                    {"title": "Bài viết", "icon": "article", "link": "/admin/booking/article/"},
+                    {
+                        "title": "Quản lý Bài viết",
+                        "icon": "article",
+                        "link": "/admin/sso-to-wordpress/?target=edit.php",
+                        "link_attrs": {"target": "_blank", "rel": "noopener noreferrer"},
+                        "permission": has_wordpress_perm,
+                    },
+                    {
+                        "title": "Viết Bài Mới",
+                        "icon": "post_add",
+                        "link": "/admin/sso-to-wordpress/?target=post-new.php",
+                        "link_attrs": {"target": "_blank", "rel": "noopener noreferrer"},
+                        "permission": has_wordpress_perm,
+                    },
+                    {
+                        "title": "Thư viện Hình ảnh",
+                        "icon": "photo_library",
+                        "link": "/admin/sso-to-wordpress/?target=upload.php",
+                        "link_attrs": {"target": "_blank", "rel": "noopener noreferrer"},
+                        "permission": has_wordpress_perm,
+                    },
                 ],
             },
             {
@@ -258,6 +338,7 @@ UNFOLD = {
                 "icon": "settings",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_web_config_perm,
                 "items": [
                     {"title": "Cấu hình Header", "icon": "info", "link": reverse_lazy("admin:booking_menulink_changelist")},
                     {"title": "Cấu hình Footer", "icon": "info", "link": reverse_lazy("admin:booking_sitesettings_changelist")},
@@ -267,11 +348,12 @@ UNFOLD = {
                 "title": "Hệ thống & Quản trị User",
                 "separator": True,
                 "collapsible": True,
+                "permission": has_system_user_perm,
                 "items": [
                     {"title": "Cấu hình Commission Rate", "icon": "settings", "link": reverse_lazy("admin:booking_commissionrate_changelist")},
                     {"title": "Phân quyền", "icon": "security", "link": reverse_lazy("admin:auth_group_changelist")},
                     {"title": "Người dùng", "icon": "person", "link": reverse_lazy("admin:auth_user_changelist")},
-                    {"title": "Nhân viên", "icon": "badge", "link": "/admin/booking/employee/"},
+                    {"title": "Nhân viên", "icon": "badge", "link": "/admin/booking/employee/", "permission": has_system_user_perm},
                 ],
             },
         ],
@@ -346,3 +428,6 @@ DECIMAL_SEPARATOR = '.'
 THOUSAND_SEPARATOR = ','
 NUMBER_GROUPING = 3
 
+
+# Allow iframe embedding for Admin and Frontend
+X_FRAME_OPTIONS = 'SAMEORIGIN'

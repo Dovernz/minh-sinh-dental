@@ -69,15 +69,56 @@ class BookingHistoryInline(admin.TabularInline):
         return mark_safe(html)
     get_detailed_services.short_description = "Chi tiết (Dịch vụ - Bác sĩ - Răng - Giá)"
 
+from django import forms
+from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.models import Permission
+from core.permission_widget import MenuGranularPermissionsWidget, CompactGroupSelectWidget
+
+class CustomGroupAdminForm(forms.ModelForm):
+    permissions = forms.ModelMultipleChoiceField(
+        queryset=Permission.objects.select_related('content_type').all(),
+        required=False,
+        widget=MenuGranularPermissionsWidget,
+        label="Phân quyền theo Mục Menu"
+    )
+
+    class Meta:
+        model = Group
+        fields = '__all__'
+
+class CustomUserChangeForm(UserChangeForm):
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all().order_by('name'),
+        required=False,
+        widget=CompactGroupSelectWidget,
+        label="Các nhóm vai trò"
+    )
+    user_permissions = forms.ModelMultipleChoiceField(
+        queryset=Permission.objects.select_related('content_type').all(),
+        required=False,
+        widget=MenuGranularPermissionsWidget,
+        label="Phân quyền riêng theo Mục Menu"
+    )
+
+    class Meta:
+        model = User
+        fields = '__all__'
+
 @admin.register(Group)
-class CustomGroupAdmin(GroupAdmin):
+class CustomGroupAdmin(ModelAdmin, GroupAdmin):
+    form = CustomGroupAdminForm
+    filter_horizontal = ()
+
     def has_module_permission(self, request):
         if request.user.is_superuser:
             return True
         return request.user.groups.filter(name='Admin').exists()
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(ModelAdmin, UserAdmin):
+    form = CustomUserChangeForm
+    filter_horizontal = ()
+
     def has_module_permission(self, request):
         if request.user.is_superuser:
             return True
@@ -748,7 +789,7 @@ class BookingDetailInline(TabularInline):
     model = BookingDetail
     form = BookingDetailInlineForm
     extra = 1
-    fields = ('service_detail', 'doctor', 'actual_price')
+    fields = ('service_detail', 'consulting_doctor', 'performing_doctor', 'actual_price', 'quantity', 'tooth_position')
 
 @admin.register(Booking)
 class BookingAdmin(BaseRBACAdmin):
@@ -1029,7 +1070,7 @@ class ArticleAdminForm(forms.ModelForm):
         """
         self.fields['category'].help_text = mark_safe(js)
 
-@admin.register(Article)
+# @admin.register(Article)  # Disabled: Managed via WordPress
 
 class ArticleAdmin(BaseRBACAdmin):
 

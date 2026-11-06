@@ -137,3 +137,28 @@ body.sidebar-mini #nav-sidebar-apps ol li a span:not(.material-symbols-outlined)
 body.sidebar-mini #nav-sidebar-apps ol li a {
     font-size: unset !important;
 }
+
+/* --- DARK MODE UNIVERSAL EMBED VIEWS (Employee, Customer 360, Customer Add) --- */
+html.dark .employee-card-wrapper,
+html.dark .employee-embed-container,
+html.dark .customer-profile-container,
+html.dark .customer-360-container {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+html.dark select {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html.dark .modal-content,
+html.dark .popup-card {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+

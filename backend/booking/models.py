@@ -456,15 +456,47 @@ class BookingDetail(models.Model):
     def save(self, *args, **kwargs):
         if not self.actual_price and self.service_detail:
             self.actual_price = self.service_detail.price or 0
-            
+
         from decimal import Decimal
+        booking_date = None
+        if self.booking_id:
+            try:
+                b = self.booking
+                if b.created_on:
+                    booking_date = b.created_on.date()
+                elif b.start_time:
+                    booking_date = b.start_time.date()
+            except Exception:
+                pass
+
+        if not booking_date:
+            from django.utils import timezone
+            booking_date = timezone.now().date()
+
+        from booking.models import CommissionRate
+        rates = sorted(list(CommissionRate.objects.all()), key=lambda x: x.start_date, reverse=True)
+        rate_obj = None
+        for r in rates:
+            if r.start_date <= booking_date:
+                if not r.end_date or booking_date <= r.end_date:
+                    rate_obj = r
+                    break
+        if not rate_obj and rates:
+            rate_obj = rates[-1]
+
+        c_rate = Decimal(str(rate_obj.consulting_rate_percent)) / Decimal('100') if rate_obj else Decimal('0.05')
+        p_rate = Decimal(str(rate_obj.performing_rate_percent)) / Decimal('100') if rate_obj else Decimal('0.10')
+
+        qty = self.quantity or 1
+        total_price = Decimal(str(self.actual_price or 0)) * Decimal(str(qty))
+
         if self.consulting_doctor and self.consulting_doctor.contract_type == 'Part-time':
-            self.consulting_commission = Decimal(self.actual_price or 0) * Decimal('0.05')
+            self.consulting_commission = total_price * c_rate
         else:
             self.consulting_commission = Decimal('0')
 
         if self.performing_doctor and self.performing_doctor.contract_type == 'Part-time':
-            self.performing_commission = Decimal(self.actual_price or 0) * Decimal('0.10')
+            self.performing_commission = total_price * p_rate
         else:
             self.performing_commission = Decimal('0')
 

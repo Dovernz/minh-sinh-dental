@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny
 from .commission_apis import calculate_commissions, get_commission_rates
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
@@ -181,6 +182,9 @@ class AvailableSlotsView(APIView):
         return Response(results, status=status.HTTP_200_OK)
 
 class BookingCreateView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
     def post(self, request):
         data = request.data
         clinic_id = data.get('clinic_id')
@@ -970,6 +974,8 @@ from .serializers import DentalChartSerializer
 from django.db.models import Max
 
 class DentalChartViewSet(viewsets.ModelViewSet):
+    authentication_classes = []
+    permission_classes = [AllowAny]
     serializer_class = DentalChartSerializer
     
     def get_queryset(self):

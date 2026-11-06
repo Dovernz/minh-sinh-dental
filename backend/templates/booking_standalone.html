@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt Lịch Khám Nha Khoa - Nha Khoa Minh Sinh</title>
+    <link rel="icon" href="/static/img/logo.jpg">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        
+        /* Auto-hide header and footer when embedded in Admin Iframe */
+        .is-embedded #site-header,
+        .is-embedded #site-footer {
+            display: none !important;
+        }
+        .is-embedded body,
+        .is-embedded #main-wrapper {
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    </style>
+    <script>
+        // Check if page is inside an iframe or opened by admin embed
+        if (window.self !== window.top || window.location.search.indexOf('user_id=') !== -1 || window.location.search.indexOf('embed=true') !== -1) {
+            document.documentElement.classList.add('is-embedded');
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <!-- SITE HEADER (Synchronized with WordPress Brand) -->
+    <header id="site-header" class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="http://localhost/" class="flex items-center gap-3 group">
+                <img src="/static/img/logo.jpg" alt="Logo Nha Khoa Minh Sinh" class="w-11 h-11 rounded-full object-cover shadow border border-blue-100 group-hover:scale-105 transition" onerror="this.src='/static/img/logo.jpg'">
+                <div class="flex flex-col">
+                    <span class="font-extrabold text-xl text-blue-900 tracking-tight leading-tight">Nha Khoa Minh Sinh</span>
+                    <span class="text-xs text-gray-500 font-medium">Chăm sóc nụ cười chuẩn Y khoa</span>
+                </div>
+            </a>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="http://localhost/" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Trang chủ</a>
+                <a href="http://localhost/#dich-vu" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Dịch vụ</a>
+                <a href="http://localhost/#bang-gia" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Bảng giá</a>
+                <a href="http://localhost/#bac-si" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Đội ngũ bác sĩ</a>
+                <a href="http://localhost/tin-tuc/" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Tin tức & Blog</a>
+            </nav>
+
+            <!-- Hotline & CTA -->
+            <div class="flex items-center gap-4">
+                <a href="tel:0982242222" class="hidden sm:flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800 transition">
+                    <span class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                    </span>
+                    <span>0982 242 222</span>
+                </a>
+                <a href="/booking/" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md hover:bg-blue-700 transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Đặt lịch</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BOOKING CONTENT -->
+    <main id="main-wrapper" class="flex-grow py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div id="booking-root">
+            <div class="flex items-center justify-center min-h-[500px]">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600 font-medium">Đang tải biểu mẫu đặt lịch khám...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SITE FOOTER (Synchronized with WordPress Brand) -->
+    <footer id="site-footer" class="bg-gray-900 text-gray-300 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Col 1: About -->
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="/static/img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full object-cover">
+                        <span class="text-white font-extrabold text-lg">Nha Khoa Minh Sinh</span>
+                    </div>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-4">
+                        Trung tâm Nha khoa Thẩm mỹ & Điều trị Kỹ thuật cao. Cam kết mang đến trải nghiệm điều trị an toàn, tận tâm và ứng dụng công nghệ nha khoa tiên tiến hàng đầu.
+                    </p>
+                    <p class="text-xs text-gray-500">Giấy phép hoạt động số: 1234/SYT-GPHĐ</p>
+                </div>
+
+                <!-- Col 2: Clinic Locations -->
+                <div>
+                    <h3 class="text-white font-bold text-base mb-4 tracking-wide">Hệ Thống Cơ Sở</h3>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400 mt-0.5">📍</span>
+                            <div>
+                                <strong class="text-white">Cơ sở 1:</strong> 46C Quán Sứ, P. Hàng Bông, Q. Hoàn Kiếm, Hà Nội
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400 mt-0.5">📍</span>
+                            <div>
+                                <strong class="text-white">Cơ sở 2:</strong> 12 Triệu Việt Vương, Q. Hai Bà Trưng, Hà Nội
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Col 3: Contact & Working Hours -->
+                <div>
+                    <h3 class="text-white font-bold text-base mb-4 tracking-wide">Liên Hệ & Giờ Làm Việc</h3>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>📞 <strong>Hotline:</strong> <a href="tel:0982242222" class="text-blue-400 hover:underline">0982 242 222</a></li>
+                        <li>✉️ <strong>Email:</strong> contact@minhsinhdental.vn</li>
+                        <li>⏰ <strong>Thời gian làm việc:</strong> 08:00 - 20:00 (Từ Thứ 2 đến Chủ Nhật, không nghỉ trưa)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-10 pt-6 text-center text-xs text-gray-500">
+                <p>© 2026 Nha Khoa Minh Sinh. Tất cả các quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/booking_app.bundle.js' %}"></script>
+</body>
+</html>

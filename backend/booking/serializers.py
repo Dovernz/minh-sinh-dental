@@ -65,3 +65,4 @@ class DentalChartSerializer(serializers.ModelSerializer):
         model = DentalChart
         fields = '__all__'
         read_only_fields = ['sequence_num', 'created_at']
+        validators = []

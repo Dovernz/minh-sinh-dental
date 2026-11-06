@@ -1,0 +1,257 @@
+{% load static %}
+{% load tz %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt Lịch Thành Công - Nha Khoa Minh Sinh</title>
+    <link rel="icon" href="/static/img/logo.jpg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        
+        .is-embedded #site-header,
+        .is-embedded #site-footer {
+            display: none !important;
+        }
+        .is-embedded body,
+        .is-embedded #main-wrapper {
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    </style>
+    <script>
+        if (window.self !== window.top || window.location.search.indexOf('user_id=') !== -1 || window.location.search.indexOf('embed=true') !== -1) {
+            document.documentElement.classList.add('is-embedded');
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <!-- SITE HEADER -->
+    <header id="site-header" class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <a href="http://localhost/" class="flex items-center gap-3 group">
+                <img src="/static/img/logo.jpg" alt="Logo Nha Khoa Minh Sinh" class="w-11 h-11 rounded-full object-cover shadow border border-blue-100 group-hover:scale-105 transition" onerror="this.src='/static/img/logo.jpg'">
+                <div class="flex flex-col">
+                    <span class="font-extrabold text-xl text-blue-900 tracking-tight leading-tight">Nha Khoa Minh Sinh</span>
+                    <span class="text-xs text-gray-500 font-medium">Chăm sóc nụ cười chuẩn Y khoa</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="http://localhost/" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Trang chủ</a>
+                <a href="http://localhost/#dich-vu" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Dịch vụ</a>
+                <a href="http://localhost/#bang-gia" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Bảng giá</a>
+                <a href="http://localhost/#bac-si" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Đội ngũ bác sĩ</a>
+                <a href="http://localhost/tin-tuc/" class="text-sm font-semibold text-gray-700 hover:text-blue-600 transition">Tin tức & Blog</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a href="tel:0982242222" class="hidden sm:flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800 transition">
+                    <span class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                    </span>
+                    <span>0982 242 222</span>
+                </a>
+                <a href="/booking/" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md hover:bg-blue-700 transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Đặt lịch</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN SUCCESS CARD -->
+    <main id="main-wrapper" class="flex-grow py-10 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <!-- Header Banner -->
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 py-8 px-6 text-center text-white relative">
+                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-tight">Đặt Lịch Khám Thành Công!</h1>
+                <p class="text-emerald-100 text-sm mt-1">Cảm ơn Quý khách đã tin tưởng dịch vụ tại Nha Khoa Minh Sinh</p>
+            </div>
+
+            <div class="p-6 sm:p-8 space-y-6">
+                <!-- Appointment Details -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Thông Tin Lịch Hẹn Đã Đặt
+                    </h2>
+
+                    {% if bookings %}
+                        <div class="space-y-4">
+                            {% for bk in bookings %}
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 relative hover:border-emerald-300 transition">
+                                <span class="absolute top-4 right-4 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                    Mã: #{{ bk.booking_id }}
+                                </span>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500 uppercase">Khách hàng</span>
+                                        <p class="text-base font-bold text-gray-900 mt-0.5">{{ bk.customer.name }}</p>
+                                        <p class="text-xs text-gray-500">{{ bk.customer.phone }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500 uppercase">Dịch vụ đăng ký</span>
+                                        <p class="text-base font-bold text-emerald-700 mt-0.5">
+                                            {{ bk.category.name|default:"Khám nha khoa tổng quát" }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500 uppercase">Thời gian hẹn</span>
+                                        <p class="text-base font-semibold text-gray-900 mt-0.5">
+                                            {{ bk.start_time|timezone:"Asia/Ho_Chi_Minh"|date:"H:i - l, d/m/Y" }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500 uppercase">Trạng thái</span>
+                                        <p class="text-sm font-semibold text-amber-600 mt-0.5 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            Chờ tổng đài xác nhận
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-center">
+                            <span class="text-sm text-gray-600">Mã lịch hẹn:</span>
+                            <p class="text-2xl font-extrabold text-blue-700 mt-1">#{{ booking_id }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Chuyên viên tư vấn sẽ liên hệ để xác nhận thông tin chi tiết.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Clinic Info & Google Maps Location -->
+                {% if clinic %}
+                <div class="border-t border-gray-100 pt-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Địa Điểm Cơ Sở Khám: {{ clinic.name }}
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">
+                                📍 <strong>Địa chỉ:</strong> {{ clinic.address }} 
+                                {% if clinic.hotline %} | 📞 <strong>Hotline:</strong> <a href="tel:{{ clinic.hotline }}" class="text-blue-600 hover:underline">{{ clinic.hotline }}</a>{% endif %}
+                            </p>
+                        </div>
+                        {% if directions_url or clinic.map_url %}
+                        <a href="{{ directions_url|default:clinic.map_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg hover:bg-blue-100 transition whitespace-nowrap self-start sm:self-auto">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            Mở Google Maps Chỉ Đường
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% if map_embed_url %}
+                    <div class="rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100 h-64 sm:h-72 w-full">
+                        <iframe 
+                            title="Bản đồ cơ sở nha khoa"
+                            src="{{ map_embed_url }}" 
+                            width="100%" 
+                            height="100%" 
+                            style="border:0;" 
+                            allowfullscreen="" 
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Important Instructions -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 leading-relaxed">
+                    <p class="font-bold mb-1 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Lưu ý trước khi đến khám:
+                    </p>
+                    <ul class="list-disc list-inside space-y-0.5 text-amber-800 ml-1">
+                        <li>Vui lòng đến trước giờ hẹn 10 - 15 phút để làm thủ tục lễ tân tiếp đón.</li>
+                        <li>Nếu có thay đổi về lịch khám hoặc cần hỗ trợ gấp, vui lòng gọi điện thoại tới hotline phòng khám.</li>
+                    </ul>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                    <a href="http://localhost/" class="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition shadow-md">
+                        Quay Về Trang Chủ
+                    </a>
+                    <a href="/booking/" class="flex-1 inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition">
+                        Đặt Thêm Lịch Mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SITE FOOTER -->
+    <footer id="site-footer" class="bg-gray-900 text-gray-300 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="/static/img/logo.jpg" alt="Logo" class="w-10 h-10 rounded-full object-cover">
+                        <span class="text-white font-extrabold text-lg">Nha Khoa Minh Sinh</span>
+                    </div>
+                    <p class="text-sm text-gray-400 leading-relaxed mb-4">
+                        Trung tâm Nha khoa Thẩm mỹ & Điều trị Kỹ thuật cao. Cam kết mang đến trải nghiệm điều trị an toàn, tận tâm và ứng dụng công nghệ nha khoa tiên tiến hàng đầu.
+                    </p>
+                    <p class="text-xs text-gray-500">Giấy phép hoạt động số: 1234/SYT-GPHĐ</p>
+                </div>
+
+                <div>
+                    <h3 class="text-white font-bold text-base mb-4 tracking-wide">Hệ Thống Cơ Sở</h3>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400 mt-0.5">📍</span>
+                            <div>
+                                <strong class="text-white">Cơ sở 1:</strong> 46C Quán Sứ, P. Hàng Bông, Q. Hoàn Kiếm, Hà Nội
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-blue-400 mt-0.5">📍</span>
+                            <div>
+                                <strong class="text-white">Cơ sở 2:</strong> 12 Triệu Việt Vương, Q. Hai Bà Trưng, Hà Nội
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-white font-bold text-base mb-4 tracking-wide">Liên Hệ & Giờ Làm Việc</h3>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>📞 <strong>Hotline:</strong> <a href="tel:0982242222" class="text-blue-400 hover:underline">0982 242 222</a></li>
+                        <li>✉️ <strong>Email:</strong> contact@minhsinhdental.vn</li>
+                        <li>⏰ <strong>Thời gian làm việc:</strong> 08:00 - 20:00 (Từ Thứ 2 đến Chủ Nhật, không nghỉ trưa)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-10 pt-6 text-center text-xs text-gray-500">
+                <p>© 2026 Nha Khoa Minh Sinh. Tất cả các quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
