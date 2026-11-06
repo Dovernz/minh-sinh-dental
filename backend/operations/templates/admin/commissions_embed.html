@@ -3,37 +3,103 @@
 
 {% block content %}
 <style>
-    /* Dark mode styling guarantees */
-    html.dark .comm-card {
+    /* Dark mode comprehensive styles for Django Unfold Admin */
+    :where(.dark, .dark *, html.dark, html.dark *, html[data-theme=dark], html[data-theme=dark] *) {
+        color-scheme: dark !important;
+    }
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .bg-white,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .bg-gray-50,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .bg-gray-100 {
         background-color: #0f172a !important;
-        border-color: #334155 !important;
-        color: #f1f5f9 !important;
     }
-    html.dark .comm-card-inner {
-        background-color: #1e293b !important;
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .border-gray-200,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .border-gray-300 {
         border-color: #334155 !important;
     }
-    html.dark .comm-input,
-    html.dark .comm-select {
-        background-color: #1e293b !important;
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-900,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-800 {
+        color: #f8fafc !important;
+    }
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-700,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-600 {
+        color: #cbd5e1 !important;
+    }
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-500,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .text-gray-400 {
+        color: #94a3b8 !important;
+    }
+
+    /* Card backgrounds & borders */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-card {
+        background-color: #0f172a !important;
         border-color: #334155 !important;
         color: #f8fafc !important;
     }
-    html.dark .comm-table-header {
+
+    /* Inner containers & table headers */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-card-inner,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-table-header {
         background-color: #1e293b !important;
         border-color: #334155 !important;
         color: #94a3b8 !important;
     }
-    html.dark .comm-table-row:hover {
-        background-color: rgba(51, 65, 85, 0.4) !important;
+
+    /* Form controls (.comm-input, .comm-select, input[type=month]) */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-input,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-select,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) input[type="month"] {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+        color-scheme: dark !important;
     }
-    html.dark .comm-modal-content {
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) select option {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+
+    /* Month picker calendar icon */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) input[type="month"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(0.9) !important;
+        cursor: pointer !important;
+    }
+
+    /* Preset buttons (.filter-preset-btn) */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .filter-preset-btn {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #cbd5e1 !important;
+    }
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .filter-preset-btn:hover {
+        background-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+
+    /* Table rows & hover states */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-table-row:hover {
+        background-color: rgba(51, 65, 85, 0.5) !important;
+    }
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) table {
+        border-color: #334155 !important;
+    }
+
+    /* Modal Styling */
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-modal-content {
         background-color: #0f172a !important;
         border-color: #334155 !important;
-        color: #f1f5f9 !important;
+        color: #f8fafc !important;
     }
-    html.dark .comm-modal-header,
-    html.dark .comm-modal-footer {
+
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-modal-header,
+    :where(html.dark, html[data-theme=dark], .dark, :where(.dark, .dark *)) .comm-modal-footer {
         background-color: #1e293b !important;
         border-color: #334155 !important;
     }
@@ -408,7 +474,7 @@
                             <td class="py-2.5 px-3 text-gray-700 dark:text-gray-300">${escapeHtml(item.service || '-')}</td>
                             <td class="py-2.5 px-3 text-center">${roleBadge}</td>
                             <td class="py-2.5 px-3 text-right font-medium text-gray-600 dark:text-gray-400">${item.rate_percent ? item.rate_percent + '%' : '-'}</td>
-                            <td class="py-2.5 px-3 text-right font-medium">${formatVND(item.actual_price)}</td>
+                            <td class="py-2.5 px-3 text-right font-medium text-gray-900 dark:text-gray-100">${formatVND(item.actual_price)}</td>
                             <td class="py-2.5 px-3 text-right font-bold text-primary-600 dark:text-primary-400">${formatVND(cVal)}</td>
                         </tr>
                     `;
