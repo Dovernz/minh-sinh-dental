@@ -273,7 +273,7 @@ UNFOLD = {
                 "items": [
                     {"title": "Thanh toán (POS)", "icon": "point_of_sale", "link": "/admin/pos-system/", "permission": has_transaction_perm},
                     {"title": "Thu hồi Công nợ", "icon": "price_check", "link": "/admin/pos-debt/", "permission": has_transaction_perm},
-                    {"title": "Danh sách Hóa đơn", "icon": "receipt_long", "link": "/admin/booking/payment/"},
+                    {"title": "Hóa đơn & Thanh toán", "icon": "receipt_long", "link": "/admin/booking/payment/"},
                 ],
             },
             {
@@ -298,7 +298,6 @@ UNFOLD = {
                 "items": [
                     {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/", "permission": has_finance_inventory_perm},
                     {"title": "Cấu hình Thanh toán", "icon": "account_balance_wallet", "link": reverse_lazy("admin:booking_topupinfo_changelist")},
-                    {"title": "Thanh toán", "icon": "payments", "link": "/admin/booking/payment/"},
                     {"title": "Vật tư Kho", "icon": "inventory_2", "link": "/admin/booking/inventorydetail/"},
                     {"title": "Tiêu hao Vật tư", "icon": "history", "link": "/admin/booking/inventoryusage/"},
                 ],
@@ -331,17 +330,6 @@ UNFOLD = {
                         "link_attrs": {"target": "_blank", "rel": "noopener noreferrer"},
                         "permission": has_wordpress_perm,
                     },
-                ],
-            },
-            {
-                "title": "Cấu hình Web",
-                "icon": "settings",
-                "separator": True,
-                "collapsible": True,
-                "permission": has_web_config_perm,
-                "items": [
-                    {"title": "Cấu hình Header", "icon": "info", "link": reverse_lazy("admin:booking_menulink_changelist")},
-                    {"title": "Cấu hình Footer", "icon": "info", "link": reverse_lazy("admin:booking_sitesettings_changelist")},
                 ],
             },
             {
