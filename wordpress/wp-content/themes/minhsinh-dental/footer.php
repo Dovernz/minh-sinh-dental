@@ -21,7 +21,6 @@
                 <ul style="list-style: none; padding: 0; margin: 0; color: #64748b; font-size: 14px; line-height: 2;">
                     <li>📍 <strong>Cơ sở 1:</strong> 123 Phố Huế, Hai Bà Trưng, Hà Nội</li>
                     <li>📍 <strong>Cơ sở 2:</strong> 456 Nguyễn Trãi, Thanh Xuân, Hà Nội</li>
-                    <li>📍 <strong>Cơ sở 3:</strong> 789 Cầu Giấy, Cầu Giấy, Hà Nội</li>
                 </ul>
             </div>
 
