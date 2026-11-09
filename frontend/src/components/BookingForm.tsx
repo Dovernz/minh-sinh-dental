@@ -79,8 +79,8 @@ export default function BookingForm() {
     const fetchData = async () => {
       try {
         const [clinicRes, categoryRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/clinics/'),
-          axios.get('http://localhost:8000/api/services/')
+          axios.get('/api/clinics/'),
+          axios.get('/api/services/')
         ]);
         setClinics(clinicRes.data);
         setCategories(categoryRes.data);
@@ -98,7 +98,7 @@ export default function BookingForm() {
 
   const fetchMatrix = () => {
     if (selectedClinic && selectedDate) {
-      axios.get(`http://localhost:8000/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}&t=${new Date().getTime()}`)
+      axios.get(`/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}&t=${new Date().getTime()}`)
         .then(res => { console.log('API Matrix Data:', res.data); setMatrixData(res.data); })
         .catch(err => console.error(err));
     }
@@ -171,7 +171,7 @@ export default function BookingForm() {
         }))
       };
 
-      const response = await fetch('http://localhost:8000/api/bookings/', {
+      const response = await fetch('/api/bookings/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

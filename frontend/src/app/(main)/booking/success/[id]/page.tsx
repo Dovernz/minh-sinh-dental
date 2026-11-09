@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function BookingSuccessPage() {
     const params = useParams();
     const id = params?.id;
-    const [bookings, setBookings] = useState([]);
+    const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -25,9 +25,9 @@ export default function BookingSuccessPage() {
         }
 
         Promise.all(ids.map(bookId => 
-            fetch(`http://localhost:8000/api/bookings/${bookId}/detail/`).then(res => res.ok ? res.json() : null)
+            fetch(`/api/bookings/${bookId}/detail/`).then(res => res.ok ? res.json() : null)
         )).then(data => {
-            let flatData = [];
+            let flatData: any[] = [];
             data.forEach(item => {
                 if (item) {
                     if (Array.isArray(item)) flatData.push(...item);

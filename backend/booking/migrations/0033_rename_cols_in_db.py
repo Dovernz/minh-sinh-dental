@@ -10,6 +10,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL('ALTER TABLE db_table_customers RENAME COLUMN full_name TO name;'),
-        migrations.RunSQL('ALTER TABLE db_table_customers RENAME COLUMN dob TO customer_dob;'),
+        migrations.RunSQL("""
+            DO $$ 
+            BEGIN 
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='db_table_customers' AND column_name='full_name') THEN
+                    ALTER TABLE db_table_customers RENAME COLUMN full_name TO name;
+                END IF;
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='db_table_customers' AND column_name='dob') THEN
+                    ALTER TABLE db_table_customers RENAME COLUMN dob TO customer_dob;
+                END IF;
+            END $$;
+        """),
     ]

@@ -13,14 +13,13 @@ type DetailData = {
     commission: number;
 };
 
-export default function CommissionDetail({ params }: { params: Promise<{ doctorId: string }> | { doctorId: string } }) {
+export default function CommissionDetail({ params }: { params: Promise<{ doctorId: string }> }) {
     const searchParams = useSearchParams();
     const month = searchParams.get('month') || '';
     const [data, setData] = useState<DetailData[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // Support both Next.js 14 (params is object) and 15 (params is Promise)
-    const resolvedParams = params instanceof Promise ? use(params) : params;
+    const resolvedParams = use(params);
     const doctorId = Number(resolvedParams.doctorId);
 
     useEffect(() => {

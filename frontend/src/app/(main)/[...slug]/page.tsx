@@ -5,7 +5,7 @@ export default async function GlobalDynamicPage({ params }: { params: Promise<{ 
     const currentUrl = '/' + resolvedParams.slug.join('/');
 
     const res = await fetch(`http://backend:8000/api/articles/by-url/?url=${currentUrl}`, { cache: 'no-store' });
-    let data = { page_title: "", articles: [] };
+    let data: { page_title: string; articles: any[] } = { page_title: "", articles: [] };
     if (res.ok) {
         const json = await res.json();
         if (Array.isArray(json)) data.articles = json;

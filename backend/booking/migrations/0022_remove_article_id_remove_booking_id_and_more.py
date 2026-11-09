@@ -10,6 +10,23 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            sql="""
+            DO $$ 
+            DECLARE 
+                r RECORD;
+            BEGIN
+                FOR r IN (
+                    SELECT conrelid::regclass AS table_name, conname
+                    FROM pg_constraint
+                    WHERE contype = 'f'
+                ) LOOP
+                    EXECUTE 'ALTER TABLE ' || r.table_name || ' DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname) || ' CASCADE';
+                END LOOP;
+            END $$;
+            """,
+            reverse_sql=migrations.RunSQL.noop
+        ),
         migrations.RemoveField(
             model_name='article',
             name='id',

@@ -1,27 +1,79 @@
-version: '3.8'
-
 services:
+  # ============================================================================
+  # Nginx Reverse Proxy Gateway
+  # Bảo mật máy dev: Chỉ bind 127.0.0.1:80 (CẤM mở 0.0.0.0 ra mạng công ty)
+  # VPS Ready: Khi deploy VPS chỉ cần trỏ domain & thêm cấu hình SSL 443
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: dental_nginx
+    restart: always
+    ports:
+      - "127.0.0.1:80:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - wordpress
+    networks:
+      - dental_network
+
+  # ============================================================================
+  # Next.js Frontend (Port 3000: Đặt lịch, Tra cứu, Bảng giá, UI Khách hàng)
+  # Chỉ expose nội bộ qua Nginx gateway
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dental_frontend
+    restart: always
+    expose:
+      - "3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=/api
+    command: npm run dev
+    depends_on:
+      - backend
+    networks:
+      - dental_network
+
+  # ============================================================================
   # Django Backend (Port 8000: Admin, POS, CRM, Form Đặt lịch, Sơ đồ răng, REST API)
+  # Chỉ expose nội bộ qua Nginx gateway, không public port
+  # ============================================================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: dental_backend
+    restart: always
+    expose:
+      - "8000"
     volumes:
       - ./backend:/app
-    ports:
-      - "8000:8000"
     env_file:
       - ./backend/.env
     command: python manage.py runserver 0.0.0.0:8000
+    networks:
+      - dental_network
 
+  # ============================================================================
   # WordPress (Port 80: Landing Page, Giới thiệu, Blog SEO & Bài viết)
+  # Chỉ expose nội bộ qua Nginx gateway (/blog/ và /wp-admin/)
+  # ============================================================================
   wordpress:
     image: wordpress:php8.2-apache
     container_name: dental_wordpress
     restart: always
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     environment:
       WORDPRESS_DB_HOST: wordpress_db:3306
       WORDPRESS_DB_USER: wp_dental
@@ -32,8 +84,13 @@ services:
       - ./wordpress/wp-content:/var/www/html/wp-content
     depends_on:
       - wordpress_db
+    networks:
+      - dental_network
 
+  # ============================================================================
   # Database MariaDB dành riêng cho WordPress
+  # Chỉ giao tiếp nội bộ trong mạng docker, không publish port
+  # ============================================================================
   wordpress_db:
     image: mariadb:10.11
     container_name: dental_wp_db
@@ -45,6 +102,12 @@ services:
       MYSQL_PASSWORD: wp_dental_secret_pass
     volumes:
       - wp_db_data:/var/lib/mysql
+    networks:
+      - dental_network
+
+networks:
+  dental_network:
+    driver: bridge
 
 volumes:
   wp_db_data:

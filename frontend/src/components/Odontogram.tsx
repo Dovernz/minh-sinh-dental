@@ -11,7 +11,7 @@ export type ConditionCode =
   | 'RS' | 'CC' | 'NHO' | 'TKR' | 'ROOT'
   | 'NMP' | 'TUT' | 'TNC' | 'ATT' | 'EU' | 'GIC'
   | 'CO' | 'A' | 'DRF' | 'IM' | 'MT' | 'RD'
-  | 'FCT' | 'RT_L' | 'RT_R' | 'TR' | 'LL' | 'DFT' | 'RST' | 'OCL';
+  | 'FCT' | 'RT_L' | 'RT_R' | 'TR' | 'LL' | 'DFT' | 'RST' | 'OCL' | 'NL';
 
 export type Surface = 'M' | 'D' | 'B' | 'L' | 'O';
 
@@ -379,7 +379,7 @@ export default function Odontogram({
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [clonedFromId, setClonedFromId] = useState<number | null>(null);
 
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = '';
 
   useEffect(() => {
     if (!customerId) return;
@@ -404,7 +404,7 @@ export default function Odontogram({
       .catch(() => {});
   }, [customerId, initialChartId, initialClonedFromId]);
 
-  const loadChartData = (chart: any, readOnly: boolean, clonedId: number | null) => {
+  const loadChartData = (chart: any, readOnly: boolean = true, clonedId: number | null = null) => {
     setCurrentChartId(readOnly ? chart.id : null);
     setIsReadOnly(readOnly);
     setClonedFromId(readOnly ? chart.cloned_from || null : clonedId);
