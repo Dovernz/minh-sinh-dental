@@ -25,7 +25,7 @@ export default function CommissionsOverview() {
         const endDate = new Date(Number(year), Number(m), 0).toISOString().split('T')[0];
 
         setLoading(true);
-        fetch(`http://localhost:8000/api/reports/commissions/?start_date=${startDate}&end_date=${endDate}`)
+        fetch(`/api/reports/commissions/?start_date=${startDate}&end_date=${endDate}`)
             .then(res => res.json())
             .then(resData => {
                 setData(resData || []);

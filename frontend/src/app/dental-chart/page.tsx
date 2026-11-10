@@ -27,7 +27,7 @@ function DentalChartContent() {
     }, [customerId]);
 
     const fetchCharts = () => {
-        fetch(`http://localhost:8000/api/dental-charts/?customer_id=${customerId}`)
+        fetch(`/api/dental-charts/?customer_id=${customerId}`)
             .then(res => res.json())
             .then(data => {
                 setCharts(data || []);

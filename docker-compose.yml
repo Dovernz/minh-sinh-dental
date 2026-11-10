@@ -54,6 +54,8 @@ services:
       dockerfile: Dockerfile
     container_name: dental_backend
     restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
     expose:
       - "8000"
     volumes:

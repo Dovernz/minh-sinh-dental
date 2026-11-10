@@ -352,8 +352,8 @@ class Article(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     def get_absolute_url(self):
         if getattr(self, 'status', '') == 'Draft':
-            return f"http://localhost:3000/blog-demo/{self.slug}?preview=admin_secret_123"
-        return f"http://localhost:3000/blog/{self.slug}"
+            return f"/blog-demo/{self.slug}?preview=admin_secret_123"
+        return f"/blog/{self.slug}"
 
 
     class Meta:

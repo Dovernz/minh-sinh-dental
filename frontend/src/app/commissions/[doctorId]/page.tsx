@@ -23,7 +23,7 @@ export default function CommissionDetail({ params }: { params: Promise<{ doctorI
     const doctorId = Number(resolvedParams.doctorId);
 
     useEffect(() => {
-        let url = `http://localhost:8000/api/reports/commissions/${doctorId}/`;
+        let url = `/api/reports/commissions/${doctorId}/`;
         if (month) {
             const [year, m] = month.split('-');
             const startDate = `${year}-${m}-01`;
