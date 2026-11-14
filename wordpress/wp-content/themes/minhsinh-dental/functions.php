@@ -3,6 +3,12 @@
 if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
     $_SERVER['HTTPS'] = 'on';
 }
+
+// Triệt tiêu lỗi mixed content HTTP do wp-emoji gây ra
+remove_action('wp_head', 'print_emoji_detection_script', 7);
+remove_action('wp_print_styles', 'print_emoji_styles');
+remove_action('admin_print_scripts', 'print_emoji_detection_script');
+remove_action('admin_print_styles', 'print_emoji_styles');
 /**
  * Functions and definitions for Minh Sinh Dental Theme
  */
@@ -279,7 +285,7 @@ function minhsinh_output_dental_schema() {
         'paymentAccepted'  => 'Tiền mặt, Chuyển khoản ngân hàng, Thẻ tín dụng, Trả góp',
         'address'          => array(
             '@type'           => 'PostalAddress',
-            'streetAddress'   => 'Số 7 Quán Sứ',
+            'streetAddress'   => '46C Quán Sứ, Hàng Bông',
             'addressLocality' => 'Hoàn Kiếm',
             'addressRegion'   => 'Hà Nội',
             'postalCode'      => '100000',

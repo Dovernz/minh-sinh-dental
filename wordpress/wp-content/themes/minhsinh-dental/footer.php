@@ -19,8 +19,8 @@
             <div class="footer-col">
                 <h4>Hệ thống cơ sở</h4>
                 <ul style="list-style: none; padding: 0; margin: 0; color: #64748b; font-size: 14px; line-height: 2;">
-                    <li>📍 <strong>Cơ sở 1:</strong> 123 Phố Huế, Hai Bà Trưng, Hà Nội</li>
-                    <li>📍 <strong>Cơ sở 2:</strong> 456 Nguyễn Trãi, Thanh Xuân, Hà Nội</li>
+                    <li>📍 <strong>Cơ sở 1:</strong> 46C Quán Sứ, Hàng Bông, Hoàn Kiếm, Hà Nội</li>
+                    <li>📍 <strong>Cơ sở 2:</strong> 376 - 380 Ngọc Lâm, Long Biên, Hà Nội</li>
                 </ul>
             </div>
 

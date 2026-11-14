@@ -26,6 +26,8 @@ def get_services_by_category(request):
     return JsonResponse(list(services), safe=False)
 
 class ClinicListView(generics.ListAPIView):
+    queryset = Clinic.objects.all()
+
     def get(self, request):
         clinics = Clinic.objects.all().order_by('clinic_id').values('clinic_id', 'name', 'address', 'hotline', 'total_chairs', 'map_url')
         return Response(list(clinics), status=status.HTTP_200_OK)
