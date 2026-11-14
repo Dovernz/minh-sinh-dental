@@ -1,7 +1,8 @@
 INSERT INTO wp_posts (
     post_author, post_date, post_date_gmt, post_content, post_title,
-    post_status, comment_status, ping_status, post_name, post_modified,
-    post_modified_gmt, post_type, to_ping, pinged, post_content_filtered
+    post_excerpt, post_status, comment_status, ping_status, post_name,
+    post_modified, post_modified_gmt, post_type, to_ping, pinged,
+    post_content_filtered
 ) VALUES (
     1, NOW(), UTC_TIMESTAMP(), '<p style="text-align: center; line-height: 1.2;"><img src="https://res.cloudinary.com/ocsxoyvj/image/upload/v1788421739/cnragt1sjom32zrrtn3w.png" alt="" width="337" height="450"></p>
 <p style="line-height: 1.2;">Nhiều ba mẹ thường đợi đến khi con thay hết răng (khoảng 12-15 tuổi) mới bắt đầu nghĩ đến việc chỉnh nha. Tuy nhi&ecirc;n, dưới g&oacute;c độ chuy&ecirc;n gia tại Minh Sinh Dental, việc "can thiệp sớm" từ giai đoạn 6-12 tuổi mới thực sự l&agrave; m&oacute;n qu&agrave; &yacute; nghĩa nhất cho nụ cười tương lai của b&eacute;.</p>
@@ -22,6 +23,6 @@ INSERT INTO wp_posts (
 <p style="line-height: 1.2;">NHA KHOA MINH SINH | DI SẢN NỤ CƯỜI</p>
 <p style="line-height: 1.2;">📍Cơ sở 1: 46C Qu&aacute;n Sứ, Ho&agrave;n Kiếm, HN.</p>
 <p style="line-height: 1.2;">📍Cơ sở 2: 376 &ndash; 380 Ngọc L&acirc;m, Long Bi&ecirc;n, HN. Hotline: (+84) 9.8224.2222 Tel: (+84) 24.3826.7778</p>', 'CÓ NÊN NIỀNG RĂNG SỚM CHO CON?',
-    'publish', 'open', 'open', 'co-nen-nieng-rang-som-cho-con', NOW(),
-    UTC_TIMESTAMP(), 'post', '', '', ''
+    '', 'publish', 'open', 'open', 'co-nen-nieng-rang-som-cho-con',
+    NOW(), UTC_TIMESTAMP(), 'post', '', '', ''
 ) ON DUPLICATE KEY UPDATE post_content = VALUES(post_content);
