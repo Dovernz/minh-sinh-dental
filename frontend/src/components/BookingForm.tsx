@@ -62,7 +62,7 @@ export default function BookingForm() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   
   // State: Bước 1
-  const [selectedClinic, setSelectedClinic] = useState<number | string | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<number | string | null>(1);
   
   // State: Bước 2
   const [numPatients, setNumPatients] = useState<number>(1);
@@ -332,10 +332,11 @@ export default function BookingForm() {
               const safeId = clinic.clinic_id || clinic.id || index;
               
               return (
-                <div 
+                <button 
+                  type="button"
                   key={safeId}
                   onClick={() => setSelectedClinic(safeId)}
-                  className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                  className={`w-full text-left p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
                     selectedClinic === safeId 
                       ? 'border-blue-500 bg-blue-50/50 shadow-md transform scale-[1.02]' 
                       : 'border-gray-100 hover:border-blue-200 hover:shadow-sm'
@@ -344,7 +345,7 @@ export default function BookingForm() {
                   <h3 className="font-semibold text-lg mb-2 text-gray-800">{clinic.name}</h3>
                   <p className="text-gray-500 text-sm mb-1">{clinic.address}</p>
                   <p className="text-gray-500 text-sm">{clinic.hotline || clinic.phone}</p>
-                </div>
+                </button>
               );
             })}
           </div>
