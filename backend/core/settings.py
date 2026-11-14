@@ -19,7 +19,14 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
+    '*',
+    '103.78.1.84',
+    'minhsinhdental.com',
+    '.minhsinhdental.com',
+    'localhost',
+    '127.0.0.1',
+])
 
 # Application definition
 
@@ -131,7 +138,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = True
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'http://localhost:80', 'http://localhost:8000', 'http://127.0.0.1:8000', 'http://localhost:3000']
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://localhost:80',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://103.78.1.84',
+    'http://uat.minhsinhdental.com',
+    'https://uat.minhsinhdental.com',
+    'http://minhsinhdental.com',
+    'https://minhsinhdental.com',
+    'http://*.minhsinhdental.com',
+    'https://*.minhsinhdental.com',
+])
 
 # Supabase S3 Configuration
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='your-access-key')

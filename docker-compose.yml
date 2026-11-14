@@ -38,7 +38,8 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=/api
-    command: npm run dev
+      - HOSTNAME=0.0.0.0
+    command: npm run dev -- -H 0.0.0.0
     depends_on:
       - backend
     networks:
