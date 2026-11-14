@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -14,6 +14,7 @@ from booking.models import (
     BookingDetail,
     CommissionRate,
     Payment,
+    TimeSlot,
 )
 from booking.commission_apis import (
     calculate_commissions,
@@ -130,3 +131,62 @@ class BookingCommissionTestCase(TestCase):
         emp_id = getattr(bs_pt, 'employee_id', bs_pt.pk)
         response = self.client.get(f'/api/reports/commissions/{emp_id}/')
         self.assertEqual(response.status_code, 200)
+
+
+class BookingQueryOptimizationTests(TestCase):
+    def test_daily_schedule_loads_booking_relations_in_one_query(self):
+        clinic = Clinic.objects.create(name='Chi nhánh lịch', total_chairs=2)
+        category = ServiceCategory.objects.create(name='Dịch vụ lịch')
+        TimeSlot.objects.create(start_time=time(9, 0), end_time=time(9, 30))
+        appointment_start = timezone.make_aware(
+            datetime.combine(timezone.localdate(), time(9, 0))
+        )
+
+        for index in range(2):
+            customer = Customer.objects.create(
+                name=f'Khách lịch {index}',
+                phone=f'090000000{index}',
+            )
+            Booking.objects.create(
+                customer=customer,
+                clinic=clinic,
+                category=category,
+                start_time=appointment_start,
+                end_time=appointment_start + timedelta(minutes=30),
+                status='Confirmed',
+                estimated_duration=30,
+            )
+
+        with self.assertNumQueries(4):
+            response = self.client.get(
+                '/api/daily-schedule/',
+                {'clinic_id': clinic.pk, 'date': timezone.localdate().isoformat()},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        chair_rows = response.json()[0]['chairs']
+        self.assertEqual(
+            {chair['customer_name'] for chair in chair_rows if chair['status'] == 'booked'},
+            {'Khách lịch 0', 'Khách lịch 1'},
+        )
+
+    def test_pos_debt_list_aggregates_payments_in_one_query(self):
+        clinic = Clinic.objects.create(name='Chi nhánh công nợ')
+        customer = Customer.objects.create(name='Khách nợ', phone='0911111111')
+        booking = Booking.objects.create(customer=customer, clinic=clinic)
+        billing = Billing.objects.create(
+            booking=booking,
+            clinic=clinic,
+            final_total=100,
+            status='INSTALLMENT',
+        )
+        Payment.objects.create(billing=billing, amount=25, amount_remain=75)
+        Payment.objects.create(billing=billing, amount=10, amount_remain=65)
+
+        with self.assertNumQueries(1):
+            response = self.client.get('/api/pos/debts/')
+
+        self.assertEqual(response.status_code, 200)
+        debt = response.json()['debts'][0]
+        self.assertEqual(debt['paid_amount'], 35.0)
+        self.assertEqual(debt['remain_amount'], 65.0)

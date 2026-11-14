@@ -71,7 +71,7 @@ class DailyScheduleView(APIView):
                 clinic=clinic, 
                 start_time__date=target_date,
                 status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
-            )
+            ).select_related('customer', 'category')
             list(bookings) # Force evaluation to catch DB mismatch errors
         except Exception as e:
             print("DailyScheduleView Booking Error:", e)
@@ -775,10 +775,16 @@ class POSDebtListAPIView(View):
             from booking.models import Billing
             from django.db.models import Sum
             
-            debts = Billing.objects.filter(status__in=['UNPAID', 'INSTALLMENT']).select_related('booking__customer', 'clinic').order_by('created_at')
+            debts = Billing.objects.filter(
+                status__in=['UNPAID', 'INSTALLMENT']
+            ).select_related(
+                'booking__customer', 'clinic'
+            ).annotate(
+                paid_amount=Sum('payments__amount')
+            ).order_by('created_at')
             data = []
             for b in debts:
-                paid_sum = b.payments.aggregate(Sum('amount'))['amount__sum'] or 0
+                paid_sum = b.paid_amount or 0
                 remain = float(b.final_total or 0) - float(paid_sum)
                 if remain > 0:
                     data.append({
@@ -990,6 +996,5 @@ class DentalChartViewSet(viewsets.ModelViewSet):
         max_seq = DentalChart.objects.filter(customer=customer).aggregate(Max('sequence_num'))['sequence_num__max']
         next_seq = (max_seq or 0) + 1
         serializer.save(sequence_num=next_seq)
-
 
 

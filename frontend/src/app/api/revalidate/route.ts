@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache';
 export async function POST(request: NextRequest) {
     const secret = request.nextUrl.searchParams.get('secret');
     const slug = request.nextUrl.searchParams.get('slug');
+    const configuredSecret = process.env.REVALIDATE_SECRET_TOKEN;
 
     // Kiểm tra token bảo mật để tránh bị spam gọi API
-    if (secret !== 'revalidate_secret_123') {
+    if (!configuredSecret || secret !== configuredSecret) {
         return NextResponse.json({ message: 'Sai token bảo mật' }, { status: 401 });
     }
     if (!slug) {
