@@ -33,7 +33,7 @@
                     <small><i>(Phục vụ cả ngày nghỉ lễ và ngoài giờ theo lịch hẹn)</i></small>
                 </p>
                 <div style="margin-top: 20px;">
-                    <?php $booking_url = get_theme_mod('minhsinh_booking_url', 'http://localhost:8000/booking/'); ?>
+                    <?php $booking_url = get_theme_mod('minhsinh_booking_url', '/booking/'); ?>
                     <a href="<?php echo esc_url($booking_url); ?>" class="btn-booking" style="font-size: 14px; padding: 8px 18px;">
                         Đặt lịch online 24/7
                     </a>

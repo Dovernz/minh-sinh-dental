@@ -42,7 +42,7 @@
         <!-- Nút Đặt lịch Header (CTA forward sang hệ thống đặt lịch) -->
         <div class="header-action">
             <?php 
-                $booking_url = get_theme_mod('minhsinh_booking_url', 'http://localhost:8000/booking/'); 
+                $booking_url = get_theme_mod('minhsinh_booking_url', '/booking/'); 
             ?>
             <a href="<?php echo esc_url($booking_url); ?>" class="btn-booking">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

@@ -1,4 +1,8 @@
 <?php
+// Nhận diện HTTPS reverse proxy (Cloudflare / Nginx SSL termination)
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
 /**
  * Functions and definitions for Minh Sinh Dental Theme
  */
@@ -32,7 +36,7 @@ function minhsinh_booking_btn_shortcode($atts) {
     ), $atts);
 
     // Đường dẫn trỏ tới cổng hoặc subdomain đặt lịch
-    $booking_base_url = get_theme_mod('minhsinh_booking_url', 'http://localhost:8000/booking/');
+    $booking_base_url = get_theme_mod('minhsinh_booking_url', '/booking/');
     $target_url = $booking_base_url;
     if (!empty($a['dich_vu'])) {
         $target_url .= '?service=' . urlencode($a['dich_vu']);
@@ -59,7 +63,7 @@ function minhsinh_customize_register($wp_customize) {
     ));
 
     $wp_customize->add_setting('minhsinh_booking_url', array(
-        'default'   => 'http://localhost:8000/booking/',
+        'default'   => '/booking/',
         'transport' => 'refresh',
     ));
 
@@ -77,7 +81,7 @@ add_action('customize_register', 'minhsinh_customize_register');
 // 1. ĐIỀU HƯỚNG LIÊN KẾT TRANG ĐĂNG NHẬP & ADMIN BAR
 // =============================================================================
 function minhsinh_custom_login_links($html_link) {
-    $admin_url = 'http://localhost:8000/admin/';
+    $admin_url = '/admin/';
     $web_url   = home_url('/');
 
     $output  = '<div class="minhsinh-login-nav" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px; text-align: center; font-size: 14px;">';
@@ -102,7 +106,7 @@ function minhsinh_custom_admin_bar($wp_admin_bar) {
     $wp_admin_bar->add_node(array(
         'id'    => 'minhsinh_back_to_admin',
         'title' => '🏥 Về Trang Admin (Nha Khoa)',
-        'href'  => 'http://localhost:8000/admin/',
+        'href'  => '/admin/',
         'meta'  => array('target' => '_blank', 'title' => 'Chuyển về Trang Quản Trị Phòng Khám'),
     ));
     $wp_admin_bar->add_node(array(
@@ -218,7 +222,7 @@ function minhsinh_enforce_admin_access() {
                     <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
                         Chỉ <strong>Quản trị viên (Admin)</strong> và <strong>Bộ phận Marketing</strong> mới có quyền truy cập hệ thống Bài viết & Blog Nha Khoa Minh Sinh.
                     </p>
-                    <a href="http://localhost:8000/admin/" style="display: inline-block; padding: 8px 18px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px;">&larr; Về Trang Quản Trị Phòng Khám</a>
+                    <a href="/admin/" style="display: inline-block; padding: 8px 18px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px;">&larr; Về Trang Quản Trị Phòng Khám</a>
                 </div>',
                 'Truy Cập Bị Từ Chối',
                 array('response' => 403, 'back_link' => false)

@@ -3,7 +3,7 @@
  * Template Name: Front Page (Landing Page)
  */
 get_header();
-$booking_url = get_theme_mod('minhsinh_booking_url', 'http://localhost:8000/booking/');
+$booking_url = get_theme_mod('minhsinh_booking_url', '/booking/');
 ?>
 
 <!-- Hero Banner Section -->
