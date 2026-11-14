@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Header({ menus = [] }: { menus?: any[] }) {
@@ -7,6 +7,17 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
   
   // State for mobile submenus
   const [openSubMenus, setOpenSubMenus] = useState<{[key: string]: boolean}>({});
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   const toggleSubMenu = (id: string) => {
     setOpenSubMenus(prev => ({ ...prev, [id]: !prev[id] }));
@@ -81,7 +92,7 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
       {/* Mobile Menu */}
       <div className={`fixed inset-0 bg-gray-900/50 z-40 lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
       
-      <div className={`fixed inset-y-0 left-0 w-[280px] bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 w-[58vw] min-w-[260px] max-w-[380px] bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full border" />

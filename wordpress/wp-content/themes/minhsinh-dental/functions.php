@@ -23,7 +23,8 @@ add_action('after_setup_theme', 'minhsinh_theme_setup');
 
 // Nạp Stylesheet & Script
 function minhsinh_enqueue_scripts() {
-    wp_enqueue_style('minhsinh-style', get_stylesheet_uri(), array(), '1.0.1');
+    wp_enqueue_style('minhsinh-style', get_stylesheet_uri(), array(), '1.0.2');
+    wp_enqueue_script('minhsinh-mobile-drawer', get_template_directory_uri() . '/js/mobile-drawer.js', array(), '1.0.0', true);
 }
 add_action('wp_enqueue_scripts', 'minhsinh_enqueue_scripts');
 

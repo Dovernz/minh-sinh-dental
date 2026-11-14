@@ -244,3 +244,268 @@ body {
     border-top: 1px solid #e2e8f0;
     padding-top: 24px;
 }
+
+
+/* ==========================================================================
+   Mobile Hamburger Drawer & Responsive Navigation
+   ========================================================================== */
+
+/* 1. Desktop Defaults (Screen >= 768px): Hide hamburger, backdrop, and drawer */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-toggle:hover,
+.mobile-menu-toggle:focus {
+    background-color: #f1f5f9;
+    outline: none;
+}
+
+.mobile-menu-toggle .hamburger-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.mobile-drawer-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.mobile-drawer {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    width: 58vw; /* Chiếm 55vw - 60vw theo yêu cầu kỹ thuật */
+    max-width: 380px;
+    min-width: 260px;
+    background-color: #ffffff;
+    z-index: 999;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Drawer Header */
+.drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background-color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.drawer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.drawer-brand .logo-img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: contain;
+}
+
+.drawer-brand .brand-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.drawer-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.drawer-close:hover,
+.drawer-close:focus {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    outline: none;
+}
+
+/* Drawer Body & Vertical Navigation */
+.drawer-body {
+    flex: 1;
+    padding: 16px 12px;
+    overflow-y: auto;
+}
+
+.mobile-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-nav-list li a {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    min-height: 44px; /* Touch target chuẩn */
+}
+
+.mobile-nav-list li a:hover,
+.mobile-nav-list li a:active {
+    background-color: #eff6ff;
+    color: var(--accent-color);
+}
+
+/* Drawer Footer & Call To Action */
+.drawer-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #f1f5f9;
+    background-color: #ffffff;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.btn-booking-drawer {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 12px 20px;
+    font-size: 15px;
+}
+
+/* Khóa cuộn trang khi drawer đang mở */
+body.drawer-open {
+    overflow: hidden !important;
+}
+
+/* ==========================================================================
+   Responsive Mobile Rules (< 768px)
+   ========================================================================== */
+@media (max-width: 767px) {
+    /* 1. Ẩn menu ngang desktop để ngăn xếp dòng, tràn chữ */
+    .site-header .main-nav {
+        display: none !important;
+    }
+
+    /* 2. Bố cục Header Inner: Hamburger bên TRÁI */
+    .site-header .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    /* Hamburger ở vị trí đầu tiên bên trái */
+    .mobile-menu-toggle {
+        display: inline-flex;
+        order: 1;
+        margin-right: 4px;
+    }
+
+    /* Logo kế tiếp hamburger */
+    .logo-wrapper {
+        order: 2;
+        margin-right: auto;
+        gap: 8px;
+    }
+
+    .logo-wrapper .brand-name {
+        font-size: 16px;
+        line-height: 1.2;
+    }
+
+    .logo-wrapper .logo-img {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Nút Đặt lịch gọn bên phải */
+    .header-action {
+        order: 3;
+    }
+
+    .header-action .btn-booking {
+        padding: 8px 12px;
+        font-size: 13px;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .header-action .btn-booking svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    /* 3. Kích hoạt Backdrop và Drawer trên màn hình Mobile */
+    .mobile-drawer-backdrop {
+        display: block;
+    }
+
+    .mobile-drawer {
+        display: flex;
+    }
+
+    /* 4. Trạng thái Mở (Open/Active) */
+    .mobile-drawer-backdrop.is-open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .mobile-drawer.is-open {
+        transform: translateX(0);
+    }
+}
