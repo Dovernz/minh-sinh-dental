@@ -9,10 +9,16 @@ interface Clinic {
   clinic_id?: number;
   name: string;
   address: string;
-  hotline: string;
+  hotline?: string;
+  phone?: string;
   total_chairs?: number;
   map_url?: string;
 }
+
+const DEFAULT_CLINICS: Clinic[] = [
+  { id: 1, clinic_id: 1, name: 'Cơ sở 1 - Quán Sứ', address: '46C Quán Sứ, Hoàn Kiếm, Hà Nội', hotline: '0981 123 456', phone: '0981 123 456' },
+  { id: 2, clinic_id: 2, name: 'Cơ sở 2 - Ngọc Lâm', address: '376 - 380 Ngọc Lâm, Long Biên, Hà Nội', hotline: '0981 123 457', phone: '0981 123 457' }
+];
 
 interface ServiceCategory {
   id?: number;
@@ -52,7 +58,7 @@ export default function BookingForm() {
   const [loading, setLoading] = useState(true);
   
   // Data
-  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [clinics, setClinics] = useState<Clinic[]>(DEFAULT_CLINICS);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   
   // State: Bước 1
@@ -79,11 +85,26 @@ export default function BookingForm() {
     const fetchData = async () => {
       try {
         const [clinicRes, categoryRes] = await Promise.all([
-          axios.get('/api/clinics/'),
-          axios.get('/api/services/')
+          fetch('/api/clinics/'),
+          fetch('/api/services/')
         ]);
-        setClinics(clinicRes.data);
-        setCategories(categoryRes.data);
+
+        if (!clinicRes.ok) {
+          throw new Error(`Lỗi tải danh sách cơ sở: ${clinicRes.statusText}`);
+        }
+        if (!categoryRes.ok) {
+          throw new Error(`Lỗi tải danh sách dịch vụ: ${categoryRes.statusText}`);
+        }
+
+        const clinicData = await clinicRes.json();
+        const categoryData = await categoryRes.json();
+
+        if (Array.isArray(clinicData) && clinicData.length > 0) {
+          setClinics(clinicData);
+        }
+        if (Array.isArray(categoryData) && categoryData.length > 0) {
+          setCategories(categoryData);
+        }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu API:", error);
       } finally {
@@ -322,7 +343,7 @@ export default function BookingForm() {
                 >
                   <h3 className="font-semibold text-lg mb-2 text-gray-800">{clinic.name}</h3>
                   <p className="text-gray-500 text-sm mb-1">{clinic.address}</p>
-                  <p className="text-gray-500 text-sm">{clinic.hotline}</p>
+                  <p className="text-gray-500 text-sm">{clinic.hotline || clinic.phone}</p>
                 </div>
               );
             })}
