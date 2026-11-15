@@ -2,6 +2,15 @@
 /**
  * Main Template File (Fallback)
  */
+// Safeguard: Nếu URL là booking hoặc dat-lich, phục vụ thẳng template page-booking.php
+$request_uri = $_SERVER['REQUEST_URI'] ?? '';
+$path = trim((string)parse_url($request_uri, PHP_URL_PATH), '/');
+if ($path === 'booking' || strpos($path, 'booking/') === 0 || $path === 'dat-lich' || strpos($path, 'dat-lich/') === 0) {
+    status_header(200);
+    include get_template_directory() . '/page-booking.php';
+    exit;
+}
+
 get_header();
 ?>
 

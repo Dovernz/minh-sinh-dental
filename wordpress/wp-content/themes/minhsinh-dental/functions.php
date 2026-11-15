@@ -334,3 +334,96 @@ function minhsinh_output_dental_schema() {
     echo '<script type="application/ld+json">' . json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "</script>\n";
 }
 add_action('wp_head', 'minhsinh_output_dental_schema', 5);
+
+
+// =============================================================================
+// 5. ROBUST BOOKING ROUTING & AUTO-SEEDING (PHƯƠNG ÁN KÉP CHO /booking)
+// =============================================================================
+
+/**
+ * Tự động kiểm tra và seed dữ liệu trang /booking vào MariaDB nếu chưa có,
+ * đồng thời đăng ký Rewrite Rules chuẩn cho WordPress.
+ */
+function minhsinh_ensure_booking_page_and_rules() {
+    global $wpdb;
+
+    // Đăng ký rewrite rules cho /booking và /dat-lich
+    add_rewrite_rule('^booking/?$', 'index.php?pagename=booking', 'top');
+    add_rewrite_rule('^dat-lich/?$', 'index.php?pagename=booking', 'top');
+
+    // Tự động seed page 'booking' vào database MariaDB nếu chưa tồn tại
+    $booking_page_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'page' LIMIT 1",
+        'booking'
+    ));
+
+    if (!$booking_page_id) {
+        $new_page_id = wp_insert_post(array(
+            'post_title'     => 'Đặt Lịch Hẹn',
+            'post_name'      => 'booking',
+            'post_status'    => 'publish',
+            'post_type'      => 'page',
+            'comment_status' => 'closed',
+            'ping_status'    => 'closed',
+            'post_content'   => '',
+        ));
+        if ($new_page_id && !is_wp_error($new_page_id)) {
+            update_post_meta($new_page_id, '_wp_page_template', 'page-booking.php');
+            $booking_page_id = $new_page_id;
+        }
+    } else {
+        $tpl = get_post_meta($booking_page_id, '_wp_page_template', true);
+        if ($tpl !== 'page-booking.php') {
+            update_post_meta($booking_page_id, '_wp_page_template', 'page-booking.php');
+        }
+    }
+
+    // Flush rewrite rules một lần duy nhất nếu chưa flush
+    if (!get_option('minhsinh_booking_rewrite_flushed_v2')) {
+        flush_rewrite_rules(false);
+        update_option('minhsinh_booking_rewrite_flushed_v2', '1');
+    }
+}
+add_action('init', 'minhsinh_ensure_booking_page_and_rules');
+
+/**
+ * Ngăn chặn WordPress xử lý 404 cho URL /booking và /dat-lich
+ */
+function minhsinh_booking_pre_handle_404($preempt, $wp_query) {
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = trim((string)parse_url($request_uri, PHP_URL_PATH), '/');
+
+    if ($path === 'booking' || strpos($path, 'booking/') === 0 || $path === 'dat-lich' || strpos($path, 'dat-lich/') === 0) {
+        $wp_query->is_404 = false;
+        $wp_query->is_page = true;
+        status_header(200);
+        return true;
+    }
+    return $preempt;
+}
+add_filter('pre_handle_404', 'minhsinh_booking_pre_handle_404', 10, 2);
+
+/**
+ * Hook vào template_include để ép WordPress load page-booking.php
+ * Bất kể DB có page hay không, request /booking luôn trả về form đặt lịch 100%!
+ */
+function minhsinh_booking_template_include($template) {
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = trim((string)parse_url($request_uri, PHP_URL_PATH), '/');
+
+    if ($path === 'booking' || strpos($path, 'booking/') === 0 || $path === 'dat-lich' || strpos($path, 'dat-lich/') === 0 || is_page('booking') || is_page('dat-lich')) {
+        $booking_template = get_template_directory() . '/page-booking.php';
+        if (file_exists($booking_template)) {
+            global $wp_query;
+            if ($wp_query) {
+                $wp_query->is_404 = false;
+                $wp_query->is_page = true;
+            }
+            status_header(200);
+            return $booking_template;
+        }
+    }
+    return $template;
+}
+add_filter('template_include', 'minhsinh_booking_template_include', 99);
+
