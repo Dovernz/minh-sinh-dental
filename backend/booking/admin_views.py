@@ -1,147 +1,221 @@
 import decimal
+from decimal import Decimal
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import admin, messages
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.db import transaction
-from .models import Booking, Billing, Payment
+from .models import Booking, Billing, Payment, BookingStatusHistory
+
 
 @staff_member_required
 def admin_pnr_lookup_view(request):
-    title = "Tra Cứu Vé & Booking PNR (Hàng Không)"
-    pnr_code = request.GET.get('pnr', '').strip().upper() or request.POST.get('pnr', '').strip().upper()
-    
-    context = admin.site.each_context(request)
-    context.update({
-        'title': title,
-        'pnr_code': pnr_code,
-        'pnr_data': None,
-        'error': None,
-    })
-
+    pnr_code = request.GET.get('pnr', '').strip()
     if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        if action == 'update_status':
-            booking_id = request.POST.get('booking_id')
-            new_status = request.POST.get('status')
-            Booking.objects.filter(id=booking_id).update(status=new_status)
-            messages.success(request, f"Đã cập nhật trạng thái khách #{booking_id} thành {new_status}")
-            return redirect(f"/admin/pnr-lookup/?pnr={pnr_code}")
+        pnr_code = request.POST.get('pnr', pnr_code).strip()
+        action = request.POST.get('action', '').strip().lower()
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('format') == 'json'
 
-        elif action == 'group_pay':
-            try:
-                amount_to_distribute = decimal.Decimal(request.POST.get('amount', '0'))
-                method = request.POST.get('payment_method', 'CASH')
-                notes = request.POST.get('notes', 'Thanh toán cả đoàn')
-                
-                bookings_to_pay = Booking.objects.filter(
-                    Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
-                ).select_related('billing')
+        try:
+            with transaction.atomic():
+                if action in ['pay_all', 'group_pay']:
+                    if not pnr_code:
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': 'Thiếu mã PNR hoặc mã đoàn.'}, status=400)
+                        messages.error(request, 'Thiếu mã PNR hoặc mã đoàn.')
+                        return redirect('/admin/pnr-lookup/')
 
-                with transaction.atomic():
-                    remaining = amount_to_distribute
-                    for b in bookings_to_pay:
-                        if remaining <= 0:
-                            break
-                        billing = b.billing
-                        if billing and billing.total_amount > billing.paid_amount:
-                            debt = billing.total_amount - billing.paid_amount
-                            pay_value = min(debt, remaining)
-                            
+                    bookings = Booking.objects.filter(
+                        Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
+                    )
+                    
+                    if not bookings.exists():
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': f'Không tìm thấy đoàn khách với mã {pnr_code}'}, status=404)
+                        messages.error(request, f'Không tìm thấy đoàn khách với mã {pnr_code}')
+                        return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
+
+                    payment_method = request.POST.get('payment_method', 'CASH')
+
+                    for b in bookings:
+                        remaining = b.remaining_balance
+                        if remaining > 0:
+                            billing, _ = Billing.objects.get_or_create(
+                                booking=b,
+                                defaults={
+                                    'subtotal': b.total_amount,
+                                    'final_total': b.total_amount,
+                                    'clinic': b.clinic
+                                }
+                            )
                             Payment.objects.create(
                                 billing=billing,
-                                amount=pay_value,
-                                payment_method=method,
-                                notes=notes
+                                amount=remaining,
+                                payment_method=payment_method,
+                                total_billing=billing.final_total,
+                                amount_remain=Decimal('0')
                             )
-                            # Update billing cache if necessary, or let signals handle it
-                            billing.paid_amount += pay_value
-                            billing.save()
-                            remaining -= pay_value
+                            billing.status = 'PAID'
+                            billing.save(update_fields=['status'])
 
-                messages.success(request, f"Đã ghi nhận thanh toán {amount_to_distribute:,.0f} VNĐ cho PNR {pnr_code}")
-            except Exception as e:
-                messages.error(request, f"Lỗi thanh toán đoàn: {str(e)}")
-            return redirect(f"/admin/pnr-lookup/?pnr={pnr_code}")
+                    msg = f'Đã thanh toán thành công toàn bộ đoàn {pnr_code}'
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'message': msg})
+                    messages.success(request, msg)
+                    return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
 
-        elif action == 'individual_pay':
-            try:
-                booking_id = request.POST.get('booking_id')
-                amount = decimal.Decimal(request.POST.get('amount', '0'))
-                method = request.POST.get('payment_method', 'CASH')
-                notes = request.POST.get('notes', 'Thanh toán lẻ')
-                
-                booking = Booking.objects.get(id=booking_id)
-                if hasattr(booking, 'billing'):
-                    Payment.objects.create(
-                        billing=booking.billing,
-                        amount=amount,
-                        payment_method=method,
-                        notes=notes
+                elif action in ['pay_item', 'individual_pay']:
+                    booking_id = request.POST.get('booking_id')
+                    if not booking_id:
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': 'Thiếu mã booking.'}, status=400)
+                        messages.error(request, 'Thiếu mã booking.')
+                        return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
+
+                    try:
+                        b = Booking.objects.get(booking_id=booking_id)
+                    except Booking.DoesNotExist:
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy thông tin đặt lịch.'}, status=404)
+                        messages.error(request, 'Không tìm thấy thông tin đặt lịch.')
+                        return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
+
+                    amt_val = request.POST.get('amount')
+                    pay_amount = Decimal(amt_val) if amt_val and Decimal(amt_val) > 0 else b.remaining_balance
+                    pay_amount = min(pay_amount, b.remaining_balance)
+
+                    if pay_amount > 0:
+                        billing, _ = Billing.objects.get_or_create(
+                            booking=b,
+                            defaults={
+                                'subtotal': b.total_amount,
+                                'final_total': b.total_amount,
+                                'clinic': b.clinic
+                            }
+                        )
+                        new_remain = max(Decimal('0'), billing.final_total - billing.total_paid - pay_amount)
+                        Payment.objects.create(
+                            billing=billing,
+                            amount=pay_amount,
+                            payment_method=request.POST.get('payment_method', 'CASH'),
+                            total_billing=billing.final_total,
+                            amount_remain=new_remain
+                        )
+                        if new_remain <= 0:
+                            billing.status = 'PAID'
+                        elif billing.total_paid > 0:
+                            billing.status = 'INSTALLMENT'
+                        billing.save(update_fields=['status'])
+
+                    msg = f'Đã thu {pay_amount:,.0f} VNĐ cho khách #{b.booking_id}'
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'message': msg})
+                    messages.success(request, msg)
+                    return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
+
+                elif action in ['update_status', 'status_update']:
+                    booking_id = request.POST.get('booking_id')
+                    new_status_raw = request.POST.get('status', '').strip()
+                    status_map = {
+                        'pending': 'Pending',
+                        'confirmed': 'Confirmed',
+                        'checked_in': 'Checked-in',
+                        'checkin': 'Checked-in',
+                        'examining': 'Examining',
+                        'completed': 'Completed',
+                        'complete': 'Completed',
+                        'cancelled': 'Cancelled',
+                        'cancel': 'Cancelled',
+                    }
+                    target_status = status_map.get(new_status_raw.lower(), new_status_raw.capitalize() if new_status_raw else 'Pending')
+                    
+                    try:
+                        b = Booking.objects.get(booking_id=booking_id)
+                    except Booking.DoesNotExist:
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy thông tin đặt lịch.'}, status=404)
+                        messages.error(request, 'Không tìm thấy thông tin đặt lịch.')
+                        return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
+
+                    old_status = b.status
+                    b.status = target_status
+                    b.save(update_fields=['status'])
+                    BookingStatusHistory.objects.create(
+                        booking=b,
+                        status=target_status,
+                        note=f'Đổi từ {old_status} sang {target_status} qua PNR Lookup'
                     )
-                    messages.success(request, f"Đã ghi nhận thanh toán {amount:,.0f} VNĐ cho khách #{booking_id}")
-            except Exception as e:
-                messages.error(request, f"Lỗi thanh toán lẻ: {str(e)}")
-            return redirect(f"/admin/pnr-lookup/?pnr={pnr_code}")
 
-    # Query logic
-    bookings = Booking.objects.filter(
-        Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
-    ).select_related(
-        'customer', 'clinic', 'category', 'billing'
-    ).prefetch_related(
-        'booking_details__service_detail', 'billing__payments'
-    )
+                    msg = f'Đã đổi trạng thái khách #{b.booking_id} thành {target_status}'
+                    if is_ajax:
+                        return JsonResponse({'status': 'success', 'message': msg})
+                    messages.success(request, msg)
+                    return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
 
-    if pnr_code:
-        if bookings.exists():
-            total_amount = decimal.Decimal('0')
-            total_paid = decimal.Decimal('0')
-            passengers = []
+                else:
+                    if is_ajax:
+                        return JsonResponse({'status': 'error', 'message': 'Hành động không hợp lệ.'}, status=400)
+                    messages.error(request, 'Hành động không hợp lệ.')
+                    return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
 
-            for b in bookings:
-                b_amount = b.billing.total_amount if hasattr(b, 'billing') else 0
-                b_paid = b.billing.paid_amount if hasattr(b, 'billing') else 0
-                total_amount += b_amount
-                total_paid += b_paid
-                
-                passengers.append({
-                    'booking_id': b.id,
-                    'customer_name': b.customer.full_name if b.customer else "N/A",
-                    'phone': b.customer.phone if b.customer else "",
-                    'services': [str(d.service_detail) for d in b.booking_details.all()],
-                    'status': b.status,
-                    'individual_amount': b_amount,
-                    'individual_paid': b_paid,
-                    'individual_balance': b_amount - b_paid,
-                    'billing_status': 'PAID' if b_paid >= b_amount and b_amount > 0 else 'PARTIAL' if b_paid > 0 else 'UNPAID'
-                })
+        except Exception as e:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            messages.error(request, f'Đã xảy ra lỗi: {str(e)}')
+            return redirect(f'/admin/pnr-lookup/?pnr={pnr_code}')
 
-            remaining_balance = total_amount - total_paid
-            percent_paid = (total_paid / total_amount * 100) if total_amount > 0 else 0
-
-            context['pnr_data'] = {
-                'pnr_code': pnr_code,
-                'clinic': bookings[0].clinic,
-                'group_status': "Hoàn tất" if remaining_balance <= 0 else "Còn nợ",
-                'total_passengers': bookings.count(),
-                'total_amount': total_amount,
-                'total_paid': total_paid,
-                'remaining_balance': remaining_balance,
-                'percent_paid': percent_paid,
-                'payment_status': 'Fully Paid' if remaining_balance <= 0 else 'Pending',
-                'passengers': passengers
-            }
-        else:
-            context['error'] = f"Không tìm thấy dữ liệu cho mã PNR '{pnr_code}'"
-
-    context['recent_pnrs'] = list(
+    recent_pnrs = list(
         Booking.objects.exclude(pnr_code__isnull=True)
-        .exclude(pnr_code='')
+        .exclude(pnr_code__exact='')
         .order_by('-booking_id')
         .values_list('pnr_code', flat=True)
         .distinct()[:5]
     )
+
+    context = {
+        **admin.site.each_context(request),
+        'title': 'Tra Cứu & Quản Trị PNR Nhóm Khách',
+        'pnr_code': pnr_code.upper(),
+        'recent_pnrs': recent_pnrs,
+    }
+
+    if pnr_code:
+        bookings = Booking.objects.filter(
+            Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
+        ).select_related(
+            'customer', 'clinic', 'category', 'billing'
+        ).prefetch_related(
+            'details__service_detail', 'billing__payments'
+        ).order_by('booking_id')
+
+        if bookings.exists():
+            total_amount = sum((b.total_amount for b in bookings), Decimal('0'))
+            total_paid = sum((b.total_paid for b in bookings), Decimal('0'))
+            remaining_balance = sum((b.remaining_balance for b in bookings), Decimal('0'))
+            
+            percent_paid = 0
+            if total_amount > 0:
+                percent_paid = int((total_paid / total_amount) * 100)
+
+            first_booking = bookings.first()
+            payment_status = 'PAID' if remaining_balance <= 0 and total_amount > 0 else ('PARTIAL' if total_paid > 0 else 'UNPAID')
+            group_status = 'COMPLETED' if all(b.status in ['Completed', 'Cancelled', 'Đã xong', 'Đã hủy'] for b in bookings) else 'IN_PROGRESS'
+
+            context['pnr_data'] = {
+                'pnr_code': pnr_code.upper(),
+                'clinic': first_booking.clinic if first_booking else None,
+                'created_on': first_booking.created_on if first_booking else None,
+                'total_passengers': bookings.count(),
+                'bookings': bookings,
+                'total_amount': total_amount,
+                'total_paid': total_paid,
+                'remaining_balance': remaining_balance,
+                'percent_paid': percent_paid,
+                'payment_status': payment_status,
+                'group_status': group_status,
+            }
+        else:
+            context['error'] = f'Không tìm thấy dữ liệu cho mã PNR \'{pnr_code}\''
 
     return render(request, 'admin/pnr_lookup.html', context)

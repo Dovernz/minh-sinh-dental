@@ -288,6 +288,7 @@ UNFOLD = {
                     {"title": "Lịch Ngày", "icon": "calendar_today", "link": "/admin/operations/dailyschedule/", "permission": has_booking_perm},
                     {"title": "Lịch Tuần", "icon": "calendar_view_week", "link": "/admin/operations/weeklyschedule/", "permission": has_booking_perm},
                     {"title": "Chi tiết Bookings", "icon": "list_alt", "link": "/admin/operations/managebooking/", "permission": has_booking_perm},
+                    {"title": "Tra cứu PNR & Nhóm Khách", "icon": "confirmation_number", "link": "/admin/pnr-lookup/", "permission": has_booking_perm},
                     {"title": "Tạo Booking", "icon": "add_circle", "link": "/admin/booking-embed/", "permission": has_booking_perm},
                 ],
             },
