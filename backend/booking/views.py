@@ -195,15 +195,17 @@ class BookingCreateView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        import uuid
+        from datetime import datetime as dt_module, timedelta
         data = request.data
         clinic_id = data.get('clinic_id')
         date_str = data.get('date')
-        start_time_str = data.get('start_time')
+        default_start_time_str = data.get('start_time')
         patients = data.get('patients', [])
         created_user_id = data.get('created_user_id')
         
-        if not clinic_id or not date_str or not start_time_str or not patients:
-            return Response({"error": "Thiếu dữ liệu đầu vào (clinic_id, date, start_time, patients)"}, status=status.HTTP_400_BAD_REQUEST)
+        if not clinic_id or not date_str or not patients:
+            return Response({"error": "Thiếu dữ liệu đầu vào (clinic_id, date, patients)"}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
             clinic = Clinic.objects.get(pk=clinic_id)
@@ -213,94 +215,192 @@ class BookingCreateView(APIView):
         target_date = parse_date(date_str)
         if not target_date:
             return Response({"error": "Định dạng ngày không hợp lệ (YYYY-MM-DD)"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            from datetime import datetime
-            start_time = datetime.strptime(start_time_str, "%H:%M").time()
-        except ValueError:
-            return Response({"error": "Sai định dạng start_time (HH:MM)"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            existing_bookings = Booking.objects.filter(clinic=clinic, start_time__date=target_date, status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid'])
-            from django.utils import timezone
-            occupied_count = sum(1 for b in existing_bookings if b.start_time and b.end_time and timezone.localtime(b.start_time).time() <= start_time < timezone.localtime(b.end_time).time())
-        except Exception as e:
-            occupied_count = 0
-            
-        available_count = max(0, clinic.total_chairs - occupied_count)
-        
-        if len(patients) > available_count:
-            return Response({"error": f"Chỉ còn {available_count} ghế trống trong khung giờ này!"}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+        # Chuẩn bị và validate từng khách
+        prepared_patients = []
+        for p in patients:
+            full_name = p.get('fullName')
+            phone = p.get('phone')
+            if not full_name or not phone:
+                continue
+
+            p_time_str = p.get('start_time') or p.get('time') or default_start_time_str
+            if not p_time_str:
+                return Response({"error": f"Khách hàng {full_name} thiếu thông tin khung giờ (start_time)"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                p_start_time = dt_module.strptime(p_time_str, "%H:%M").time()
+            except ValueError:
+                return Response({"error": f"Sai định dạng giờ ({p_time_str}) cho khách {full_name}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            p_category_id = p.get('category_id') or data.get('category_id')
+            p_category = ServiceCategory.objects.filter(pk=p_category_id).first() if p_category_id else None
+            p_duration = p_category.estimate_time if (p_category and p_category.estimate_time) else 30
+
+            p_start_dt = dt_module.combine(target_date, p_start_time)
+            p_end_dt = p_start_dt + timedelta(minutes=p_duration)
+
+            prepared_patients.append({
+                "patient_data": p,
+                "full_name": full_name,
+                "phone": phone,
+                "email": p.get('email'),
+                "dob": p.get('dob'),
+                "category": p_category,
+                "duration": p_duration,
+                "start_time_dt": p_start_dt,
+                "end_time_dt": p_end_dt,
+                "start_time_str": p_time_str,
+            })
+
+        if not prepared_patients:
+            return Response({"error": "Danh sách khách hàng không hợp lệ"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Kiểm tra ghế trống cho từng khách (tính cả overlap trong batch)
+        batch_allocated_slots = []
+        total_chairs = clinic.total_chairs or 1
+
+        for prep in prepared_patients:
+            p_start = prep["start_time_dt"]
+            p_end = prep["end_time_dt"]
+
+            db_occupied = Booking.objects.filter(
+                clinic=clinic,
+                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid'],
+                start_time__lt=p_end,
+                end_time__gt=p_start
+            ).count()
+
+            batch_overlap = sum(1 for slot in batch_allocated_slots if slot['start'] < p_end and slot['end'] > p_start)
+            current_occupied = db_occupied + batch_overlap
+
+            if current_occupied >= total_chairs:
+                return Response({
+                    "error": f"Hết ghế trống tại khung giờ {prep['start_time_str']} cho khách hàng {prep['full_name']} (Đang phục vụ {current_occupied}/{total_chairs} ghế)!"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            batch_allocated_slots.append({'start': p_start, 'end': p_end})
+
+        # Sinh mã chung nhóm khách (Group Code)
+        group_code = f"MS-GRP-{dt_module.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+
         created_booking_ids = []
         from django.db import transaction
         with transaction.atomic():
-            for p in patients:
-                full_name = p.get('fullName')
-                phone = p.get('phone')
-                category_id = p.get('category_id')
-                email = p.get('email')
-                dob = p.get('dob')
-                
-                if not full_name or not phone: continue
-                    
-                customer, _ = Customer.objects.get_or_create(phone=phone, defaults={'name': full_name, 'email': email, 'customer_dob': parse_date(dob) if dob else None})
-                category = ServiceCategory.objects.filter(pk=category_id).first() if category_id else None
-                duration_minutes = category.estimate_time if category and category.estimate_time else 30
-                        
-                from datetime import datetime as dt_module, timedelta
-                appointment_time_dt = dt_module.combine(target_date, start_time)
-                end_time_dt = appointment_time_dt + timedelta(minutes=duration_minutes)
-                
-                booking = Booking.objects.create(customer=customer, clinic=clinic, start_time=appointment_time_dt, end_time=end_time_dt, estimated_duration=duration_minutes, status='Pending', category=category, created_user_id=created_user_id)
+            for prep in prepared_patients:
+                dob_val = parse_date(prep["dob"]) if prep.get("dob") else None
+                customer, _ = Customer.objects.get_or_create(
+                    phone=prep["phone"],
+                    defaults={
+                        'name': prep["full_name"],
+                        'email': prep.get("email"),
+                        'customer_dob': dob_val
+                    }
+                )
+
+                booking = Booking.objects.create(
+                    customer=customer,
+                    clinic=clinic,
+                    group_code=group_code,
+                    start_time=prep["start_time_dt"],
+                    end_time=prep["end_time_dt"],
+                    estimated_duration=prep["duration"],
+                    status='Pending',
+                    category=prep["category"],
+                    created_user_id=created_user_id
+                )
                 created_booking_ids.append(booking.booking_id)
 
         # ---------------- LOGIC GỬI EMAIL ----------------
-        # --- CHẠY NGẦM EMAIL BẰNG THREADING (KHÔNG LÀM LAG TRANG) ---
-        def send_async_email(p_list, c_name, c_address, t_str, d_str, map_url=""): 
+        def send_async_email(p_list, c_name, c_address, d_str, map_url=""): 
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings
-                for pat in p_list:
-                    p_email = pat.get('email')
+                for item in p_list:
+                    p_email = item.get('email')
                     if p_email:
+                        p_time = item.get('start_time_str')
                         subject = f"Xác nhận Lịch hẹn ngày {d_str} - {c_name}"
-                        msg = f'''Xin chào {pat.get('fullName')},
+                        msg = f"""Xin chào {item.get('full_name')},
 
 Cảm ơn bạn đã đặt lịch khám.
-Thời gian: {t_str} ngày {d_str}.
+Thời gian: {p_time} ngày {d_str}.
+Mã nhóm: {group_code}
 
-Trân trọng,'''
-                        html_msg = f'''
+Trân trọng,"""
+                        html_msg = f"""
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                             <div style="background-color: #3b82f6; padding: 25px; text-align: center; color: white;">
                                 <h2 style="margin: 0; font-size: 24px; font-weight: 800;">Xác Nhận Đặt Lịch!</h2>
                                 <p style="margin: 8px 0 0; font-size: 16px; opacity: 0.9;">Nha Khoa Minh Sinh</p>
                             </div>
                             <div style="padding: 30px; color: #374151; line-height: 1.6;">
-                                <p style="font-size: 16px;">Xin chào <b style="color: #111827;">{pat.get('fullName')}</b>,</p>
+                                <p style="font-size: 16px;">Xin chào <b style="color: #111827;">{item.get('full_name')}</b>,</p>
                                 <p style="font-size: 15px;">Dưới đây là thông tin chi tiết lịch hẹn của bạn:</p>
                                 <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
-                                    <p style="margin: 8px 0; font-size: 15px;"><b>👤 Khách hàng:</b> {pat.get('fullName')} - {pat.get('phone')}</p>
-                                    <p style="margin: 8px 0; font-size: 15px;"><b>⏰ Thời gian:</b> <span style="color: #b91c1c; font-weight: bold;">{t_str} | Ngày {d_str}</span></p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>👤 Khách hàng:</b> {item.get('full_name')} - {item.get('phone')}</p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>🔖 Mã nhóm:</b> <span style="font-weight: bold; color: #2563eb;">{group_code}</span></p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>⏰ Thời gian:</b> <span style="color: #b91c1c; font-weight: bold;">{p_time} | Ngày {d_str}</span></p>
                                     <p style="margin: 8px 0; font-size: 15px;"><b>🏥 Cơ sở:</b> {c_name}</p>
                                     <p style="margin: 8px 0; font-size: 15px;"><b>📍 Địa chỉ:</b> {c_address}</p>
-                                
                                 </div>
                                 {f'<div style="text-align: center; margin: 25px 0;"><a href="{map_url}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">📍 Xem Google Map Cơ Sở</a></div>' if map_url else ''}
                                 <p style="font-size: 15px;">Vui lòng đến trước 10 phút để được hỗ trợ tốt nhất.</p>
                                 <p style="margin: 5px 0 0; font-size: 16px; font-weight: bold; color: #111827;">Đội ngũ Nha Khoa Minh Sinh</p>
                             </div>
-                        </div>'''
+                        </div>"""
                         send_mail(subject, msg, getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@minhsinh.com'), [p_email], html_message=html_msg, fail_silently=True)
             except Exception as e:
                 print("Thread Email Error:", e)
 
         import threading
-        threading.Thread(target=send_async_email, args=(patients, clinic.name, clinic.address, start_time_str, date_str, getattr(clinic, "map_url", ""))).start()
+        threading.Thread(target=send_async_email, args=(prepared_patients, clinic.name, clinic.address, date_str, getattr(clinic, "map_url", "")), daemon=True).start()
             
-        from django.http import JsonResponse
-        return JsonResponse({"status": "success", "booking_id": ",".join(map(str, created_booking_ids)) if created_booking_ids else None}, status=201)
+        return JsonResponse({
+            "group_code": group_code,
+            "created_booking_ids": created_booking_ids,
+            "booking_id": created_booking_ids[0] if created_booking_ids else None,
+            "status": "success",
+            "message": f"Đặt lịch thành công cho {len(created_booking_ids)} khách hàng!"
+        }, status=201)
+
+class BookingGroupDetailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, group_code):
+        bookings = Booking.objects.filter(group_code=group_code).select_related('customer', 'category', 'clinic')
+        if not bookings.exists():
+            return Response({"error": f"Không tìm thấy nhóm khách hàng {group_code}"}, status=status.HTTP_404_NOT_FOUND)
+
+        first_b = bookings.first()
+        data = {
+            "group_code": group_code,
+            "group_status": first_b.get_group_status(),
+            "clinic": {
+                "id": first_b.clinic.clinic_id,
+                "name": first_b.clinic.name,
+                "address": first_b.clinic.address,
+            } if first_b.clinic else None,
+            "total_customers": bookings.count(),
+            "bookings": [
+                {
+                    "booking_id": b.booking_id,
+                    "customer_name": b.customer.name if b.customer else "",
+                    "customer_phone": b.customer.phone if b.customer else "",
+                    "customer_email": b.customer.email if b.customer else "",
+                    "category_id": b.category.category_id if b.category else None,
+                    "category_name": b.category.name if b.category else "",
+                    "start_time": b.start_time.strftime("%Y-%m-%d %H:%M") if b.start_time else None,
+                    "end_time": b.end_time.strftime("%Y-%m-%d %H:%M") if b.end_time else None,
+                    "estimated_duration": b.estimated_duration,
+                    "status": b.status,
+                    "notes": b.notes,
+                }
+                for b in bookings
+            ]
+        }
+        return Response(data, status=status.HTTP_200_OK)
 
 class TopupInfoView(APIView):
     def get(self, request):

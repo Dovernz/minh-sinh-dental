@@ -229,8 +229,20 @@ class Booking(models.Model):
     created_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_bookings', help_text='Nhân viên tạo booking (Null nếu khách tự đặt trên web)')
 
     estimated_duration = models.IntegerField(null=True, blank=True, help_text='Thời lượng dự kiến (phút)')
+    group_code = models.CharField(max_length=50, blank=True, null=True, db_index=True, verbose_name="Mã nhóm khách")
     class Meta:
         db_table = 'db_table_bookings'
+
+    def get_group_status(self):
+        if not self.group_code:
+            return 'COMPLETED' if self.status in ['Completed', 'Cancelled', 'Đã xong', 'Đã hủy'] else 'IN_PROGRESS'
+        finished_statuses = ['Completed', 'Cancelled', 'Đã xong', 'Đã hủy']
+        has_pending = Booking.objects.filter(group_code=self.group_code).exclude(status__in=finished_statuses).exists()
+        return 'IN_PROGRESS' if has_pending else 'COMPLETED'
+
+    @property
+    def group_status(self):
+        return self.get_group_status()
 
     @property
     def total_paid(self):

@@ -1,6 +1,6 @@
 from django.urls import path
 import django.views.generic
-from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
+from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, BookingGroupDetailView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
 from .commission_apis import CommissionOverviewAPIView, CommissionDetailAPIView
 
 urlpatterns = [
@@ -16,6 +16,7 @@ urlpatterns = [
     path('clinics/', ClinicListView.as_view(), name='api-clinics'),
     path('services/', ServiceListView.as_view(), name='api-services'),
     path('bookings/', BookingCreateView.as_view(), name='api-bookings'),
+    path('bookings/group/<str:group_code>/', BookingGroupDetailView.as_view(), name='api-booking-group-detail'),
     path('bookings/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete'),
     path('booking/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete-alias'),
     path('booking/<int:pk>/cancel/', BookingCancelView.as_view(), name='api-booking-cancel'),

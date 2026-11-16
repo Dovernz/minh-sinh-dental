@@ -795,10 +795,29 @@ class BookingDetailInline(TabularInline):
 class BookingAdmin(BaseRBACAdmin):
     inlines = [BookingDetailInline]
     form = BookingAdminForm
-    list_display = ('booking_id', 'customer', 'start_time', 'estimated_duration', 'notes')
-    list_filter = ('clinic', 'status', 'estimated_duration')
-    search_fields = ('customer__name', 'customer__phone', 'notes', 'estimated_duration')
-    # readonly_fields = ('category',) # Bỏ để kích hoạt AJAX
+    list_display = ('booking_id', 'group_code', 'customer', 'start_time', 'estimated_duration', 'notes')
+    list_filter = ('clinic', 'status', 'group_code', 'estimated_duration')
+    search_fields = ('group_code', 'customer__name', 'customer__phone', 'notes', 'estimated_duration')
+    actions = ['checkin_selected_bookings', 'complete_selected_bookings', 'checkin_group_action']
+
+    @admin.action(description="Check-in các lịch hẹn đã chọn")
+    def checkin_selected_bookings(self, request, queryset):
+        count = queryset.update(status='Confirmed')
+        self.message_user(request, f"Đã check-in (Confirmed) cho {count} lịch hẹn.")
+
+    @admin.action(description="Hoàn thành các lịch hẹn đã chọn")
+    def complete_selected_bookings(self, request, queryset):
+        count = queryset.update(status='Completed')
+        self.message_user(request, f"Đã đánh dấu hoàn thành cho {count} lịch hẹn.")
+
+    @admin.action(description="Check-in toàn bộ nhóm theo lịch hẹn đã chọn")
+    def checkin_group_action(self, request, queryset):
+        groups = set(queryset.exclude(group_code__isnull=True).exclude(group_code='').values_list('group_code', flat=True))
+        if not groups:
+            self.message_user(request, "Không có lịch hẹn nào có mã nhóm.", level='warning')
+            return
+        count = Booking.objects.filter(group_code__in=groups).update(status='Confirmed')
+        self.message_user(request, f"Đã check-in cho toàn bộ {count} lịch hẹn thuộc {len(groups)} nhóm.")
 
     class Media:
         js = ('admin/js/booking_chained_select.js',)
