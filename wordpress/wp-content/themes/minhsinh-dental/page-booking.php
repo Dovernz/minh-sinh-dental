@@ -142,12 +142,12 @@ get_header();
 }
 
 .minhsinh-booking-wrapper { background-color: var(--ms-bg); padding: 40px 15px; font-family: 'Inter', sans-serif; color: var(--ms-text-dark); }
-.minhsinh-container { max-width: 850px; margin: 0 auto; }
+.minhsinh-container { width: 92%; max-width: 1320px; margin: 0 auto; }
 .booking-header-section { text-align: center; margin-bottom: 30px; }
 .booking-main-title { font-size: 28px; font-weight: 700; color: var(--ms-primary); margin-bottom: 8px; }
 .booking-sub-title { font-size: 15px; color: var(--ms-text-muted); }
 
-.minhsinh-booking-container { background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
+.minhsinh-booking-container { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06); overflow: hidden; border: 1px solid #e2e8f0; }
 
 /* Stepper */
 .stepper-wrapper { display: flex; justify-content: space-between; background: var(--ms-primary-light); padding: 20px 30px; border-bottom: 1px solid #e2e8f0; }
@@ -160,7 +160,7 @@ get_header();
 @media(min-width: 768px) { .step-name { display: block; } }
 
 /* Body */
-.booking-body { padding: 30px; min-height: 400px; }
+.booking-body { padding: 36px 40px; min-height: 400px; }
 .booking-step-pane { display: none; animation: fadeIn 0.4s ease; }
 .booking-step-pane.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -175,19 +175,20 @@ get_header();
 .clinic-address-text { font-size: 12px; color: var(--ms-text-muted); }
 
 /* Multi-Patient Cards */
-.patient-card { background: #fff; border: 1px solid var(--ms-border); border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative; transition: 0.3s; }
-.patient-card:hover { border-color: var(--ms-primary); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-.patient-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed var(--ms-border); }
+.patient-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 22px 24px; margin-bottom: 20px; position: relative; transition: 0.3s; }
+.patient-card:hover { border-color: var(--ms-primary); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
+.patient-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--ms-border); }
 .patient-title { font-weight: 700; color: var(--ms-primary); font-size: 15px; }
 .btn-remove-patient { background: #fee2e2; color: #ef4444; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
-.patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-@media(max-width: 600px) { .patient-grid { grid-template-columns: 1fr; } }
+.patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+.patient-grid .form-group { margin-bottom: 0; }
 
 /* Form Controls */
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--ms-border); border-radius: 8px; font-size: 14px; transition: 0.2s; }
-.form-control:focus { border-color: var(--ms-primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+.form-control { width: 100%; box-sizing: border-box; outline: none; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; padding: 10px 14px; background: #fff; color: var(--ms-text-dark); font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+.form-control:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 .select-lg { height: 48px; font-weight: 500; }
 .error-msg { color: var(--ms-error); font-size: 12px; display: none; margin-top: 4px; }
 .has-error .form-control { border-color: var(--ms-error); }
@@ -214,6 +215,32 @@ get_header();
 .summary-item { padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
 .summary-item:last-child { border-bottom: none; }
 .summary-item strong { color: var(--ms-primary); }
+
+/* Footer Actions */
+.booking-footer-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 20px 40px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+
+/* Responsive Media Queries */
+@media (max-width: 640px) {
+    .minhsinh-booking-wrapper { padding: 16px 12px; }
+    .minhsinh-container { width: 100%; }
+    .stepper-wrapper { padding: 14px 12px; }
+    .booking-body { padding: 20px 14px; }
+    .patient-grid { grid-template-columns: 1fr; gap: 14px; }
+    .patient-card { padding: 16px 14px; }
+    .btn-ms { width: 100%; padding: 14px; text-align: center; }
+    .booking-footer-actions { padding: 16px 14px; flex-direction: column-reverse; gap: 10px; }
+}
+
+@media (max-width: 480px) {
+    .booking-main-title { font-size: 22px; }
+    .clinics-tabs { grid-template-columns: 1fr; }
+    .time-slots-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 390px) {
+    .booking-main-title { font-size: 20px; }
+    .time-slots-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 
 <script>
@@ -358,7 +385,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="form-group" style="grid-column: 1/-1">
                         <label>Ghi chú</label>
-                        <input type="text" class="form-control p-note" placeholder="Triệu chứng hoặc yêu cầu...">
+                        <textarea class="form-control p-note" rows="2" placeholder="Triệu chứng, tiền sử hoặc yêu cầu khám riêng..."></textarea>
                     </div>
                 </div>
             </div>

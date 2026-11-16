@@ -139,7 +139,7 @@ def admin_pnr_lookup_view(request):
     context['recent_pnrs'] = list(
         Booking.objects.exclude(pnr_code__isnull=True)
         .exclude(pnr_code='')
-        .order_by('-id')
+        .order_by('-booking_id')
         .values_list('pnr_code', flat=True)
         .distinct()[:5]
     )

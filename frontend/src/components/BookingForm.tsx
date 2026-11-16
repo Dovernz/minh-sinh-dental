@@ -301,7 +301,7 @@ export default function BookingForm() {
   // --- Render Steps ---
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 bg-white shadow-2xl rounded-3xl my-10 border border-slate-100">
+    <div className="w-full max-w-6xl xl:max-w-7xl mx-auto p-4 md:p-8 bg-white shadow-2xl rounded-3xl my-6 border border-slate-100">
       {/* Progress Bar */}
       {step < 4 && (
         <div className="mb-10">
