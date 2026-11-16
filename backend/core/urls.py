@@ -68,6 +68,7 @@ def admin_commissions_embed_view(request):
     return render(request, 'admin/commissions_embed.html', context)
 
 from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView, DebtCollectionEmbedView, DebtCollectionRawView, POSDebtListAPIView
+from booking.admin_views import admin_pnr_lookup_view
 
 
 import base64
@@ -133,6 +134,7 @@ urlpatterns = [
     path('booking/success/<str:booking_id>/', xframe_options_exempt(booking_success_view), name='booking-success'),
     path('dental-chart/', xframe_options_exempt(TemplateView.as_view(template_name='dental_chart_standalone.html')), name='dental-chart-standalone'),
 
+    path('admin/pnr-lookup/', admin_pnr_lookup_view, name='admin-pnr-lookup'),
     path('admin/pos-debt/', DebtCollectionEmbedView.as_view(), name='admin-pos-debt'),
     path('admin/pos-debt-raw/', DebtCollectionRawView.as_view(), name='admin-pos-debt-raw'),
     path('api/pos/debts/', POSDebtListAPIView.as_view(), name='api-pos-debts'),

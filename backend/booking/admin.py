@@ -795,10 +795,39 @@ class BookingDetailInline(TabularInline):
 class BookingAdmin(BaseRBACAdmin):
     inlines = [BookingDetailInline]
     form = BookingAdminForm
-    list_display = ('booking_id', 'group_code', 'customer', 'start_time', 'estimated_duration', 'notes')
-    list_filter = ('clinic', 'status', 'group_code', 'estimated_duration')
-    search_fields = ('group_code', 'customer__name', 'customer__phone', 'notes', 'estimated_duration')
+    list_display = ('booking_id', 'pnr_code_badge', 'customer', 'start_time', 'status', 'individual_service_cost', 'billing_status', 'pnr_lookup_action')
+    list_filter = ('clinic', 'status')
+    search_fields = ('pnr_code', 'group_code', 'customer__name', 'customer__phone', 'notes', 'estimated_duration')
     actions = ['checkin_selected_bookings', 'complete_selected_bookings', 'checkin_group_action']
+
+    def pnr_code_badge(self, obj):
+        from django.utils.html import format_html
+        code = obj.pnr_code or obj.group_code or "N/A"
+        return format_html('<span style="font-family:monospace; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:4px;">{}</span>', code)
+    pnr_code_badge.short_description = 'Mã PNR'
+
+    def individual_service_cost(self, obj):
+        from django.utils.html import format_html
+        return format_html('<span style="font-weight:600; color:#1e293b;">{:,.0f} đ</span>', obj.total_amount)
+    individual_service_cost.short_description = 'Tiền dịch vụ khách'
+
+    def billing_status(self, obj):
+        from django.utils.html import format_html
+        if hasattr(obj, 'billing') and obj.billing:
+            st = obj.billing.status
+            colors = {'PAID': ('#dcfce7', '#15803d', 'Đã thanh toán'), 'INSTALLMENT': ('#fef9c3', '#a16207', 'Còn nợ'), 'UNPAID': ('#fee2e2', '#b91c1c', 'Chưa TT')}
+            bg, fg, label = colors.get(st, ('#f1f5f9', '#475569', st))
+            return format_html('<span style="background:{}; color:{}; padding:3px 8px; border-radius:4px; font-weight:600; font-size:11px;">{}</span>', bg, fg, label)
+        return format_html('<span style="color:#94a3b8; font-size:11px;">Chưa xuất bill</span>')
+    billing_status.short_description = 'Hóa đơn'
+
+    def pnr_lookup_action(self, obj):
+        from django.utils.html import format_html
+        code = obj.pnr_code or obj.group_code
+        if code:
+            return format_html('<a href="/admin/pnr-lookup/?pnr={}" style="background:#2563eb; color:#fff; padding:4px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:600;">✈️ Tra cứu PNR</a>', code)
+        return '-'
+    pnr_lookup_action.short_description = 'Aviation PNR'
 
     @admin.action(description="Check-in các lịch hẹn đã chọn")
     def checkin_selected_bookings(self, request, queryset):

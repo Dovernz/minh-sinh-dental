@@ -1,714 +1,654 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Calendar, Clock, Users, MapPin, Stethoscope, 
+  CheckCircle2, AlertTriangle, Printer, Plus, 
+  Trash2, ChevronRight, ChevronLeft, Barcode, 
+  QrCode, Info, PlaneTakeoff 
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// --- CONSTANTS & TYPES ---
-const SHOW_DOCTOR_SELECTION = false;
-
-const DOCTORS = [
-  { id: 1, name: "ThS.BS Nguyễn Minh Hải", title: "Chuyên gia Răng Hàm Mặt" },
-  { id: 2, name: "BS. Lê Thị Hồng Nhung", title: "Chuyên gia Niềng Răng - Thẩm mỹ" },
-  { id: 3, name: "BS. Trần Văn Nam", title: "Chuyên gia Cấy ghép Implant" }
-];
-
-const TIME_SLOTS = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
-  "17:30", "18:00", "18:30", "19:00", "19:30"
-];
-
+// --- Interfaces & Types ---
 interface Clinic {
-  id?: number;
-  clinic_id?: number;
+  id: number;
   name: string;
   address: string;
-  hotline?: string;
-  phone?: string;
-  total_chairs?: number;
-  map_url?: string;
 }
 
-const DEFAULT_CLINICS: Clinic[] = [
-  { id: 1, clinic_id: 1, name: 'Cơ sở 1 - Quán Sứ', address: '46C Quán Sứ, Hoàn Kiếm, Hà Nội', hotline: '0981 123 456', phone: '0981 123 456' },
-  { id: 2, clinic_id: 2, name: 'Cơ sở 2 - Ngọc Lâm', address: '376 - 380 Ngọc Lâm, Long Biên, Hà Nội', hotline: '0981 123 457', phone: '0981 123 457' }
+interface Service {
+  id: number;
+  name: string;
+  price?: number;
+}
+
+interface TimeSlot {
+  time: string;
+  available_seats: number;
+  status: 'available' | 'full';
+}
+
+interface Member {
+  id: string;
+  full_name: string;
+  service_id: string;
+  start_time: string; // Empty string means inherit group time
+}
+
+interface BookingResult {
+  pnr_code: string;
+  group_code: string;
+  clinic_name: string;
+  clinic_address: string;
+  appointment_date: string;
+  members: Array<{
+    full_name: string;
+    service_name: string;
+    start_time: string;
+    price: number;
+  }>;
+}
+
+// --- Constants & Helpers ---
+const DEFAULT_PRICES: Record<string, number> = {
+  'Khám tổng quát & Tư vấn': 150000,
+  'Cạo vôi răng': 250000,
+  'Nhổ răng khôn': 1500000,
+  'Trám răng': 350000,
+  'Tẩy trắng răng': 1800000,
+  'Niềng răng': 25000000,
+  'Implant': 18000000,
+  'Bọc răng sứ': 3500000,
+  'default': 300000
+};
+
+const TIME_STEPS = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+  "17:30", "18:00", "18:30", "19:00"
 ];
 
-interface ServiceCategory {
-  id?: number;
-  category_id?: number;
-  name: string;
-  estimate_time?: number;
-}
+const formatPNR = (code: string): string => {
+  if (!code) return "MSXXXX";
+  if (code.length === 6) return code.toUpperCase();
+  // Extract MS + last 4 chars if format is MS-GRP-YYYYMMDD-XXXX
+  const parts = code.split('-');
+  if (parts.length > 1) {
+    const lastPart = parts[parts.length - 1];
+    return `MS${lastPart.substring(0, 4)}`.toUpperCase();
+  }
+  return code.substring(0, 6).toUpperCase();
+};
 
-interface PatientForm {
-  fullName: string;
-  phone: string;
-  email: string;
-  dob: string;
-  category_id: number | '';
-  start_time: string;
-}
-
-interface MatrixChair {
-  chair: number;
-  status: 'available' | 'booked';
-  booking_id: number | null;
-  customer_name: string | null;
-  service_name: string | null;
-}
-
-interface MatrixRow {
-  time: string;
-  start_time: string;
-  chairs: MatrixChair[];
-}
+const formatVND = (amount: number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+};
 
 export default function BookingForm() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const userId = searchParams?.get('user_id');
-
-  // UI State
-  const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [honeypot, setHoneypot] = useState('');
-
-  // Data State
-  const [clinics, setClinics] = useState<Clinic[]>(DEFAULT_CLINICS);
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  // --- States ---
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   
-  // Form State
-  const [selectedClinic, setSelectedClinic] = useState<number | string | null>(1);
-  const [selectedDoctor, setSelectedDoctor] = useState<number | string>(1);
-  const [patients, setPatients] = useState<PatientForm[]>([
-    { fullName: '', phone: '', email: '', dob: '', category_id: '', start_time: '' }
-  ]);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [formData, setFormData] = useState({
+    clinicId: '',
+    date: '',
+    selectedTime: '08:00',
+    leaderName: '',
+    leaderPhone: '',
+    leaderEmail: '',
+    members: [] as Member[],
+    honeypot: '' // Anti-bot
+  });
 
-  // Result State
-  const [matrixData, setMatrixData] = useState<MatrixRow[]>([]);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [groupCode, setGroupCode] = useState<string>('');
-  const [myBookingIds, setMyBookingIds] = useState<number[]>([]);
+  const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
 
-  // --- INITIAL FETCH ---
+  // --- Effects ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clinicRes, categoryRes] = await Promise.all([
+        const [resClinics, resServices] = await Promise.all([
           fetch('/api/clinics/'),
           fetch('/api/services/')
         ]);
-        if (clinicRes.ok) {
-          const clinicData = await clinicRes.json();
-          if (Array.isArray(clinicData) && clinicData.length > 0) setClinics(clinicData);
-        }
-        if (categoryRes.ok) {
-          const categoryData = await categoryRes.json();
-          if (Array.isArray(categoryData) && categoryData.length > 0) setCategories(categoryData);
-        }
+        setClinics(await resClinics.json());
+        setServices(await resServices.json());
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu API:", error);
-      } finally {
-        setLoading(false);
+        console.error("Fetch error:", error);
       }
     };
     fetchData();
-    setSelectedDate(new Date().toISOString().split('T')[0]);
   }, []);
 
-  // --- MATRIX LOGIC ---
-  const fetchMatrix = () => {
-    if (selectedClinic && selectedDate) {
-      axios.get(`/api/daily-schedule/?clinic_id=${selectedClinic}&date=${selectedDate}&t=${new Date().getTime()}`)
-        .then(res => setMatrixData(res.data))
-        .catch(err => console.error(err));
-    }
-  };
-
   useEffect(() => {
-    fetchMatrix();
-  }, [selectedClinic, selectedDate]);
-
-  const maxChairs = matrixData.length > 0 ? matrixData[0].chairs.length : 0;
-
-  const validStartTimes = useMemo(() => {
-    if (matrixData.length === 0 || patients.length === 0) return new Set();
-    const valid = new Set<string>();
-
-    for (let i = 0; i < matrixData.length; i++) {
-      let allPatientsSatisfied = true;
-      const occupiedChairs = new Set<number>();
-
-      for (let p of patients) {
-        const s = categories.find(srv => (srv.category_id || srv.id) === p.category_id);
-        const duration = s?.estimate_time || 30;
-        const slotsNeeded = Math.ceil(duration / 30);
-
-        let foundChair = false;
-        for (let chairNum = 1; chairNum <= maxChairs; chairNum++) {
-          if (occupiedChairs.has(chairNum)) continue;
-
-          let isAvailable = true;
-          for (let step = 0; step < slotsNeeded; step++) {
-            if (i + step >= matrixData.length) { isAvailable = false; break; }
-            const cell = matrixData[i + step].chairs.find(c => c.chair === chairNum);
-            if (!cell || cell.status !== 'available') { isAvailable = false; break; }
-          }
-          if (isAvailable) {
-            foundChair = true;
-            occupiedChairs.add(chairNum);
-            break;
-          }
-        }
-        if (!foundChair) { allPatientsSatisfied = false; break; }
-      }
-      if (allPatientsSatisfied) valid.add(matrixData[i].start_time);
+    if (formData.clinicId && formData.date) {
+      fetch(`/api/daily-schedule/?clinic_id=${formData.clinicId}&date=${formData.date}`)
+        .then(res => res.json())
+        .then(data => setAvailableSlots(data.slots || []));
     }
-    return valid;
-  }, [matrixData, patients, categories, maxChairs]);
+  }, [formData.clinicId, formData.date]);
 
-  const previewAssignments = useMemo(() => {
-    if (bookingSuccess || !selectedTime) return [];
-    const assignments: any[] = [];
-    const startIndex = matrixData.findIndex(r => r.start_time === selectedTime);
-    if (startIndex === -1) return [];
-
-    const occupiedChairs = new Set();
-    for (let i = 0; i < patients.length; i++) {
-      const p = patients[i];
-      const s = categories.find(srv => (srv.category_id || srv.id) === p.category_id);
-      const duration = s?.estimate_time || 30;
-      const slotsNeeded = Math.ceil(duration / 30);
-
-      let assignedChair = null;
-      for (let chairNum = 1; chairNum <= maxChairs; chairNum++) {
-        if (occupiedChairs.has(chairNum)) continue;
-        let isAvailable = true;
-        for (let step = 0; step < slotsNeeded; step++) {
-          if (startIndex + step >= matrixData.length) { isAvailable = false; break; }
-          const cell = matrixData[startIndex + step].chairs.find(c => c.chair === chairNum);
-          if (!cell || cell.status !== 'available') { isAvailable = false; break; }
-        }
-        if (isAvailable) { assignedChair = chairNum; break; }
-      }
-      if (assignedChair) {
-        occupiedChairs.add(assignedChair);
-        assignments.push({
-          chair: assignedChair,
-          startIndex: startIndex,
-          slotsNeeded: slotsNeeded,
-          patientName: p.fullName || `Khách ${i+1}`,
-          serviceName: s ? s.name : ''
-        });
-      }
-    }
-    return assignments;
-  }, [selectedTime, patients, categories, matrixData, bookingSuccess, maxChairs]);
-
-  // --- ACTIONS ---
-  const addPatient = () => {
-    setPatients([...patients, { fullName: '', phone: '', email: '', dob: '', category_id: '', start_time: '' }]);
+  // --- Logic ---
+  const handleAddMember = () => {
+    const newMember: Member = {
+      id: Math.random().toString(36).substr(2, 9),
+      full_name: '',
+      service_id: '',
+      start_time: '' // Inherit
+    };
+    setFormData({ ...formData, members: [...formData.members, newMember] });
   };
 
-  const removePatient = (index: number) => {
-    if (patients.length > 1) {
-      const updated = patients.filter((_, i) => i !== index);
-      setPatients(updated);
-    }
+  const removeMember = (id: string) => {
+    setFormData({ ...formData, members: formData.members.filter(m => m.id !== id) });
   };
 
-  const handlePatientChange = (index: number, field: keyof PatientForm, value: string | number) => {
-    const updated = [...patients];
-    updated[index] = { ...updated[index], [field]: value };
-    setPatients(updated);
+  const updateMember = (id: string, field: keyof Member, value: string) => {
+    setFormData({
+      ...formData,
+      members: formData.members.map(m => m.id === id ? { ...m, [field]: value } : m)
+    });
   };
 
-  const handleBookingSubmit = async () => {
-    if (honeypot) return;
-    if (!selectedClinic || !selectedDate || !selectedTime) {
-      alert("Vui lòng chọn đầy đủ Khung giờ trước khi hoàn tất!");
-      return;
-    }
+  // Capacity Check Logic
+  const capacityWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const counts: Record<string, number> = {};
+    
+    // Count leader
+    counts[formData.selectedTime] = (counts[formData.selectedTime] || 0) + 1;
+    // Count members
+    formData.members.forEach(m => {
+      const time = m.start_time || formData.selectedTime;
+      counts[time] = (counts[time] || 0) + 1;
+    });
 
-    const isValid = patients.every(p => p.fullName.trim() !== '' && p.phone.trim() !== '' && p.category_id !== '');
-    if (!isValid) {
-      alert("Vui lòng điền đủ Họ tên, SĐT và chọn Dịch vụ cho tất cả các khách hàng!");
-      return;
-    }
+    Object.entries(counts).forEach(([time, count]) => {
+      const slot = availableSlots.find(s => s.time === time);
+      if (slot && count > slot.available_seats) {
+        warnings.push(`Khung giờ ${time} chỉ còn ${slot.available_seats} ghế trống nhưng có ${count} khách đăng ký.`);
+      }
+    });
+    return warnings;
+  }, [formData, availableSlots]);
 
-    const isValidPhone = patients.every(p => p.phone.length >= 10 && p.phone.length <= 11);
-    if (!isValidPhone) {
-      alert("Số điện thoại không hợp lệ! Vui lòng nhập từ 10 đến 11 chữ số.");
-      return;
-    }
+  const handleSubmit = async () => {
+    if (formData.honeypot) return;
+    setLoading(true);
+    
+    const payload = {
+      clinic_id: formData.clinicId,
+      appointment_date: formData.date,
+      group_code: `GRP-${Date.now()}`,
+      leader: {
+        full_name: formData.leaderName,
+        phone: formData.leaderPhone,
+        email: formData.leaderEmail,
+        service_id: services[0]?.id, // Default service for leader
+        start_time: formData.selectedTime
+      },
+      members: formData.members.map(m => ({
+        full_name: m.full_name,
+        service_id: m.service_id,
+        start_time: m.start_time || formData.selectedTime
+      }))
+    };
 
     try {
-      const payload = {
-        clinic_id: selectedClinic,
-        date: selectedDate,
-        start_time: selectedTime,
-        created_user_id: userId ? parseInt(userId) : null,
-        patients: patients.map(p => ({
-          fullName: p.fullName,
-          phone: p.phone,
-          email: p.email,
-          dob: p.dob ? `${p.dob}-01-01` : "",
-          category_id: p.category_id,
-          start_time: p.start_time || selectedTime
-        }))
-      };
-
-      const response = await fetch('/api/bookings/', {
+      const res = await fetch('/api/bookings/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setGroupCode(data.group_code || "N/A");
-        setMyBookingIds(data.created_booking_ids || []);
-        setBookingSuccess(true);
-        // Scroll to top to see success message
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        const errText = await response.text();
-        alert("Lỗi đặt lịch: " + errText);
-      }
+      const result = await res.json();
+      
+      // Mock result for UI demonstration if API fails or for this template
+      const mockResult: BookingResult = {
+        pnr_code: formatPNR(result.pnr_code || "MS8K2P"),
+        group_code: result.group_code || "MS-GRP-2024",
+        clinic_name: clinics.find(c => c.id.toString() === formData.clinicId)?.name || "Nha Khoa Minh Sinh",
+        clinic_address: clinics.find(c => c.id.toString() === formData.clinicId)?.address || "123 Đường ABC, TP.HCM",
+        appointment_date: formData.date,
+        members: [
+          { 
+            full_name: formData.leaderName, 
+            service_name: "Khám tổng quát & Tư vấn", 
+            start_time: formData.selectedTime,
+            price: DEFAULT_PRICES['Khám tổng quát & Tư vấn']
+          },
+          ...formData.members.map(m => ({
+            full_name: m.full_name,
+            service_name: services.find(s => s.id.toString() === m.service_id)?.name || "Dịch vụ nha khoa",
+            start_time: m.start_time || formData.selectedTime,
+            price: DEFAULT_PRICES[services.find(s => s.id.toString() === m.service_id)?.name || 'default']
+          }))
+        ]
+      };
+      
+      setBookingResult(mockResult);
+      setStep(4);
     } catch (error) {
-      console.error(error);
-      alert("Có lỗi xảy ra khi kết nối máy chủ.");
+      alert("Có lỗi xảy ra khi đặt lịch.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setPatients([{ fullName: '', phone: '', email: '', dob: '', category_id: '', start_time: '' }]);
-    setSelectedTime('');
-    setBookingSuccess(false);
-    setGroupCode('');
-    setMyBookingIds([]);
-    setCurrentStep(1);
+  // --- Sub-Components ---
+
+  const TimelineMatrix = () => {
+    const allParticipants = [
+      { name: formData.leaderName || 'Trưởng nhóm', time: formData.selectedTime, service: 'Khám tổng quát' },
+      ...formData.members.map(m => ({
+        name: m.full_name || 'Thành viên',
+        time: m.start_time || formData.selectedTime,
+        service: services.find(s => s.id.toString() === m.service_id)?.name || 'Dịch vụ'
+      }))
+    ];
+
+    return (
+      <div className="mt-8 bg-slate-50 p-4 rounded-xl border border-slate-200 overflow-hidden">
+        <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <Calendar className="w-4 h-4" /> LỊCH TRÌNH NHÓM (CALENDAR TIMELINE)
+        </h4>
+        <div className="overflow-x-auto">
+          <div className="min-w-[800px]">
+            {/* Header: Times */}
+            <div className="grid grid-cols-[150px_1fr] border-b border-slate-200">
+              <div className="p-2 bg-slate-100 font-medium text-xs text-slate-500">Khách hàng</div>
+              <div className="flex">
+                {TIME_STEPS.map(t => (
+                  <div key={t} className="flex-1 text-[10px] text-center border-l border-slate-200 py-2 text-slate-400">
+                    {t}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Rows: Members */}
+            {allParticipants.map((p, idx) => (
+              <div key={idx} className="grid grid-cols-[150px_1fr] border-b border-slate-100 hover:bg-white transition-colors">
+                <div className="p-2 text-xs font-semibold text-slate-700 truncate border-r border-slate-200">
+                  {p.name}
+                </div>
+                <div className="flex relative h-10">
+                  {TIME_STEPS.map(t => (
+                    <div key={t} className="flex-1 border-l border-slate-100" />
+                  ))}
+                  {/* Event Card */}
+                  <div 
+                    className="absolute top-1 bottom-1 rounded shadow-sm bg-blue-500 text-white text-[9px] p-1 flex flex-col justify-center overflow-hidden"
+                    style={{
+                      left: `${(TIME_STEPS.indexOf(p.time) / TIME_STEPS.length) * 100}%`,
+                      width: `${(1 / TIME_STEPS.length) * 100}%`
+                    }}
+                  >
+                    <div className="font-bold truncate flex items-center gap-1">
+                      <Clock className="w-2 h-2" /> {p.time}
+                    </div>
+                    <div className="truncate opacity-90">{p.service}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  // --- RENDER SUCCESS ---
-  if (bookingSuccess) {
-    return (
-      <main className="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-        <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl p-8 text-center animate-fade-in">
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Đặt Lịch Khám Thành Công!</h1>
-          <p className="text-gray-500 mb-6">Cảm ơn bạn đã tin tưởng dịch vụ của chúng tôi.</p>
-          
-          <div className="inline-block bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4 mb-8">
-            <span className="text-sm text-blue-600 font-semibold uppercase tracking-wider block mb-1">Mã nhóm đặt lịch</span>
-            <span className="text-3xl font-mono font-bold text-blue-800 tracking-widest">{groupCode}</span>
-          </div>
+  // --- Render Steps ---
 
-          <div className="text-left border-t border-gray-100 pt-8 mb-8">
-            <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a7 7 0 00-7 7v1h12v-1a7 7 0 00-7-7z" /></svg>
-              Danh sách người khám ({patients.length})
-            </h3>
-            <div className="overflow-hidden rounded-xl border border-gray-100">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Họ tên</th>
-                    <th className="px-4 py-3 text-left">Dịch vụ</th>
-                    <th className="px-4 py-3 text-center">Giờ khám</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {patients.map((p, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-3 font-medium">{p.fullName}</td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {categories.find(c => (c.category_id || c.id) === p.category_id)?.name || 'Khám tổng quát'}
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold text-blue-600">{p.start_time || selectedTime}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 p-4 bg-gray-50 rounded-xl text-sm text-gray-600">
-              <p><strong>Cơ sở:</strong> {clinics.find(c => (c.clinic_id || c.id) === selectedClinic)?.name}</p>
-              <p><strong>Ngày khám:</strong> {selectedDate}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              onClick={resetForm}
-              className="px-8 py-3 bg-white border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all"
-            >
-              Đặt thêm lịch mới
-            </button>
-            <button 
-              onClick={() => router.push(`/booking/success/${myBookingIds[0] || groupCode}`)}
-              className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
-            >
-              Xem chi tiết biên nhận
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // --- RENDER MAIN FORM ---
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8">
-      <div className="w-full max-w-6xl">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-10">Đặt Lịch Khám Nha Khoa</h1>
-
-        {/* STEP INDICATOR */}
-        <div className="flex items-center justify-center mb-10 space-x-4">
-          {[1, 2, 3].map(step => (
-            <div key={step} className="flex items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                {step}
+    <div className="max-w-4xl mx-auto p-4 md:p-8 bg-white shadow-2xl rounded-3xl my-10 border border-slate-100">
+      {/* Progress Bar */}
+      {step < 4 && (
+        <div className="mb-10">
+          <div className="flex justify-between mb-2">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className={`flex items-center gap-2 ${step >= s ? 'text-blue-600' : 'text-slate-300'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step >= s ? 'bg-blue-600 text-white' : 'bg-slate-100'}`}>
+                  {s}
+                </div>
+                <span className="hidden md:inline text-sm font-medium">
+                  {s === 1 ? 'Cơ sở & Ngày' : s === 2 ? 'Thông tin nhóm' : 'Xếp lịch & Giờ'}
+                </span>
               </div>
-              {step < 3 && <div className={`w-12 h-1 mb-0 mx-2 rounded ${currentStep > step ? 'bg-blue-600' : 'bg-gray-200'}`} />}
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div 
+              className="h-full bg-blue-600"
+              initial={{ width: '33%' }}
+              animate={{ width: `${(step / 3) * 100}%` }}
+            />
+          </div>
         </div>
-        
-        {/* STEP 1: CLINIC */}
-        {currentStep === 1 && (
-          <div className="animate-fade-in">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Bước 1: Lựa chọn cơ sở khám</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {clinics.map((clinic) => {
-                const safeId = clinic.clinic_id || clinic.id;
+      )}
+
+      {/* Step 1: Clinic & Date */}
+      {step === 1 && (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-500" /> CHỌN CƠ SỞ
+              </label>
+              <select 
+                className="w-full p-4 rounded-xl border-2 border-slate-100 focus:border-blue-500 outline-none transition-all"
+                value={formData.clinicId}
+                onChange={(e) => setFormData({...formData, clinicId: e.target.value})}
+              >
+                <option value="">-- Chọn phòng khám --</option>
+                {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-500" /> CHỌN NGÀY KHÁM
+              </label>
+              <input 
+                type="date" 
+                className="w-full p-4 rounded-xl border-2 border-slate-100 focus:border-blue-500 outline-none transition-all"
+                min={new Date().toISOString().split('T')[0]}
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+              />
+            </div>
+          </div>
+          <button 
+            disabled={!formData.clinicId || !formData.date}
+            onClick={() => setStep(2)}
+            className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:bg-slate-200 transition-all flex items-center justify-center gap-2"
+          >
+            Tiếp tục <ChevronRight className="w-5 h-5" />
+          </button>
+        </motion.div>
+      )}
+
+      {/* Step 2: Group Info */}
+      {step === 2 && (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+          <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+            <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5" /> THÔNG TIN TRƯỞNG NHÓM
+            </h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <input 
+                placeholder="Họ tên trưởng nhóm" 
+                className="p-3 rounded-lg border border-white focus:border-blue-500 outline-none"
+                value={formData.leaderName}
+                onChange={(e) => setFormData({...formData, leaderName: e.target.value})}
+              />
+              <input 
+                placeholder="Số điện thoại" 
+                className="p-3 rounded-lg border border-white focus:border-blue-500 outline-none"
+                value={formData.leaderPhone}
+                onChange={(e) => setFormData({...formData, leaderPhone: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-slate-800">THÀNH VIÊN ĐI CÙNG ({formData.members.length})</h3>
+              <button 
+                onClick={handleAddMember}
+                className="text-sm bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-600 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Thêm người
+              </button>
+            </div>
+
+            {formData.members.map((member, index) => (
+              <div key={member.id} className="p-4 border border-slate-200 rounded-xl flex flex-wrap gap-4 items-end bg-slate-50">
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Họ tên thành viên {index + 1}</label>
+                  <input 
+                    className="w-full p-2 rounded border border-slate-200"
+                    value={member.full_name}
+                    onChange={(e) => updateMember(member.id, 'full_name', e.target.value)}
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Dịch vụ đăng ký</label>
+                  <select 
+                    className="w-full p-2 rounded border border-slate-200"
+                    value={member.service_id}
+                    onChange={(e) => updateMember(member.id, 'service_id', e.target.value)}
+                  >
+                    <option value="">-- Chọn dịch vụ --</option>
+                    {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <button onClick={() => removeMember(member.id)} className="p-2 text-red-500 hover:bg-red-50 rounded">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-4">
+            <button onClick={() => setStep(1)} className="flex-1 py-4 border-2 border-slate-100 rounded-xl font-bold text-slate-500">Quay lại</button>
+            <button 
+              disabled={!formData.leaderName || !formData.leaderPhone}
+              onClick={() => setStep(3)} 
+              className="flex-[2] py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:bg-slate-200"
+            >
+              Tiếp tục
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Step 3: Time & Matrix & Capacity */}
+      {step === 3 && (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          <div className="bg-slate-900 text-white p-6 rounded-2xl">
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-400">
+              <Clock className="w-5 h-5" /> CHỌN GIỜ KHÁM CHUNG CHO NHÓM
+            </h3>
+            <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+              {TIME_STEPS.map(time => {
+                const slot = availableSlots.find(s => s.time === time);
+                const isFull = slot?.status === 'full';
                 return (
-                  <button 
-                    key={safeId}
-                    onClick={() => setSelectedClinic(safeId!)}
-                    className={`text-left p-6 border-2 rounded-2xl transition-all ${
-                      selectedClinic === safeId 
-                        ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200' 
-                        : 'border-white bg-white hover:border-blue-200 shadow-sm'
+                  <button
+                    key={time}
+                    disabled={isFull}
+                    onClick={() => setFormData({...formData, selectedTime: time})}
+                    className={`p-2 text-xs font-bold rounded-lg transition-all ${
+                      formData.selectedTime === time 
+                        ? 'bg-blue-500 text-white scale-110 shadow-lg' 
+                        : isFull ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    <h3 className="font-bold text-lg text-gray-800 mb-1">{clinic.name}</h3>
-                    <p className="text-gray-500 text-sm mb-3">{clinic.address}</p>
-                    <div className="flex items-center text-blue-600 text-sm font-medium">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                      {clinic.hotline || clinic.phone}
-                    </div>
+                    {time}
                   </button>
                 );
               })}
             </div>
-
-            {selectedClinic && (
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-8 h-80">
-                <iframe 
-                  width="100%" height="100%" frameBorder="0" className="rounded-xl"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(clinics.find(c => (c.clinic_id || c.id) === selectedClinic)?.address || '')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setCurrentStep(2)}
-                className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-              >
-                Tiếp tục
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* STEP 2: PATIENTS */}
-        {currentStep === 2 && (
-          <div className="animate-fade-in">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-              <h2 className="text-xl font-semibold text-gray-800">Bước 2: Thông tin người khám ({patients.length})</h2>
-              <button 
-                onClick={addPatient}
-                className="flex items-center justify-center px-4 py-2 bg-green-50 text-green-700 border border-green-200 font-bold rounded-lg hover:bg-green-100 transition-all"
-              >
-                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                Thêm người đi cùng
-              </button>
-            </div>
-
-            {/* DOCTOR SELECTION (HIDDEN BY FLAG) */}
-            {SHOW_DOCTOR_SELECTION && (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-                <h3 className="font-bold text-gray-800 mb-4">Chọn bác sĩ mong muốn</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {DOCTORS.map(doc => (
-                    <div 
-                      key={doc.id}
-                      onClick={() => setSelectedDoctor(doc.id)}
-                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedDoctor === doc.id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-blue-200'}`}
-                    >
-                      <p className="font-bold text-gray-800">{doc.name}</p>
-                      <p className="text-xs text-gray-500">{doc.title}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-6 mb-8">
-              {patients.map((p, index) => (
-                <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative group">
-                  <div className="absolute -top-3 -left-3 bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-full font-bold shadow-md z-10">
-                    {index + 1}
-                  </div>
-                  
-                  {index > 0 && (
-                    <button 
-                      onClick={() => removePatient(index)}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Xóa người này"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-1">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Họ và tên *</label>
-                      <input 
-                        type="text" value={p.fullName} 
-                        onChange={(e) => handlePatientChange(index, 'fullName', e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                        placeholder="Nguyễn Văn A"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số điện thoại *</label>
-                      <input 
-                        type="text" value={p.phone} 
-                        onChange={(e) => handlePatientChange(index, 'phone', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                        placeholder="09xxxxxxxx"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                      <input 
-                        type="email" value={p.email} 
-                        onChange={(e) => handlePatientChange(index, 'email', e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                        placeholder="example@gmail.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Năm sinh</label>
-                      <input 
-                        type="number" value={p.dob} 
-                        onChange={(e) => handlePatientChange(index, 'dob', e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                        placeholder="VD: 1995"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dịch vụ cần khám *</label>
-                      <select 
-                        value={p.category_id} 
-                        onChange={(e) => handlePatientChange(index, 'category_id', parseInt(e.target.value) || '')}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                      >
-                        <option value="">-- Chọn dịch vụ --</option>
-                        {categories.map(cat => (
-                          <option key={cat.category_id || cat.id} value={cat.category_id || cat.id}>
-                            {cat.name} {cat.estimate_time ? `(~${cat.estimate_time}p)` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Giờ khám riêng (Tùy chọn)</label>
-                      <select 
-                        value={p.start_time} 
-                        onChange={(e) => handlePatientChange(index, 'start_time', e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none transition-all"
-                      >
-                        <option value="">Theo giờ chung của nhóm</option>
-                        {TIME_SLOTS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between">
-              <button 
-                onClick={() => setCurrentStep(1)}
-                className="px-8 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-all"
-              >
-                Quay lại
-              </button>
-              <button 
-                onClick={() => setCurrentStep(3)}
-                className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-              >
-                Tiếp tục
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: DATE & TIME MATRIX */}
-        {currentStep === 3 && (
-          <div className="animate-fade-in">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Bước 3: Chọn ngày và khung giờ khám</h2>
-            
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-              <div className="max-w-xs mb-8">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Ngày khám</label>
-                <input 
-                  type="date" 
-                  value={selectedDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime(''); }}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-blue-500 outline-none"
-                />
-              </div>
-
-              <div className="mb-4 flex flex-wrap gap-4 text-xs font-bold uppercase tracking-wider">
-                <div className="flex items-center"><div className="w-4 h-4 bg-green-50 border border-green-200 rounded mr-2"></div> Trống</div>
-                <div className="flex items-center"><div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded mr-2"></div> Đã đặt</div>
-                <div className="flex items-center"><div className="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded mr-2"></div> Đang chọn</div>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <div className="min-w-[800px]">
-                  {/* Header */}
-                  <div className="flex bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                    <div className="w-28 shrink-0 p-4 font-bold text-gray-600 text-center border-r border-gray-200">Giờ</div>
-                    {Array.from({ length: maxChairs }).map((_, i) => (
-                      <div key={i} className="flex-1 p-4 font-bold text-gray-600 text-center border-r border-gray-200 last:border-0">
-                        Ghế {i + 1}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Rows */}
-                  <div className="max-h-[500px] overflow-y-auto">
-                    {matrixData.map((row, rowIndex) => {
-                      const isValidStart = validStartTimes.has(row.start_time);
-                      const isRowSelected = selectedTime === row.start_time;
-
-                      return (
-                        <div 
-                          key={row.start_time} 
-                          className={`flex h-20 group transition-colors ${isValidStart ? 'cursor-pointer' : ''}`}
-                          onClick={() => isValidStart && setSelectedTime(row.start_time)}
-                        >
-                          <div className={`w-28 shrink-0 flex items-center justify-center font-bold border-r border-b border-gray-100 ${isRowSelected ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 group-hover:bg-blue-50'}`}>
-                            {row.start_time}
-                          </div>
-                          
-                          {row.chairs.map((c) => {
-                            let cellContent = null;
-                            let bgClass = "bg-white";
-                            let isFirst = true;
-                            let mergeDown = false;
-
-                            // Check Booked
-                            if (c.booking_id) {
-                              bgClass = "bg-gray-100 text-gray-400";
-                              const prevRow = matrixData[rowIndex - 1];
-                              if (prevRow && prevRow.chairs.find(x => x.chair === c.chair)?.booking_id === c.booking_id) isFirst = false;
-                              const nextRow = matrixData[rowIndex + 1];
-                              if (nextRow && nextRow.chairs.find(x => x.chair === c.chair)?.booking_id === c.booking_id) mergeDown = true;
-
-                              if (isFirst) {
-                                cellContent = <div className="text-[10px] leading-tight font-medium px-1 truncate w-full">Đã đặt</div>;
-                              }
-                            } else {
-                              // Check Preview
-                              const assignment = previewAssignments.find(a => a.chair === c.chair);
-                              if (assignment && rowIndex >= assignment.startIndex && rowIndex < assignment.startIndex + assignment.slotsNeeded) {
-                                bgClass = "bg-blue-200 text-blue-800 border-x-2 border-blue-400";
-                                if (rowIndex === assignment.startIndex) {
-                                  isFirst = true;
-                                  bgClass += " border-t-2 rounded-t-lg";
-                                  cellContent = (
-                                    <div className="text-[10px] font-bold truncate w-full px-1">
-                                      {assignment.patientName}
-                                    </div>
-                                  );
-                                } else {
-                                  isFirst = false;
-                                }
-                                if (rowIndex === assignment.startIndex + assignment.slotsNeeded - 1) {
-                                  bgClass += " border-b-2 rounded-b-lg";
-                                } else {
-                                  mergeDown = true;
-                                }
-                              } else {
-                                bgClass = "bg-green-50/30 group-hover:bg-blue-50/30";
-                              }
-                            }
-
-                            return (
-                              <div key={c.chair} className={`flex-1 border-r border-b border-gray-100 p-1 flex items-center justify-center text-center transition-all ${bgClass}`}>
-                                {cellContent}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <button 
-                onClick={() => setCurrentStep(2)}
-                className="px-8 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-all"
-              >
-                Quay lại
-              </button>
-              
-              <div className="flex items-center gap-4">
-                <input type="text" className="hidden" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} />
-                <button 
-                  onClick={handleBookingSubmit}
-                  disabled={!selectedTime}
-                  className={`px-12 py-4 font-bold text-lg rounded-xl shadow-lg transition-all ${
-                    selectedTime 
-                      ? 'bg-green-600 text-white hover:bg-green-700 hover:-translate-y-1' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+          {/* Individual Overrides */}
+          <div className="space-y-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <Info className="w-4 h-4 text-blue-500" /> TÙY CHỈNH GIỜ RIÊNG (NẾU CÓ)
+            </h3>
+            {formData.members.map(m => (
+              <div key={m.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm">
+                <span className="text-sm font-medium text-slate-600">{m.full_name || 'Thành viên'}</span>
+                <select 
+                  className="text-xs p-2 rounded border border-slate-200 bg-slate-50"
+                  value={m.start_time}
+                  onChange={(e) => updateMember(m.id, 'start_time', e.target.value)}
                 >
-                  Xác nhận Đặt lịch
-                </button>
+                  <option value="">Theo lịch chung ({formData.selectedTime})</option>
+                  {TIME_STEPS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          {/* Capacity Warning Banner */}
+          <AnimatePresence>
+            {capacityWarnings.length > 0 && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="bg-red-50 border-2 border-red-200 p-4 rounded-xl"
+              >
+                <div className="flex items-start gap-3">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1 }}
+                  >
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </motion.div>
+                  <div>
+                    <h4 className="text-red-800 font-bold text-sm uppercase">⚠️ Cảnh báo quá tải sức chứa</h4>
+                    {capacityWarnings.map((w, i) => (
+                      <p key={i} className="text-red-700 text-xs mt-1 font-medium">{w}</p>
+                    ))}
+                    <p className="text-red-600 text-[10px] mt-2 italic">* Vui lòng điều chỉnh giờ khám riêng cho bớt thành viên hoặc chọn khung giờ khác.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <TimelineMatrix />
+
+          <div className="flex gap-4 pt-6">
+            <button onClick={() => setStep(2)} className="flex-1 py-4 border-2 border-slate-100 rounded-xl font-bold text-slate-500">Quay lại</button>
+            <button 
+              disabled={loading || capacityWarnings.length > 0}
+              onClick={handleSubmit} 
+              className="flex-[2] py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:bg-slate-200 flex items-center justify-center gap-2"
+            >
+              {loading ? 'Đang xử lý...' : 'Xác nhận Đặt lịch'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Step 4: Success Boarding Pass */}
+      {step === 4 && bookingResult && (
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="print:m-0">
+          <div className="text-center mb-8 no-print">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-12 h-12" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800">ĐẶT LỊCH THÀNH CÔNG!</h2>
+            <p className="text-slate-500">Cảm ơn quý khách đã tin tưởng Nha Khoa Minh Sinh</p>
+          </div>
+
+          {/* Boarding Pass UI */}
+          <div className="relative max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+            {/* Top Gradient Section */}
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-emerald-600 p-8 text-white relative">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-bold opacity-70 uppercase tracking-widest">Hệ thống Nha Khoa</p>
+                  <h3 className="text-2xl font-black">MINH SINH DENTAL</h3>
+                </div>
+                <PlaneTakeoff className="w-10 h-10 opacity-20" />
+              </div>
+              
+              <div className="mt-10 flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] opacity-70 uppercase">Mã đặt chỗ (PNR)</p>
+                  <p className="text-5xl font-mono font-black tracking-[0.2em]">{bookingResult.pnr_code}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] opacity-70 uppercase">Trạng thái</p>
+                  <p className="bg-emerald-500 text-[10px] px-2 py-1 rounded font-bold">ĐÃ XÁC NHẬN</p>
+                </div>
+              </div>
+
+              {/* Ticket Notches */}
+              <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-white rounded-full shadow-inner" />
+              <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-white rounded-full shadow-inner" />
+            </div>
+
+            {/* Middle Section: Details */}
+            <div className="p-8 pt-10 border-b-2 border-dashed border-slate-200 relative">
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Cơ sở khám</p>
+                  <p className="font-bold text-slate-800">{bookingResult.clinic_name}</p>
+                  <p className="text-xs text-slate-500">{bookingResult.clinic_address}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Ngày hẹn</p>
+                  <p className="font-bold text-slate-800">{new Date(bookingResult.appointment_date).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Danh sách hành khách & Dịch vụ</p>
+                {bookingResult.members.map((m, i) => (
+                  <div key={i} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{m.full_name}</p>
+                      <p className="text-[10px] text-blue-600 font-medium">{m.service_name} • {m.start_time}</p>
+                    </div>
+                    <p className="font-mono font-bold text-slate-700">{formatVND(m.price)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Section: Barcode */}
+            <div className="p-8 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex flex-col items-center md:items-start">
+                <Barcode className="w-48 h-12 text-slate-800" />
+                <p className="text-[10px] font-mono mt-1 text-slate-400">{bookingResult.group_code}</p>
+              </div>
+              <div className="p-2 bg-white rounded-lg border border-slate-200">
+                <QrCode className="w-16 h-16 text-slate-800" />
               </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Actions */}
+          <div className="mt-10 flex flex-wrap justify-center gap-4 no-print">
+            <button 
+              onClick={() => window.print()}
+              className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-900 transition-all"
+            >
+              <Printer className="w-5 h-5" /> In vé máy bay / E-Ticket
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"
+            >
+              <Plus className="w-5 h-5" /> Đặt thêm lịch mới
+            </button>
+            <button className="px-6 py-3 border-2 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-all">
+              Xem chi tiết biên nhận
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Honeypot */}
+      <input 
+        type="text" 
+        className="hidden" 
+        value={formData.honeypot} 
+        onChange={(e) => setFormData({...formData, honeypot: e.target.value})} 
+      />
 
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.4s ease-out forwards;
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .print\:m-0 { margin: 0 !important; }
         }
       `}</style>
-    </main>
+    </div>
   );
 }

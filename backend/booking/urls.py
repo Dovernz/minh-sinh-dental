@@ -2,8 +2,21 @@ from django.urls import path
 import django.views.generic
 from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, BookingGroupDetailView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
 from .commission_apis import CommissionOverviewAPIView, CommissionDetailAPIView
+from .pnr_views import (
+    PNRLookupAPIView,
+    PNRPaymentAPIView,
+    IndividualPaymentAPIView,
+    PNRPassengerStatusUpdateAPIView,
+    CapacityCheckAPIView
+)
 
 urlpatterns = [
+    path('pnr/<str:pnr_code>/', PNRLookupAPIView.as_view(), name='api-pnr-lookup'),
+    path('pnr/<str:pnr_code>/payment/', PNRPaymentAPIView.as_view(), name='api-pnr-payment'),
+    path('pnr/<str:pnr_code>/passenger/<int:booking_id>/update/', PNRPassengerStatusUpdateAPIView.as_view(), name='api-pnr-passenger-update'),
+    path('pos/individual-payment/', IndividualPaymentAPIView.as_view(), name='api-pos-individual-payment'),
+    path('pos/pnr-payment/', PNRPaymentAPIView.as_view(), name='api-pos-pnr-payment'),
+    path('capacity-check/', CapacityCheckAPIView.as_view(), name='api-capacity-check'),
     path('reports/commissions/', CommissionOverviewAPIView.as_view(), name='api-commission-overview'),
     path('reports/commissions/<int:doctor_id>/', CommissionDetailAPIView.as_view(), name='api-commission-detail'),
     path('admin-clinics/', ClinicListAPIView.as_view(), name='api-admin-clinics'),

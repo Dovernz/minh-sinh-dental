@@ -1,0 +1,295 @@
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.db import transaction
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from decimal import Decimal
+from datetime import datetime, timedelta
+
+from .models import (
+    Clinic, Customer, ServiceDetail, Booking, 
+    BookingDetail, Billing, Payment
+)
+
+class PNRLookupAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pnr_code):
+        bookings = Booking.objects.filter(
+            Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
+        ).select_related('customer', 'clinic', 'category').prefetch_related('details__service_detail')
+
+        if not bookings.exists():
+            return Response({"error": f"Không tìm thấy mã PNR {pnr_code}"}, status=404)
+
+        first = bookings.first()
+        clinic = first.clinic
+        passengers_list = []
+        
+        # Using properties defined in the model
+        total_amount = sum(b.total_amount for b in bookings)
+        total_paid = sum(b.total_paid for b in bookings)
+        remaining_balance = max(Decimal('0'), total_amount - total_paid)
+        
+        payment_status = 'PAID' if remaining_balance <= 0 and total_amount > 0 else ('PARTIAL' if total_paid > 0 else 'UNPAID')
+        
+        for b in bookings:
+            services = []
+            for d in b.details.all():
+                sd = d.service_detail
+                services.append({
+                    "service_id": sd.service_id if sd else None,
+                    "name": sd.name if sd else "Dịch vụ",
+                    "code": sd.code if sd else "",
+                    "price": float(d.actual_price or 0),
+                    "quantity": d.quantity or 1,
+                    "total": float((d.actual_price or 0) * (d.quantity or 1))
+                })
+            
+            billing = getattr(b, 'billing', None)
+            passengers_list.append({
+                "booking_id": b.booking_id,
+                "status": b.status,
+                "start_time": b.start_time.strftime("%Y-%m-%d %H:%M") if b.start_time else None,
+                "end_time": b.end_time.strftime("%Y-%m-%d %H:%M") if b.end_time else None,
+                "estimated_duration": b.estimated_duration,
+                "notes": b.notes,
+                "customer": {
+                    "customer_id": b.customer.customer_id,
+                    "patient_code": b.customer.patient_code,
+                    "name": b.customer.name,
+                    "phone": b.customer.phone,
+                    "email": b.customer.email,
+                    "dob": b.customer.customer_dob.strftime("%Y-%m-%d") if b.customer.customer_dob else None,
+                    "gender": b.customer.gender,
+                    "address": b.customer.address
+                },
+                "category": b.category.name if b.category else None,
+                "services": services,
+                "individual_amount": float(b.total_amount),
+                "individual_paid": float(b.total_paid),
+                "individual_balance": float(b.remaining_balance),
+                "billing_id": billing.billing_id if billing else None,
+                "billing_status": billing.status if billing else 'UNPAID'
+            })
+
+        return Response({
+            "pnr_code": pnr_code,
+            "clinic": {
+                "id": clinic.clinic_id,
+                "name": clinic.name,
+                "address": clinic.address,
+                "hotline": clinic.hotline,
+                "total_chairs": clinic.total_chairs
+            } if clinic else None,
+            "group_status": first.get_group_status(),
+            "total_passengers": bookings.count(),
+            "total_amount": float(total_amount),
+            "total_paid": float(total_paid),
+            "remaining_balance": float(remaining_balance),
+            "payment_status": payment_status,
+            "passengers": passengers_list
+        })
+
+class PNRPaymentAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def post(self, request, pnr_code=None):
+        pnr_code = pnr_code or request.data.get('pnr_code')
+        amount_to_distribute = Decimal(str(request.data.get('amount', 0)))
+        payment_method = request.data.get('payment_method', 'CASH')
+        notes = request.data.get('notes', '')
+
+        if amount_to_distribute <= 0:
+            return Response({"error": "Số tiền thanh toán phải lớn hơn 0"}, status=400)
+
+        bookings = Booking.objects.filter(
+            Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
+        ).order_by('booking_id')
+
+        if not bookings.exists():
+            return Response({"error": f"Không tìm thấy PNR {pnr_code}"}, status=404)
+        
+        remaining_to_pay = amount_to_distribute
+        payment_details = []
+
+        for b in bookings:
+            if remaining_to_pay <= 0:
+                break
+            
+            billing = getattr(b, 'billing', None)
+            if not billing:
+                billing = Billing.objects.create(
+                    booking=b, 
+                    clinic=b.clinic,
+                    subtotal=b.total_amount, 
+                    final_total=b.total_amount,
+                    status='UNPAID', 
+                    notes=notes
+                )
+            
+            paid_so_far = billing.total_paid
+            balance_due = max(Decimal('0'), billing.final_total - paid_so_far)
+
+            if balance_due > 0:
+                pay_amt = min(remaining_to_pay, balance_due)
+                rem_after = max(Decimal('0'), balance_due - pay_amt)
+                
+                Payment.objects.create(
+                    billing=billing, 
+                    amount=pay_amt, 
+                    payment_method=payment_method,
+                    total_billing=billing.final_total, 
+                    amount_remain=rem_after
+                )
+                
+                remaining_to_pay -= pay_amt
+                
+                if rem_after <= 0:
+                    billing.status = 'PAID'
+                    b.status = 'Completed'
+                    b.save(update_fields=['status'])
+                else:
+                    billing.status = 'INSTALLMENT'
+                
+                billing.save(update_fields=['status'])
+                
+                payment_details.append({
+                    "booking_id": b.booking_id,
+                    "paid_amount": float(pay_amt),
+                    "billing_status": billing.status
+                })
+
+        total_pnr_amount = sum(b.total_amount for b in bookings)
+        total_pnr_paid = sum(b.total_paid for b in bookings)
+        new_rem = max(Decimal('0'), total_pnr_amount - total_pnr_paid)
+
+        return Response({
+            "status": "success",
+            "pnr_code": pnr_code,
+            "total_paid_now": float(amount_to_distribute - remaining_to_pay),
+            "remaining_balance": float(new_rem),
+            "details": payment_details
+        })
+
+class IndividualPaymentAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def post(self, request):
+        booking_id = request.data.get('booking_id')
+        amount = Decimal(str(request.data.get('amount', 0)))
+        payment_method = request.data.get('payment_method', 'CASH')
+        notes = request.data.get('notes', '')
+
+        if not booking_id:
+            return Response({"error": "Thiếu booking_id"}, status=400)
+
+        b = get_object_or_404(Booking, pk=booking_id)
+        billing = getattr(b, 'billing', None)
+        
+        if not billing:
+            billing = Billing.objects.create(
+                booking=b, 
+                clinic=b.clinic,
+                subtotal=b.total_amount, 
+                final_total=b.total_amount,
+                status='UNPAID', 
+                notes=notes
+            )
+        
+        paid_so_far = billing.total_paid
+        rem_after = max(Decimal('0'), billing.final_total - (paid_so_far + amount))
+        
+        Payment.objects.create(
+            billing=billing, 
+            amount=amount, 
+            payment_method=payment_method,
+            total_billing=billing.final_total, 
+            amount_remain=rem_after
+        )
+        
+        if rem_after <= 0:
+            billing.status = 'PAID'
+            b.status = 'Completed'
+            b.save(update_fields=['status'])
+        else:
+            billing.status = 'INSTALLMENT'
+        
+        billing.save(update_fields=['status'])
+
+        return Response({
+            "status": "success",
+            "booking_id": b.booking_id,
+            "billing_id": billing.billing_id,
+            "paid_amount": float(amount),
+            "remaining_balance": float(rem_after),
+            "billing_status": billing.status
+        })
+
+class PNRPassengerStatusUpdateAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, pnr_code, booking_id):
+        new_status = request.data.get('status')
+        b = get_object_or_404(Booking, pk=booking_id)
+        b.status = new_status
+        b.save(update_fields=['status'])
+        
+        return Response({
+            "status": "success",
+            "booking_id": b.booking_id,
+            "new_status": b.status,
+            "group_status": b.get_group_status()
+        })
+
+class CapacityCheckAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        clinic_id = request.query_params.get('clinic_id')
+        date_str = request.query_params.get('date')
+        start_time_str = request.query_params.get('start_time')
+        passenger_count = int(request.query_params.get('passenger_count', 1))
+        duration = int(request.query_params.get('duration', 30))
+        
+        clinic = get_object_or_404(Clinic, pk=clinic_id)
+        
+        try:
+            import zoneinfo
+            from django.conf import settings
+            tz = zoneinfo.ZoneInfo(getattr(settings, 'TIME_ZONE', 'Asia/Ho_Chi_Minh'))
+            start_dt = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+            end_dt = start_dt + timedelta(minutes=duration)
+        except (ValueError, TypeError):
+            return Response({"error": "Định dạng ngày hoặc giờ không hợp lệ (YYYY-MM-DD HH:MM)"}, status=400)
+
+        active_statuses = ['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid', 'Khám', 'In_progress']
+        
+        occupied = Booking.objects.filter(
+            clinic=clinic, 
+            status__in=active_statuses, 
+            start_time__lt=end_dt, 
+            end_time__gt=start_dt
+        ).count()
+        
+        total_chairs = clinic.total_chairs or 1
+        available_chairs = max(0, total_chairs - occupied)
+        is_available = available_chairs >= passenger_count
+        
+        warning = None
+        if not is_available:
+            warning = f"Cảnh báo: Khung giờ {start_time_str} tại {clinic.name} chỉ còn {available_chairs}/{total_chairs} ghế trống, không đủ cho {passenger_count} khách!"
+            
+        return Response({
+            "clinic_id": clinic.clinic_id,
+            "clinic_name": clinic.name,
+            "total_chairs": total_chairs,
+            "occupied_chairs": occupied,
+            "available_chairs": available_chairs,
+            "requested_passengers": passenger_count,
+            "is_available": is_available,
+            "warning": warning
+        })

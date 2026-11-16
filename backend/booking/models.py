@@ -230,14 +230,30 @@ class Booking(models.Model):
 
     estimated_duration = models.IntegerField(null=True, blank=True, help_text='Thời lượng dự kiến (phút)')
     group_code = models.CharField(max_length=50, blank=True, null=True, db_index=True, verbose_name="Mã nhóm khách")
+    pnr_code = models.CharField(max_length=20, blank=True, null=True, db_index=True, verbose_name="Mã PNR")
+
     class Meta:
         db_table = 'db_table_bookings'
 
+    def save(self, *args, **kwargs):
+        from .pnr_utils import generate_pnr_code
+        if not self.pnr_code and not self.group_code:
+            code = generate_pnr_code(prefix="MS")
+            self.pnr_code = code
+            self.group_code = code
+        elif self.group_code and not self.pnr_code:
+            self.pnr_code = self.group_code
+        elif self.pnr_code and not self.group_code:
+            self.group_code = self.pnr_code
+        super().save(*args, **kwargs)
+
     def get_group_status(self):
-        if not self.group_code:
+        code = self.pnr_code or self.group_code
+        if not code:
             return 'COMPLETED' if self.status in ['Completed', 'Cancelled', 'Đã xong', 'Đã hủy'] else 'IN_PROGRESS'
         finished_statuses = ['Completed', 'Cancelled', 'Đã xong', 'Đã hủy']
-        has_pending = Booking.objects.filter(group_code=self.group_code).exclude(status__in=finished_statuses).exists()
+        from django.db.models import Q
+        has_pending = Booking.objects.filter(Q(pnr_code=code) | Q(group_code=code)).exclude(status__in=finished_statuses).exists()
         return 'IN_PROGRESS' if has_pending else 'COMPLETED'
 
     @property
@@ -245,13 +261,24 @@ class Booking(models.Model):
         return self.get_group_status()
 
     @property
+    def total_amount(self):
+        from django.db.models import Sum, F
+        d_sum = self.details.aggregate(total=Sum(F('actual_price') * F('quantity')))['total'] or 0
+        if d_sum > 0:
+            return d_sum
+        if hasattr(self, 'billing') and self.billing:
+            return self.billing.final_total or self.billing.subtotal or 0
+        return 0
+
+    @property
     def total_paid(self):
-        from django.db.models import Sum
-        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
+        if hasattr(self, 'billing') and self.billing:
+            return self.billing.total_paid
+        return 0
 
     @property
     def remaining_balance(self):
-        return self.final_total - self.total_paid
+        return max(0, self.total_amount - self.total_paid)
 
     def __str__(self):
         return f"{self.customer.name} - {self.start_time}"

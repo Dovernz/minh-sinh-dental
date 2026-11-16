@@ -275,14 +275,21 @@ class BookingCreateView(APIView):
             current_occupied = db_occupied + batch_overlap
 
             if current_occupied >= total_chairs:
+                available_chairs = max(0, total_chairs - current_occupied)
                 return Response({
-                    "error": f"Hết ghế trống tại khung giờ {prep['start_time_str']} cho khách hàng {prep['full_name']} (Đang phục vụ {current_occupied}/{total_chairs} ghế)!"
+                    "error": f"Hết ghế trống tại khung giờ {prep['start_time_str']} cho khách hàng {prep['full_name']} (Đang phục vụ {current_occupied}/{total_chairs} ghế)!",
+                    "warning": f"Cảnh báo vượt quá sức chứa: Khung giờ {prep['start_time_str']} tại {clinic.name} chỉ còn {available_chairs}/{total_chairs} ghế trống!",
+                    "available_chairs": available_chairs,
+                    "total_chairs": total_chairs,
+                    "occupied_chairs": current_occupied
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             batch_allocated_slots.append({'start': p_start, 'end': p_end})
 
-        # Sinh mã chung nhóm khách (Group Code)
-        group_code = f"MS-GRP-{dt_module.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+        # Sinh mã PNR chuẩn hàng không 6 ký tự
+        from .pnr_utils import generate_pnr_code
+        pnr_code = generate_pnr_code(prefix="MS")
+        group_code = pnr_code
 
         created_booking_ids = []
         from django.db import transaction
@@ -302,6 +309,7 @@ class BookingCreateView(APIView):
                     customer=customer,
                     clinic=clinic,
                     group_code=group_code,
+                    pnr_code=pnr_code,
                     start_time=prep["start_time_dt"],
                     end_time=prep["end_time_dt"],
                     estimated_duration=prep["duration"],
@@ -357,11 +365,12 @@ Trân trọng,"""
         threading.Thread(target=send_async_email, args=(prepared_patients, clinic.name, clinic.address, date_str, getattr(clinic, "map_url", "")), daemon=True).start()
             
         return JsonResponse({
+            "pnr_code": pnr_code,
             "group_code": group_code,
             "created_booking_ids": created_booking_ids,
             "booking_id": created_booking_ids[0] if created_booking_ids else None,
             "status": "success",
-            "message": f"Đặt lịch thành công cho {len(created_booking_ids)} khách hàng!"
+            "message": f"Đặt lịch thành công cho {len(created_booking_ids)} khách hàng! Mã PNR: {pnr_code}"
         }, status=201)
 
 class BookingGroupDetailView(APIView):
