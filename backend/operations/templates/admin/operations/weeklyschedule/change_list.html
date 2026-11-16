@@ -25,11 +25,16 @@
         border-color: #374151 !important;
     }
     
-    /* 2. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    /* 2. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter (Dark Mode) */
     html.dark select, html.dark input[type="date"] {
         background-color: #374151 !important;
-        color: #e5e7eb !important;
-        border-color: #4b5563 !important;
+        color: #f3f4f6 !important;
+        border: 1px solid #4b5563 !important;
+        border-radius: 0.375rem;
+    }
+    html.dark select:focus, html.dark input[type="date"]:focus {
+        border-color: #3b82f6 !important;
+        outline: none;
     }
 
     /* 3. Đổ màu xám nhạt (Light Mode) cho riêng khối Filter */
@@ -38,11 +43,12 @@
         border-color: #aab4c4 !important;
     }
 
-    /* 4. Đổ màu xám cho các ô Input/Select để nổi bật trên nền Filter */
+    /* 4. Đổ màu cho các ô Input/Select trong Light Mode */
     html:not(.dark) select, html:not(.dark) input[type="date"] {
-        background-color: #f2f3f3 !important;
-        color: #000000 !important;
-        border-color: #aab4c4 !important;  
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border: 1px solid #d1d5db !important;  
+        border-radius: 0.375rem;
     }
 </style>
 <div class="schedule-filter-wrapper p-4 mb-5 rounded-lg border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">

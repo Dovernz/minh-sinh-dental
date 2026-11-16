@@ -40,22 +40,9 @@ get_header();
                 <!-- BƯỚC 1: Chọn Dịch vụ & Cơ sở -->
                 <div class="booking-step-pane active" id="paneStep1">
                     <h3 class="pane-title">Lựa chọn cơ sở nha khoa</h3>
-                    <!-- 2. Tab chuyển đổi 2 Cơ sở -->
-                    <div class="clinics-tabs">
-                        <button type="button" class="clinic-tab-btn active" data-clinic-id="1" 
-                                data-address="123 Phố Huế, Hai Bà Trưng, Hà Nội" 
-                                data-hotline="0988 123 456"
-                                data-map="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.096811983057!2d105.85289997689973!3d21.028811480620556!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ab9bd98319f7%3A0x9d4a8e235e16ef90!2zMTIz PhOGkSBIdeG6vywgUGjhu5EgSG_hur9uLCBIYWnhuIEAgQuGsHU5nLCBIw6AgTuG7mWksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s">
-                            <strong>Cơ sở 1:</strong> 123 Phố Huế, Hai Bà Trưng, Hà Nội
-                            <span class="clinic-hotline">Hotline: 0988 123 456</span>
-                        </button>
-                        <button type="button" class="clinic-tab-btn" data-clinic-id="2" 
-                                data-address="456 Nguyễn Trãi, Thanh Xuân, Hà Nội" 
-                                data-hotline="0977 654 321"
-                                data-map="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.677708579737!2d105.8030044768992!3d21.004818980637175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac80b741031b%3A0x3f3d35091a13e54b!2zNDU2IE5ndXnhuecMgVHLDo2ksIFRoYW5oIFh1w6JuLCBIw6AgTuG7mWksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s">
-                            <strong>Cơ sở 2:</strong> 456 Nguyễn Trãi, Thanh Xuân, Hà Nội
-                            <span class="clinic-hotline">Hotline: 0977 654 321</span>
-                        </button>
+                    <!-- 2. Tab chuyển đổi Cơ sở (Tải động từ API Django /api/clinics/) -->
+                    <div class="clinics-tabs" id="clinicsTabs">
+                        <div class="clinic-loading" style="grid-column: 1/-1; padding: 12px; color: var(--ms-text-muted); font-size: 13.5px;">Đang tải danh sách cơ sở...</div>
                     </div>
 
                     <!-- Google Maps Iframe -->
@@ -99,12 +86,7 @@ get_header();
                         <div class="form-group">
                             <label>Khung giờ <span class="required">*</span></label>
                             <div class="time-slots-grid" id="timeSlotsGrid">
-                                <button type="button" class="time-slot" data-time="08:30">08:30 - 09:30</button>
-                                <button type="button" class="time-slot" data-time="09:30">09:30 - 10:30</button>
-                                <button type="button" class="time-slot" data-time="10:30">10:30 - 11:30</button>
-                                <button type="button" class="time-slot" data-time="14:00">14:00 - 15:00</button>
-                                <button type="button" class="time-slot" data-time="15:00">15:00 - 16:00</button>
-                                <button type="button" class="time-slot" data-time="16:00">16:00 - 17:00</button>
+                                <div class="slot-loading" style="grid-column: 1/-1; padding: 12px; text-align: center; color: var(--ms-text-muted); font-size: 13px;">Đang tải danh sách khung giờ...</div>
                             </div>
                         </div>
                     </div>
@@ -297,7 +279,7 @@ get_header();
 
 @media(min-width: 640px) {
     .clinics-tabs {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
 }
 
@@ -305,23 +287,43 @@ get_header();
     text-align: left;
     background: #fff;
     border: 2px solid var(--ms-border);
-    padding: 12px 15px;
-    border-radius: 8px;
+    padding: 14px 16px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: 0.2s;
-    font-size: 13px;
+    transition: all 0.2s ease;
+    font-size: 13.5px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.clinic-tab-btn:hover {
+    border-color: var(--ms-primary);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.08);
 }
 
 .clinic-tab-btn.active {
     border-color: var(--ms-primary);
     background: var(--ms-primary-light);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.12);
+}
+
+.clinic-tab-btn strong {
+    font-size: 14.5px;
+    color: var(--ms-text-dark);
+}
+
+.clinic-address-text {
+    font-size: 13px;
+    color: var(--ms-text-muted);
 }
 
 .clinic-hotline {
-    display: block;
+    display: inline-block;
     margin-top: 4px;
     color: var(--ms-primary);
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 12.5px;
 }
 
 .map-container {
@@ -330,51 +332,76 @@ get_header();
     border: 1px solid var(--ms-border);
 }
 
-/* Dịch vụ Grid */
+/* Dịch vụ Grid - Giao diện thoáng đãng, không giới hạn chiều cao gò bó */
 .services-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
-    max-height: 250px;
-    overflow-y: auto;
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 @media(min-width: 640px) {
     .services-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+@media(min-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
     }
 }
 
 .service-card {
     border: 2px solid var(--ms-border);
-    padding: 15px;
-    border-radius: 8px;
+    padding: 18px 20px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.25s ease;
     background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    position: relative;
+}
+
+.service-card:hover {
+    border-color: var(--ms-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 102, 204, 0.12);
 }
 
 .service-card.selected {
     border-color: var(--ms-primary);
     background: var(--ms-primary-light);
+    box-shadow: 0 4px 14px rgba(0, 102, 204, 0.16);
 }
 
 .service-card h4 {
-    font-size: 15px;
-    margin: 0 0 5px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ms-text-dark, #1e293b);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
 }
 
 .service-card p {
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--ms-text-muted);
-    margin: 0;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+    flex-grow: 1;
 }
 
 .service-price {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 15px;
     color: var(--ms-primary);
-    margin-top: 8px !important;
-    display: block;
+    margin-top: auto;
+    display: inline-block;
 }
 
 /* Bác sĩ & Thời gian */
@@ -435,25 +462,76 @@ get_header();
 
 .time-slots-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
 }
 
 .time-slot {
-    padding: 10px;
+    padding: 12px 10px;
     background: #fff;
-    border: 1px solid var(--ms-border);
-    border-radius: 6px;
+    border: 1.5px solid var(--ms-border);
+    border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
     text-align: center;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 64px;
+}
+
+.time-slot:hover:not(:disabled):not(.full) {
+    border-color: var(--ms-primary);
+    background: #f8fafc;
+    transform: translateY(-1px);
 }
 
 .time-slot.selected {
-    background: var(--ms-primary);
-    color: #fff;
-    border-color: var(--ms-primary);
+    background: var(--ms-primary) !important;
+    color: #fff !important;
+    border-color: var(--ms-primary) !important;
+}
+
+.time-slot.selected .slot-badge {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #fff !important;
+}
+
+.time-slot:disabled, .time-slot.full, .time-slot.disabled {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed !important;
+    opacity: 0.75;
+    pointer-events: none;
+    box-shadow: none !important;
+}
+
+.slot-time {
+    font-weight: 600;
+    font-size: 13px;
+    display: block;
+}
+
+.slot-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.slot-badge.avail-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.slot-badge.full-badge {
+    background: #e2e8f0;
+    color: #64748b;
 }
 
 /* Form controls */
@@ -603,7 +681,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // State lưu trữ dữ liệu booking
     const bookingData = {
         clinicId: "1",
-        clinicName: "123 Phố Huế, Hai Bà Trưng, Hà Nội",
+        clinicName: "Cơ sở 1 - 123 Phố Huế, Hai Bà Trưng, Hà Nội",
         serviceId: null,
         serviceName: null,
         doctorId: "1",
@@ -625,38 +703,136 @@ document.addEventListener("DOMContentLoaded", function () {
     const btnPrev = document.getElementById("btnPrev");
     const btnNext = document.getElementById("btnNext");
     const clinicMap = document.getElementById("clinicMap");
+    const clinicsTabsContainer = document.getElementById("clinicsTabs");
+    const timeSlotsGrid = document.getElementById("timeSlotsGrid");
+    const bookingDateInput = document.getElementById("bookingDate");
 
-    // 1. Xử lý Chuyển đổi Cơ sở & Maps
-    const clinicTabs = document.querySelectorAll(".clinic-tab-btn");
-    clinicTabs.forEach(btn => {
-        btn.addEventListener("click", function () {
-            clinicTabs.forEach(b => b.classList.remove("active"));
-            this.classList.add("active");
+    // Khởi tạo Ngày khám mặc định (Hôm nay) & giới hạn ngày quá khứ
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
 
-            bookingData.clinicId = this.getAttribute("data-clinic-id");
-            bookingData.clinicName = this.getAttribute("data-address");
-            
-            // Cập nhật iframe Google Maps ngay lập tức
-            const mapUrl = this.getAttribute("data-map");
-            clinicMap.src = mapUrl;
+    if (bookingDateInput) {
+        bookingDateInput.min = todayStr;
+        bookingDateInput.value = todayStr;
+        bookingData.date = todayStr;
+
+        bookingDateInput.addEventListener("change", function () {
+            bookingData.date = this.value;
+            bookingData.time = ""; // Reset slot khi đổi ngày
+            fetchAvailableSlots();
         });
-    });
+    }
+
+    // 1. Fetch Cơ sở Động từ Django Backend (/api/clinics/)
+    const fallbackClinics = [
+        {
+            clinic_id: 1,
+            name: "Cơ sở 1: Phố Huế",
+            address: "123 Phố Huế, Hai Bà Trưng, Hà Nội",
+            hotline: "0988 123 456",
+            map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.096811983057!2d105.85289997689973!3d21.028811480620556!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ab9bd98319f7%3A0x9d4a8e235e16ef90!2zMTIz PhOGkSBIdeG6vywgUGjhu5EgSG_hur9uLCBIYWnhuIEAgQuGsHU5nLCBIw6AgTuG7mWksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
+        },
+        {
+            clinic_id: 2,
+            name: "Cơ sở 2: Nguyễn Trãi",
+            address: "456 Nguyễn Trãi, Thanh Xuân, Hà Nội",
+            hotline: "0977 654 321",
+            map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.677708579737!2d105.8030044768992!3d21.004818980637175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac80b741031b%3A0x3f3d35091a13e54b!2zNDU2IE5ndXnhuecMgVHLDo2ksIFRoYW5oIFh1w6JuLCBIw6AgTuG7mWksIFZpZXRuYW0!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
+        }
+    ];
+
+    async function fetchClinics() {
+        try {
+            const response = await fetch('/api/clinics/', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error("API clinics không phản hồi");
+            const data = await response.json();
+            const clinics = Array.isArray(data) ? data : (data.clinics || fallbackClinics);
+            renderClinics(clinics.length ? clinics : fallbackClinics);
+        } catch (error) {
+            console.warn("Dùng fallback clinics do lỗi kết nối API:", error.message);
+            renderClinics(fallbackClinics);
+        }
+    }
+
+    function renderClinics(clinics) {
+        if (!clinicsTabsContainer) return;
+        clinicsTabsContainer.innerHTML = "";
+
+        clinics.forEach((clinic, index) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = `clinic-tab-btn ${index === 0 ? 'active' : ''}`;
+            const cId = String(clinic.clinic_id || clinic.id);
+            const cName = clinic.name || `Cơ sở ${cId}`;
+            const cAddr = clinic.address || '';
+            const cHotline = clinic.hotline || '1900 6868';
+            const cMap = clinic.map_url || (fallbackClinics[index] ? fallbackClinics[index].map_url : fallbackClinics[0].map_url);
+
+            btn.setAttribute("data-clinic-id", cId);
+            btn.setAttribute("data-clinic-name", cName);
+            btn.setAttribute("data-address", cAddr);
+            btn.setAttribute("data-hotline", cHotline);
+            btn.setAttribute("data-map", cMap);
+
+            btn.innerHTML = `
+                <strong>${cName}</strong>
+                <span class="clinic-address-text">${cAddr}</span>
+                <span class="clinic-hotline">Hotline: ${cHotline}</span>
+            `;
+
+            if (index === 0) {
+                bookingData.clinicId = cId;
+                bookingData.clinicName = `${cName} - ${cAddr}`;
+                if (clinicMap && cMap) {
+                    clinicMap.src = cMap;
+                }
+            }
+
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".clinic-tab-btn").forEach(b => b.classList.remove("active"));
+                this.classList.add("active");
+
+                bookingData.clinicId = this.getAttribute("data-clinic-id");
+                bookingData.clinicName = `${this.getAttribute("data-clinic-name")} - ${this.getAttribute("data-address")}`;
+
+                // Cập nhật iframe Google Maps
+                const mapUrl = this.getAttribute("data-map");
+                if (clinicMap && mapUrl) {
+                    clinicMap.src = mapUrl;
+                }
+
+                // Tự động tải lại slot khi chuyển cơ sở
+                bookingData.time = "";
+                fetchAvailableSlots();
+            });
+
+            clinicsTabsContainer.appendChild(btn);
+        });
+
+        // Tải slots lần đầu sau khi có clinicId
+        fetchAvailableSlots();
+    }
 
     // 2. Fetch API Services (Django) kèm Fallback Mockup Data
     const servicesGrid = document.getElementById("servicesGrid");
-    
+
     async function fetchServices() {
         const fallbackServices = [
-            { id: 1, name: "Khám & Tư vấn tổng quát", description: "Kiểm tra sức khỏe răng miệng toàn diện", price: "Miễn phí" },
-            { id: 2, name: "Cạo vôi răng siêu âm", description: "Làm sạch mảng bám, không ê buốt", price: "200,000 đ" },
-            { id: 3, name: "Tẩy trắng răng công nghệ cao", description: "Trắng sáng tự nhiên chỉ sau 45 phút", price: "1,500,000 đ" },
-            { id: 4, name: "Niềng răng thẩm mỹ", description: "Khắc phục hô, móm, lệch lạc", price: "Từ 25,000,000 đ" }
+            { id: 1, name: "Khám & Tư vấn tổng quát", description: "Kiểm tra sức khỏe răng miệng toàn diện cùng chuyên gia", price: "Miễn phí" },
+            { id: 2, name: "Cạo vôi răng siêu âm", description: "Làm sạch mảng bám, đánh bóng men răng, êm ái không ê buốt", price: "200,000 đ" },
+            { id: 3, name: "Tẩy trắng răng công nghệ cao", description: "Bật 2-3 tông sáng tự nhiên chỉ sau 45 phút điều trị", price: "1,500,000 đ" },
+            { id: 4, name: "Niềng răng thẩm mỹ", description: "Mắc cài kim loại/pha lê cao cấp, khắc phục hô, móm, khấp khểnh", price: "Từ 25,000,000 đ" }
         ];
 
         try {
-            // Thay đổi endpoint phù hợp với cấu hình Django Backend của bạn
             let response = await fetch('/api/services/', { method: 'GET', headers: { 'Accept': 'application/json' } });
-            if (!response.ok) throw new Error("API không phản hồi");
+            if (!response.ok) throw new Error("API services không phản hồi");
             let data = await response.json();
             renderServices(data.length ? data : fallbackServices);
         } catch (error) {
@@ -666,6 +842,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderServices(services) {
+        if (!servicesGrid) return;
         servicesGrid.innerHTML = "";
         services.forEach((srv, index) => {
             const card = document.createElement("div");
@@ -677,9 +854,11 @@ document.addEventListener("DOMContentLoaded", function () {
             card.setAttribute("data-service-id", srv.id);
             card.setAttribute("data-service-name", srv.name);
             card.innerHTML = `
-                <h4>${srv.name}</h4>
-                <p>${srv.description || ''}</p>
-                <span class="service-price">${srv.price || ''}</span>
+                <div>
+                    <h4>${srv.name}</h4>
+                    <p>${srv.description || 'Dịch vụ chăm sóc nha khoa chuẩn y khoa tại Nha Khoa Minh Sinh.'}</p>
+                </div>
+                <span class="service-price">${srv.price || 'Liên hệ tư vấn'}</span>
             `;
 
             card.addEventListener("click", function () {
@@ -692,7 +871,89 @@ document.addEventListener("DOMContentLoaded", function () {
             servicesGrid.appendChild(card);
         });
     }
-    fetchServices();
+
+    // 3. Quản lý Khung giờ & Capacity Động (/api/available-slots/)
+    const fallbackSlots = [
+        { time: "08:30 - 09:30", start_time: "08:30", available_chairs: 3, total_chairs: 4, is_full: false },
+        { time: "09:30 - 10:30", start_time: "09:30", available_chairs: 2, total_chairs: 4, is_full: false },
+        { time: "10:30 - 11:30", start_time: "10:30", available_chairs: 0, total_chairs: 4, is_full: true },
+        { time: "14:00 - 15:00", start_time: "14:00", available_chairs: 4, total_chairs: 4, is_full: false },
+        { time: "15:00 - 16:00", start_time: "15:00", available_chairs: 1, total_chairs: 4, is_full: false },
+        { time: "16:00 - 17:00", start_time: "16:00", available_chairs: 0, total_chairs: 4, is_full: true }
+    ];
+
+    async function fetchAvailableSlots() {
+        if (!timeSlotsGrid) return;
+        const clinicId = bookingData.clinicId;
+        const dateVal = bookingData.date || (bookingDateInput ? bookingDateInput.value : '');
+
+        if (!clinicId || !dateVal) {
+            timeSlotsGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--ms-text-muted); padding: 15px;">Vui lòng chọn ngày khám để xem khung giờ.</div>`;
+            return;
+        }
+
+        timeSlotsGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--ms-text-muted); padding: 15px;">Đang kiểm tra chỗ trống...</div>`;
+
+        try {
+            const response = await fetch(`/api/available-slots/?clinic_id=${clinicId}&date=${dateVal}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error("API available-slots không phản hồi");
+            const data = await response.json();
+            renderTimeSlots(Array.isArray(data) && data.length ? data : fallbackSlots);
+        } catch (error) {
+            console.warn("Dùng fallback slots do lỗi API:", error.message);
+            renderTimeSlots(fallbackSlots);
+        }
+    }
+
+    function renderTimeSlots(slots) {
+        if (!timeSlotsGrid) return;
+        timeSlotsGrid.innerHTML = "";
+
+        let hasSelected = false;
+
+        slots.forEach(slot => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const timeLabel = slot.time || slot.start_time;
+            const slotVal = slot.start_time || slot.time;
+            const isFull = slot.is_full === true || slot.available_chairs <= 0;
+
+            if (isFull) {
+                btn.className = "time-slot full disabled";
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <span class="slot-time">${timeLabel}</span>
+                    <span class="slot-badge full-badge">Đã kín</span>
+                `;
+            } else {
+                const isCurrent = bookingData.time === slotVal;
+                if (isCurrent) hasSelected = true;
+
+                btn.className = `time-slot ${isCurrent ? 'selected' : ''}`;
+                btn.setAttribute("data-time", slotVal);
+                btn.innerHTML = `
+                    <span class="slot-time">${timeLabel}</span>
+                    <span class="slot-badge avail-badge">Còn ${slot.available_chairs} chỗ</span>
+                `;
+
+                btn.addEventListener("click", function () {
+                    document.querySelectorAll(".time-slot").forEach(s => s.classList.remove("selected"));
+                    this.classList.add("selected");
+                    bookingData.time = slotVal;
+                });
+            }
+
+            timeSlotsGrid.appendChild(btn);
+        });
+
+        // Nếu slot đã chọn trước đó giờ đã kín hoặc không tồn tại, reset
+        if (!hasSelected && bookingData.time) {
+            bookingData.time = "";
+        }
+    }
 
     // Chọn Bác sĩ tương tác
     const doctorCards = document.querySelectorAll(".doctor-card");
@@ -705,17 +966,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Chọn Giờ khám tương tác
-    const timeSlots = document.querySelectorAll(".time-slot");
-    timeSlots.forEach(slot => {
-        slot.addEventListener("click", function () {
-            timeSlots.forEach(s => s.classList.remove("selected"));
-            this.classList.add("selected");
-            bookingData.time = this.getAttribute("data-time");
-        });
-    });
-
-    // 3. Quản lý Stepper & Validate Bước
+    // 4. Quản lý Stepper & Validate Bước
     btnNext.addEventListener("click", function () {
         if (validateStep(currentStep)) {
             if (currentStep < totalSteps) {
@@ -738,6 +989,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 alert("Vui lòng chọn một dịch vụ nha khoa!");
                 return false;
             }
+            if (!bookingData.clinicId) {
+                alert("Vui lòng chọn cơ sở nha khoa!");
+                return false;
+            }
             return true;
         }
         if (step === 2) {
@@ -747,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return false;
             }
             if (!bookingData.time) {
-                alert("Vui lòng chọn khung giờ khám!");
+                alert("Vui lòng chọn khung giờ khám còn chỗ trống!");
                 return false;
             }
             bookingData.date = dateVal;
@@ -757,7 +1012,7 @@ document.addEventListener("DOMContentLoaded", function () {
             let isValid = true;
             const nameInput = document.getElementById("cusName");
             const phoneInput = document.getElementById("cusPhone");
-            
+
             const nameGroup = nameInput.closest(".form-group");
             const phoneGroup = phoneInput.closest(".form-group");
 
@@ -769,7 +1024,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 isValid = false;
             }
 
-            const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+            const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})/;
             if (!phoneRegex.test(phoneInput.value.trim())) {
                 phoneGroup.classList.add("has-error");
                 isValid = false;
@@ -790,12 +1045,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateWizard() {
-        // Cập nhật hiển thị Pane
         panes.forEach((pane, idx) => {
             pane.classList.toggle("active", idx + 1 === currentStep);
         });
 
-        // Cập nhật Stepper Header
         steps.forEach((st, idx) => {
             st.classList.toggle("active", idx + 1 === currentStep);
             if (idx + 1 < currentStep) {
@@ -805,9 +1058,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Xử lý nút điều hướng
         btnPrev.style.display = currentStep > 1 && currentStep < 4 ? "block" : "none";
-        
+
         if (currentStep === 4) {
             btnNext.style.display = "none";
             btnPrev.style.display = "none";
@@ -817,7 +1069,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // 4. Gửi POST /api/bookings/ tới Django Backend
+    // 5. Gửi POST /api/bookings/ tới Django Backend
     async function submitBookingToBackend() {
         const payload = {
             clinic_id: bookingData.clinicId,
@@ -863,6 +1115,10 @@ document.addEventListener("DOMContentLoaded", function () {
             <li><strong>Thời gian:</strong> ${bookingData.time} - Ngày ${bookingData.date}</li>
         `;
     }
+
+    // Khởi chạy nạp dữ liệu ban đầu
+    fetchClinics();
+    fetchServices();
 });
 </script>
 

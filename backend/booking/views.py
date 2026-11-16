@@ -161,10 +161,14 @@ class AvailableSlotsView(APIView):
         
         time_slots = TimeSlot.objects.all().order_by('start_time')
         try:
+            active_statuses = ['Pending', 'Confirmed', 'In_progress', 'booked', 'Booked', 'paid', 'Paid']
+            excluded_statuses = ['Cancelled', 'cancelled', 'Canceled', 'canceled', 'Completed', 'completed']
             bookings = Booking.objects.filter(
                 clinic=clinic, 
                 start_time__date=target_date,
-                status__in=['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid']
+                status__in=active_statuses
+            ).exclude(
+                status__in=excluded_statuses
             )
             list(bookings)
         except Exception as e:
@@ -178,7 +182,10 @@ class AvailableSlotsView(APIView):
             results.append({
                 "time": f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}",
                 "start_time": ts.start_time.strftime('%H:%M'),
-                "available_chairs": available
+                "available_chairs": available,
+                "total_chairs": clinic.total_chairs,
+                "booked_count": booked_count,
+                "is_full": available <= 0
             })
             
         return Response(results, status=status.HTTP_200_OK)
