@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 from .models import (
     Clinic, Customer, ServiceDetail, Booking, 
@@ -48,11 +49,13 @@ class PNRLookupAPIView(APIView):
                 })
             
             billing = getattr(b, 'billing', None)
+            st_local = timezone.localtime(b.start_time) if (b.start_time and timezone.is_aware(b.start_time)) else b.start_time
+            et_local = timezone.localtime(b.end_time) if (b.end_time and timezone.is_aware(b.end_time)) else b.end_time
             passengers_list.append({
                 "booking_id": b.booking_id,
                 "status": b.status,
-                "start_time": b.start_time.strftime("%Y-%m-%d %H:%M") if b.start_time else None,
-                "end_time": b.end_time.strftime("%Y-%m-%d %H:%M") if b.end_time else None,
+                "start_time": st_local.strftime("%Y-%m-%d %H:%M") if st_local else None,
+                "end_time": et_local.strftime("%Y-%m-%d %H:%M") if et_local else None,
                 "estimated_duration": b.estimated_duration,
                 "notes": b.notes,
                 "customer": {
@@ -107,7 +110,7 @@ class PNRPaymentAPIView(APIView):
 
         bookings = Booking.objects.filter(
             Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
-        ).order_by('booking_id')
+        ).exclude(status__in=['Cancelled', 'cancelled', 'Đã hủy', 'CANCELLED']).order_by('booking_id')
 
         if not bookings.exists():
             return Response({"error": f"Không tìm thấy PNR {pnr_code}"}, status=404)

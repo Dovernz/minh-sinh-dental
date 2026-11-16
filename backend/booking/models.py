@@ -262,6 +262,8 @@ class Booking(models.Model):
 
     @property
     def total_amount(self):
+        if self.status in ['Cancelled', 'cancelled', 'Đã hủy', 'CANCELLED']:
+            return 0
         from django.db.models import Sum, F
         d_sum = self.details.aggregate(total=Sum(F('actual_price') * F('quantity')))['total'] or 0
         if d_sum > 0:
