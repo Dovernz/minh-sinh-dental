@@ -980,6 +980,7 @@ class ServiceTreeAPIView(View):
             data.append({
                 'category_id': cat.category_id,
                 'name': cat.name,
+                'estimate_time': cat.estimate_time,
                 'services': services
             })
         return JsonResponse(data, safe=False)

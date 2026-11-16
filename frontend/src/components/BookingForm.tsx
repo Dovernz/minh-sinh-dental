@@ -36,13 +36,19 @@ interface ServiceItem {
 interface CategoryItem {
   category_id: number;
   name: string;
+  estimate_time?: number;
   services: ServiceItem[];
 }
 
 interface TimeSlot {
   time: string;
-  status: 'available' | 'full' | 'limited';
-  available_seats: number;
+  start_time?: string;
+  available_chairs?: number;
+  total_chairs?: number;
+  booked_count?: number;
+  is_full?: boolean;
+  status?: 'available' | 'full' | 'limited';
+  available_seats?: number;
 }
 
 interface Member {
@@ -140,9 +146,11 @@ export default function BookingForm() {
     if (formData.clinicId && formData.date) {
       const fetchSlots = async () => {
         try {
-          const res = await fetch(`/api/daily-schedule/?clinic_id=${formData.clinicId}&date=${formData.date}`);
+          const res = await fetch(`/api/available-slots/?clinic_id=${formData.clinicId}&date=${formData.date}`);
           const data = await res.json();
-          if (data && data.slots) {
+          if (Array.isArray(data)) {
+            setAvailableSlots(data);
+          } else if (data && data.slots) {
             setAvailableSlots(data.slots);
           } else {
             setAvailableSlots([]);
@@ -155,6 +163,27 @@ export default function BookingForm() {
       fetchSlots();
     }
   }, [formData.clinicId, formData.date]);
+
+  const getLeaderEstimateTime = (): number => {
+    for (const cat of categories) {
+      if (cat.services && cat.services.some(s => s.service_id.toString() === formData.leaderServiceId)) {
+        return cat.estimate_time || 30;
+      }
+      if (cat.category_id.toString() === formData.leaderServiceId) {
+        return cat.estimate_time || 30;
+      }
+    }
+    return 30;
+  };
+
+  const calculateEndTime = (startTime: string, minutes: number): string => {
+    if (!startTime) return '';
+    const [h, m] = startTime.split(':').map(Number);
+    const total = (h || 0) * 60 + (m || 0) + minutes;
+    const endH = Math.floor(total / 60) % 24;
+    const endM = total % 60;
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9]/g, '');
@@ -231,9 +260,10 @@ export default function BookingForm() {
 
     const warnings: string[] = [];
     Object.keys(counts).forEach(time => {
-      const slotInfo = availableSlots.find(s => s.time === time);
-      if (slotInfo && counts[time] > slotInfo.available_seats) {
-        warnings.push(`Khung giờ ${time}: Số lượng người đăng ký (${counts[time]}) vượt quá chỗ trống hiện có (${slotInfo.available_seats}).`);
+      const slotInfo = availableSlots.find(s => s.start_time === time || s.time === time || s.time?.startsWith(time));
+      const seats = slotInfo?.available_chairs ?? slotInfo?.available_seats ?? 5;
+      if (slotInfo && counts[time] > seats) {
+        warnings.push(`Khung giờ ${time}: Số lượng người đăng ký (${counts[time]}) vượt quá chỗ trống hiện có (${seats}).`);
       }
     });
 
@@ -318,10 +348,10 @@ export default function BookingForm() {
       <option value="">-- Chọn dịch vụ nha khoa --</option>
       {categories.map(cat => (
         cat.services && cat.services.length > 0 && (
-          <optgroup key={cat.category_id} label={cat.name}>
+          <optgroup key={cat.category_id} label={`${cat.name} (${cat.estimate_time || 30} phút)`}>
             {cat.services.map(s => (
               <option key={s.service_id} value={s.service_id?.toString() || ''}>
-                {s.name}
+                {s.name} ({cat.estimate_time || 30} phút)
               </option>
             ))}
           </optgroup>
@@ -558,32 +588,81 @@ export default function BookingForm() {
             </h2>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Chọn giờ khám chung cho nhóm:</label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-semibold text-gray-700">Chọn giờ khám chung cho nhóm:</label>
+                <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg font-medium">
+                  Ước tính: {getLeaderEstimateTime()} phút ({Math.ceil(getLeaderEstimateTime() / 30)} slot)
+                </span>
+              </div>
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-10 gap-2">
                 {TIME_STEPS.map(time => {
-                  const slotInfo = availableSlots.find(s => s.time === time);
-                  const isFull = slotInfo && slotInfo.status === 'full';
+                  const currentEstTime = getLeaderEstimateTime();
+                  const slotsNeeded = Math.ceil(currentEstTime / 30);
+                  const memberCount = 1 + formData.members.length;
+
+                  const slotIndex = availableSlots.findIndex(s =>
+                    s.start_time === time || s.time === time || s.time?.startsWith(time)
+                  );
+
+                  let isSlotLocked = false;
+                  let availableChairs = 0;
+
+                  if (slotIndex !== -1) {
+                    if (slotIndex + slotsNeeded > availableSlots.length) {
+                      isSlotLocked = true;
+                    } else {
+                      for (let k = 0; k < slotsNeeded; k++) {
+                        const targetSlot = availableSlots[slotIndex + k];
+                        const chairs = targetSlot?.available_chairs ?? targetSlot?.available_seats ?? 0;
+                        const isFull = targetSlot?.is_full ?? (targetSlot?.status === 'full');
+                        if (!targetSlot || chairs < memberCount || isFull) {
+                          isSlotLocked = true;
+                          break;
+                        }
+                      }
+                      availableChairs = availableSlots[slotIndex]?.available_chairs ?? availableSlots[slotIndex]?.available_seats ?? 0;
+                    }
+                  } else {
+                    isSlotLocked = false;
+                    availableChairs = 5;
+                  }
+
                   const isSelected = formData.selectedTime === time;
 
                   return (
                     <button
                       key={time}
                       type="button"
-                      disabled={isFull}
+                      disabled={isSlotLocked}
                       onClick={() => handleGlobalTimeSelect(time)}
-                      className={`py-2 px-1 text-xs font-semibold rounded-lg border transition text-center ${
+                      className={`py-2 px-1 text-xs font-semibold rounded-lg border transition text-center flex flex-col items-center justify-center ${
                         isSelected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                          : isFull
-                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300'
+                          : isSlotLocked
+                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
                           : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                       }`}
                     >
-                      {time}
+                      <span className={isSlotLocked ? 'line-through' : ''}>{time}</span>
+                      <span className="text-[10px] font-normal mt-0.5">
+                        {isSlotLocked ? 'Đã kín' : `${availableChairs} ghế`}
+                      </span>
                     </button>
                   );
                 })}
               </div>
+
+              {formData.selectedTime && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-sm font-medium flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span>Khung thời gian dự kiến giữ chỗ:</span>
+                  </div>
+                  <span className="font-bold text-base text-blue-700">
+                    {formData.selectedTime} - {calculateEndTime(formData.selectedTime, getLeaderEstimateTime())} ({getLeaderEstimateTime()} phút)
+                  </span>
+                </div>
+              )}
             </div>
 
             {formData.members.length > 0 && (

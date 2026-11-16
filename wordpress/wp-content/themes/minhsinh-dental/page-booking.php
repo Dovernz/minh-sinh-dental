@@ -203,9 +203,14 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 
 /* Time Slots */
 .time-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-.time-slot { padding: 10px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; }
+.time-slot { padding: 10px 6px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
+.time-slot:hover:not(.disabled) { border-color: var(--ms-primary); background: #f0f7ff; }
 .time-slot.selected { background: var(--ms-primary); color: #fff; border-color: var(--ms-primary); }
-.time-slot.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+.time-slot.selected .slot-badge-avail { color: rgba(255, 255, 255, 0.9); }
+.time-slot.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; opacity: 0.65; pointer-events: none; }
+.slot-badge-full { display: block; font-size: 10px; font-weight: 400; color: #ef4444; margin-top: 2px; }
+.slot-badge-avail { display: block; font-size: 10px; font-weight: 400; color: #10b981; margin-top: 2px; }
+.selected-time-info { margin-top: 14px; padding: 12px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; color: var(--ms-primary); font-size: 14px; }
 
 /* Success */
 .success-box { text-align: center; }
@@ -281,6 +286,18 @@ document.addEventListener("DOMContentLoaded", function () {
         bookingDateInput.value = today;
         bookingData.date = today;
 
+        bookingDateInput.onchange = () => {
+            bookingData.date = bookingDateInput.value;
+            fetchSlots();
+        };
+
+        if (mainServiceSelect) {
+            mainServiceSelect.onchange = () => {
+                syncFirstPatient();
+                fetchSlots();
+            };
+        }
+
         fetchClinics();
         fetchServices();
         
@@ -323,34 +340,167 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function fetchServices() {
-        const fallback = [
-            {id: 1, name: "Khám & Tư vấn tổng quát", price: "Miễn phí"},
-            {id: 2, name: "Cạo vôi răng siêu âm", price: "200.000đ"},
-            {id: 3, name: "Tẩy trắng răng Laser", price: "1.500.000đ"},
-            {id: 4, name: "Niềng răng thẩm mỹ", price: "Từ 25tr"}
-        ];
-        servicesList = fallback;
+        mainServiceSelect.innerHTML = '<option value="">-- Đang tải danh sách dịch vụ --</option>';
+        try {
+            const res = await fetch('/api/services/');
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    servicesList = data.map(item => ({
+                        id: item.category_id,
+                        name: item.name,
+                        estimate_time: parseInt(item.estimate_time) || 30
+                    }));
+                }
+            }
+        } catch (e) {
+            console.warn("Lỗi fetch /api/services/, dùng fallback:", e);
+        }
+
+        if (!servicesList || servicesList.length === 0) {
+            servicesList = [
+                {id: 17, name: "ĐIỀU TRỊ TỦY", estimate_time: 60},
+                {id: 2, name: "Dịch vụ Nhổ Răng Khôn", estimate_time: 45},
+                {id: 18, name: "VỆ SINH - CẠO VÔI RĂNG", estimate_time: 30},
+                {id: 27, name: "CẤY GHÉP IMPLANT", estimate_time: 60},
+                {id: 1, name: "Dịch vụ Khám & Vệ sinh Răng", estimate_time: 30}
+            ];
+        }
+
         mainServiceSelect.innerHTML = '<option value="">-- Vui lòng chọn dịch vụ nha khoa --</option>';
-        fallback.forEach(s => {
-            mainServiceSelect.innerHTML += `<option value="${s.id}">${s.name} - ${s.price}</option>`;
+        servicesList.forEach(s => {
+            const label = `${s.name} (${s.estimate_time} phút)`;
+            mainServiceSelect.innerHTML += `<option value="${s.id}" data-estimate="${s.estimate_time}">${label}</option>`;
+        });
+
+        updatePatientServicesDropdown();
+    }
+
+    function updatePatientServicesDropdown() {
+        document.querySelectorAll(".p-service").forEach(select => {
+            const currentVal = select.value || mainServiceSelect.value;
+            select.innerHTML = servicesList.map(s => 
+                `<option value="${s.id}" data-estimate="${s.estimate_time}" ${s.id == currentVal ? 'selected' : ''}>${s.name} (${s.estimate_time} phút)</option>`
+            ).join('');
         });
     }
 
-    function fetchSlots() {
+    function addMinutes(timeStr, mins) {
+        if (!timeStr) return "";
+        const parts = timeStr.split(':').map(Number);
+        const total = (parts[0] || 0) * 60 + (parts[1] || 0) + mins;
+        const endH = Math.floor(total / 60) % 24;
+        const endM = total % 60;
+        return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    }
+
+    function displaySelectedTimePreview(startTime, endTime, duration) {
         const grid = document.getElementById("timeSlotsGrid");
+        let infoEl = document.getElementById("selectedTimeInfo");
+        if (!infoEl && grid) {
+            infoEl = document.createElement("div");
+            infoEl.id = "selectedTimeInfo";
+            infoEl.className = "selected-time-info";
+            grid.parentNode.appendChild(infoEl);
+        }
+        if (infoEl) {
+            infoEl.style.display = "block";
+            infoEl.innerHTML = `Khung thời gian dự kiến: <strong>${startTime} - ${endTime} (${duration} phút)</strong>`;
+        }
+    }
+
+    async function fetchSlots() {
+        const grid = document.getElementById("timeSlotsGrid");
+        grid.innerHTML = '<div class="slot-loading">Đang tải khung giờ khả dụng...</div>';
+
+        const clinicId = bookingData.clinicId || 1;
+        const date = bookingData.date || new Date().toISOString().split('T')[0];
+
+        let estimateTime = 30;
+        if (mainServiceSelect && mainServiceSelect.selectedIndex > 0) {
+            const selectedOpt = mainServiceSelect.options[mainServiceSelect.selectedIndex];
+            estimateTime = parseInt(selectedOpt.getAttribute('data-estimate') || '30') || 30;
+        }
+        const slotsNeeded = Math.ceil(estimateTime / 30);
+        const totalPatients = document.querySelectorAll(".patient-card").length || 1;
+
+        let slots = [];
+        try {
+            const res = await fetch(`/api/available-slots/?clinic_id=${clinicId}&date=${date}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    slots = data;
+                }
+            }
+        } catch (e) {
+            console.warn("Lỗi fetch /api/available-slots/:", e);
+        }
+
+        if (slots.length === 0) {
+            const fallbackTimes = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"];
+            slots = fallbackTimes.map(t => ({
+                time: `${t} - ${addMinutes(t, 30)}`,
+                start_time: t,
+                available_chairs: 5,
+                total_chairs: 5,
+                is_full: false
+            }));
+        }
+
         grid.innerHTML = "";
-        const times = ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
-        times.forEach(t => {
+        let isCurrentTimeStillValid = false;
+
+        slots.forEach((s, i) => {
+            let canBook = true;
+            if (i + slotsNeeded > slots.length) {
+                canBook = false;
+            } else {
+                for (let k = 0; k < slotsNeeded; k++) {
+                    const checkSlot = slots[i + k];
+                    if (!checkSlot || checkSlot.available_chairs < totalPatients || checkSlot.is_full) {
+                        canBook = false;
+                        break;
+                    }
+                }
+            }
+
+            const isSelected = bookingData.time === s.start_time;
+            if (isSelected && canBook) {
+                isCurrentTimeStillValid = true;
+            }
+
             const slot = document.createElement("div");
-            slot.className = "time-slot";
-            slot.innerText = t;
-            slot.onclick = () => {
-                document.querySelectorAll(".time-slot").forEach(s => s.classList.remove("selected"));
-                slot.classList.add("selected");
-                bookingData.time = t;
-            };
+            slot.className = `time-slot ${!canBook ? 'disabled' : ''} ${isSelected && canBook ? 'selected' : ''}`;
+
+            if (!canBook) {
+                slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-full">Đã kín</span>`;
+            } else {
+                slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-avail">${s.available_chairs} ghế</span>`;
+                slot.onclick = () => {
+                    document.querySelectorAll(".time-slot").forEach(el => el.classList.remove("selected"));
+                    slot.classList.add("selected");
+                    bookingData.time = s.start_time;
+
+                    const endTime = addMinutes(s.start_time, estimateTime);
+                    bookingData.endTime = endTime;
+                    bookingData.duration = estimateTime;
+
+                    displaySelectedTimePreview(s.start_time, endTime, estimateTime);
+                    syncFirstPatient();
+                };
+            }
             grid.appendChild(slot);
         });
+
+        if (bookingData.time && isCurrentTimeStillValid) {
+            const endTime = addMinutes(bookingData.time, estimateTime);
+            displaySelectedTimePreview(bookingData.time, endTime, estimateTime);
+        } else if (bookingData.time && !isCurrentTimeStillValid) {
+            bookingData.time = "";
+            const infoEl = document.getElementById("selectedTimeInfo");
+            if (infoEl) infoEl.style.display = "none";
+        }
     }
 
     // 2. Quản lý Multi-Patient
@@ -373,8 +523,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="form-group">
                         <label>Dịch vụ riêng *</label>
-                        <select class="form-control p-service">
-                            ${servicesList.map(s => `<option value="${s.id}" ${s.id == mainServiceSelect.value ? 'selected' : ''}>${s.name}</option>`).join('')}
+                        <select class="form-control p-service" onchange="fetchSlots()">
+                            ${servicesList.map(s => `<option value="${s.id}" data-estimate="${s.estimate_time}" ${s.id == mainServiceSelect.value ? 'selected' : ''}>${s.name} (${s.estimate_time} phút)</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-group">
@@ -402,9 +552,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     window.removePatient = function(id) {
         document.getElementById(`patient-${id}`).remove();
+        fetchSlots();
     };
 
-    document.getElementById("btnAddCompanion").onclick = () => addPatient(false);
+    document.getElementById("btnAddCompanion").onclick = () => {
+        addPatient(false);
+        fetchSlots();
+    };
 
     function generateTimeOptions() {
         let options = "";
@@ -502,6 +656,7 @@ document.addEventListener("DOMContentLoaded", function () {
             clinic_id: bookingData.clinicId,
             date: bookingData.date,
             start_time: bookingData.time,
+            category_id: mainServiceSelect.value,
             patients: patients
         };
 
