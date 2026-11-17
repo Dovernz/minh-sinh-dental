@@ -45,7 +45,7 @@ get_header();
                     </div>
 
                     <div class="map-container">
-                        <iframe id="clinicMap" src="" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                        <iframe id="clinicMap" src="https://maps.google.com/maps?q=123+Ph%E1%BB%91+Hu%E1%BA%BF,+Hai+B%C3%A0+Tr%C6%B0ng,+H%C3%A0+N%E1%BB%99i&t=&z=16&ie=UTF8&iwloc=&output=embed" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
                     </div>
 
                     <h3 class="pane-title" style="margin-top: 24px;">Chọn Dịch Vụ Nha Khoa</h3>
@@ -191,7 +191,7 @@ get_header();
 textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 .select-lg { height: 48px; font-weight: 500; }
 .error-msg { color: var(--ms-error); font-size: 12px; display: none; margin-top: 4px; }
-.has-error .form-control { border-color: var(--ms-error); }
+.has-error .form-control, .form-control.has-error { border-color: var(--ms-error) !important; }
 .has-error .error-msg { display: block; }
 
 /* Buttons */
@@ -205,8 +205,22 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 .time-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
 .time-slot { padding: 10px 6px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
 .time-slot:hover:not(.disabled) { border-color: var(--ms-primary); background: #f0f7ff; }
-.time-slot.selected { background: var(--ms-primary); color: #fff; border-color: var(--ms-primary); }
-.time-slot.selected .slot-badge-avail { color: rgba(255, 255, 255, 0.9); }
+.time-slot.selected, .time-slot.selected:hover {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.2);
+    transform: scale(1.05);
+    font-weight: 700 !important;
+}
+.time-slot.selected div, .time-slot.selected:hover div {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+.time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
+    color: #dbeafe !important;
+    font-weight: 600 !important;
+}
 .time-slot.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; opacity: 0.65; pointer-events: none; }
 .slot-badge-full { display: block; font-size: 10px; font-weight: 400; color: #ef4444; margin-top: 2px; }
 .slot-badge-avail { display: block; font-size: 10px; font-weight: 400; color: #10b981; margin-top: 2px; }
@@ -308,8 +322,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // 1. Fetch Dữ liệu
     async function fetchClinics() {
         const fallback = [
-            {id: 1, name: "Cơ sở Phố Huế", address: "123 Phố Huế, Hai Bà Trưng, HN", map: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.096811983057!2d105.85289997689973!3d21.028811480620556!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ab9bd98319f7%3A0x9d4a8e235e16ef90!2zMTIzIFBo4buRIEh14bq_!5e0!3m2!1svi!2s!4v1700000000000"},
-            {id: 2, name: "Cơ sở Nguyễn Trãi", address: "456 Nguyễn Trãi, Thanh Xuân, HN", map: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.677708579737!2d105.8030044768992!3d21.004818980637175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac80b741031b%3A0x3f3d35091a13e54b!2zNDU2IE5ndXnhu4VuIFRyw6Fp!5e0!3m2!1svi!2s!4v1700000000000"}
+            {id: 1, name: "Cơ sở Phố Huế", address: "123 Phố Huế, Hai Bà Trưng, HN", map: "https://maps.google.com/maps?q=123+Ph%E1%BB%91+Hu%E1%BA%BF,+Hai+B%C3%A0+Tr%C6%B0ng,+H%C3%A0+N%E1%BB%99i&t=&z=16&ie=UTF8&iwloc=&output=embed"},
+            {id: 2, name: "Cơ sở Nguyễn Trãi", address: "456 Nguyễn Trãi, Thanh Xuân, HN", map: "https://maps.google.com/maps?q=456+Nguy%E1%BB%85n+Tr%C3%A3i,+Thanh+Xu%C3%A2n,+H%C3%A0+N%E1%BB%99i&t=&z=16&ie=UTF8&iwloc=&output=embed"}
         ];
         renderClinics(fallback);
     }
@@ -519,7 +533,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="form-group">
                         <label>Số điện thoại *</label>
-                        <input type="tel" class="form-control p-phone" placeholder="Nhập SĐT">
+                        <input type="tel" class="form-control p-phone" placeholder="Nhập SĐT (10 - 11 số)" maxlength="11" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
                     </div>
                     <div class="form-group">
                         <label>Dịch vụ riêng *</label>
@@ -608,11 +622,25 @@ document.addEventListener("DOMContentLoaded", function () {
             cards.forEach(card => {
                 const name = card.querySelector(".p-name");
                 const phone = card.querySelector(".p-phone");
-                if (!name.value.trim()) { name.classList.add("has-error"); valid = false; }
-                else name.classList.remove("has-error");
-                if (phone.value.length < 10) { phone.classList.add("has-error"); valid = false; }
-                else phone.classList.remove("has-error");
+                if (!name.value.trim()) { 
+                    name.classList.add("has-error"); 
+                    valid = false; 
+                } else { 
+                    name.classList.remove("has-error"); 
+                }
+                
+                const cleanPhone = phone.value.replace(/\D/g, '').slice(0, 11);
+                phone.value = cleanPhone;
+                if (!cleanPhone || cleanPhone.length < 10) { 
+                    phone.classList.add("has-error"); 
+                    valid = false; 
+                } else { 
+                    phone.classList.remove("has-error"); 
+                }
             });
+            if (!valid) {
+                alert("Vui lòng điền đầy đủ họ tên và số điện thoại hợp lệ (từ 10 đến 11 số)!");
+            }
             return valid;
         }
         return true;

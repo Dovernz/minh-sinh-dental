@@ -3,8 +3,8 @@ import BookingForm from '@/components/BookingForm';
 
 export default function Page() {
   return (
-    <main className="w-full min-h-screen bg-slate-50/60 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-7xl mx-auto">
+    <main className="w-full min-h-screen bg-slate-50/60 py-4 sm:py-8 px-2 sm:px-6 lg:px-8 overflow-x-hidden">
+      <div className="w-full max-w-7xl mx-auto overflow-x-hidden">
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[500px]">
             <div className="text-center">
