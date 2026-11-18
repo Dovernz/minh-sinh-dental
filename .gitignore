@@ -23,3 +23,13 @@ venv/
 db.sqlite3
 media/
 staticfiles/
+
+# QA Proofs, Screenshots and Test Artifacts
+docs/proofs/
+docs/screenshots/
+proofs/
+screenshots/
+*.png
+capture_proofs.py
+scripts/
+*.bak
