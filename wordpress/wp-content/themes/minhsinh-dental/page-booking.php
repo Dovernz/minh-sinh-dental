@@ -102,7 +102,7 @@ get_header();
                         <h3>Đặt Lịch Thành Công!</h3>
                         <p>Cảm ơn quý khách đã tin tưởng Nha khoa Minh Sinh.</p>
                         
-                        <div class="group-code-badge" id="displayGroupCode">Mã nhóm: MS-GRP-XXXX</div>
+                        <div class="group-code-badge" id="displayGroupCode">Mã đặt chỗ: MS-GRP-XXXX</div>
                         
                         <div class="summary-card">
                             <h4>Chi tiết lịch hẹn:</h4>
@@ -206,10 +206,10 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 .time-slot { padding: 10px 6px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
 .time-slot:hover:not(.disabled) { border-color: var(--ms-primary); background: #f0f7ff; }
 .time-slot.selected, .time-slot.selected:hover {
-    background: #2563eb !important;
+    background: #1e40af !important;
     color: #ffffff !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.2);
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.45) !important;
     transform: scale(1.05);
     font-weight: 700 !important;
 }
@@ -218,7 +218,39 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
     font-weight: 700 !important;
 }
 .time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
-    color: #dbeafe !important;
+    color: #bfdbfe !important;
+    font-weight: 600 !important;
+}
+.time-slot.selected, .time-slot.selected:hover {
+    background: #1e40af !important;
+    color: #ffffff !important;
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.45) !important;
+    transform: scale(1.05);
+    font-weight: 700 !important;
+}
+.time-slot.selected div, .time-slot.selected:hover div {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+.time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
+    color: #bfdbfe !important;
+    font-weight: 600 !important;
+}
+.time-slot.selected, .time-slot.selected:hover {
+    background: #1e40af !important;
+    color: #ffffff !important;
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.45) !important;
+    transform: scale(1.05);
+    font-weight: 700 !important;
+}
+.time-slot.selected div, .time-slot.selected:hover div {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+.time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
+    color: #bfdbfe !important;
     font-weight: 600 !important;
 }
 .time-slot.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; opacity: 0.65; pointer-events: none; }
@@ -260,6 +292,54 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
     .booking-main-title { font-size: 20px; }
     .time-slots-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Calendar & Success UI enhancements (Rule 22 Responsive) */
+.minhsinh-booking-container { border-radius: 10px !important; }
+.patient-card { border-radius: 10px !important; }
+.summary-card { border-radius: 10px !important; }
+.group-code-badge { border-radius: 8px !important; }
+.btn-ms { border-radius: 8px !important; }
+.clinic-tab-btn { border-radius: 8px !important; }
+.calendar-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.btn-calendar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+}
+.btn-calendar-ics {
+    background: #0284c7;
+    color: #ffffff !important;
+}
+.btn-calendar-ics:hover {
+    background: #0369a1;
+    color: #ffffff !important;
+}
+.btn-calendar-google {
+    background: #ffffff;
+    color: #1e293b !important;
+    border-color: #cbd5e1;
+}
+.btn-calendar-google:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a !important;
+}
+
 </style>
 
 <script>
@@ -669,6 +749,78 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // 4. Submit API
+    
+    function downloadIcsCalendar(booking) {
+        const title = "Khám răng tại Nha Khoa Minh Sinh";
+        const loc = booking.clinicName.includes("Hồ Chí Minh") || booking.clinicName.includes("Lê Hồng Phong")
+            ? "456 Lê Hồng Phong, P.1, Q.10, TP.HCM"
+            : "123 Phố Huế, Q. Hai Bà Trưng, Hà Nội";
+        const desc = `Khám răng tại Nha Khoa Minh Sinh.\nMã đặt chỗ: ${booking.groupCode}\nCơ sở: ${loc}\nThời gian: ${booking.time} ngày ${booking.date}`;
+        const [startH, startM] = (booking.time || "09:00").split(':').map(Number);
+        const dateParts = (booking.date || "2026-11-20").split('-');
+        const y = dateParts[0], m = dateParts[1], d = dateParts[2];
+        const dtStart = `${y}${m}${d}T${String(startH).padStart(2,'0')}${String(startM).padStart(2,'0')}00`;
+        let endH = startH + 1;
+        if (endH >= 24) endH = 23;
+        const dtEnd = `${y}${m}${d}T${String(endH).padStart(2,'0')}${String(startM).padStart(2,'0')}00`;
+        
+        const icsLines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Minh Sinh Dental//Booking Portal//VI",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            "BEGIN:VEVENT",
+            `UID:minhsinh-${booking.groupCode}-${Date.now()}@minhsinhdental.com`,
+            `DTSTAMP:${dtStart}Z`,
+            `DTSTART:${dtStart}`,
+            `DTEND:${dtEnd}`,
+            `SUMMARY:${title}`,
+            `DESCRIPTION:${desc}`,
+            `LOCATION:${loc}`,
+            "STATUS:CONFIRMED",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ];
+        
+        const blob = new Blob([icsLines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `lich_kham_${booking.groupCode}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function setupCalendarButtons(booking) {
+        const btnIcs = document.getElementById("btnDownloadIcs");
+        const btnGoogle = document.getElementById("btnGoogleCalendar");
+        
+        if (btnIcs) {
+            btnIcs.onclick = function() {
+                downloadIcsCalendar(booking);
+            };
+        }
+        
+        if (btnGoogle) {
+            const title = encodeURIComponent("Khám răng tại Nha Khoa Minh Sinh");
+            const loc = encodeURIComponent(booking.clinicName.includes("Hồ Chí Minh") || booking.clinicName.includes("Lê Hồng Phong")
+                ? "456 Lê Hồng Phong, P.1, Q.10, TP.HCM"
+                : "123 Phố Huế, Q. Hai Bà Trưng, Hà Nội");
+            const desc = encodeURIComponent(`Khám răng tại Nha Khoa Minh Sinh.
+Mã đặt chỗ: ${booking.groupCode}
+Cơ sở: ${booking.clinicName}
+Thời gian: ${booking.time} ngày ${booking.date}`);
+            const dateParts = (booking.date || "2026-11-20").split('-');
+            const [startH, startM] = (booking.time || "09:00").split(':').map(Number);
+            const dtStart = `${dateParts[0]}${dateParts[1]}${dateParts[2]}T${String(startH).padStart(2,'0')}${String(startM).padStart(2,'0')}00`;
+            let endH = startH + 1;
+            if (endH >= 24) endH = 23;
+            const dtEnd = `${dateParts[0]}${dateParts[1]}${dateParts[2]}T${String(endH).padStart(2,'0')}${String(startM).padStart(2,'0')}00`;
+            btnGoogle.href = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dtStart}/${dtEnd}&details=${desc}&location=${loc}`;
+        }
+    }
+
     async function submitBooking() {
         const patients = [];
         document.querySelectorAll(".patient-card").forEach(card => {
@@ -707,7 +859,8 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('Backend Django chưa sẵn sàng, dùng mã dự phòng:', error);
         }
         const displayGroupCode = document.getElementById('displayGroupCode');
-        if (displayGroupCode) displayGroupCode.innerText = 'Mã nhóm: ' + generatedCode;
+        if (displayGroupCode) displayGroupCode.innerText = 'Mã đặt chỗ: ' + generatedCode;
+        setupCalendarButtons({ groupCode: generatedCode, clinicName: bookingData.clinicName, date: bookingData.date, time: bookingData.time });
         let summaryHtml = `<div class="summary-item"><strong>Cơ sở:</strong> ${bookingData.clinicName} | <strong>Ngày:</strong> ${bookingData.date}</div>`;
         patients.forEach((p, idx) => {
             const sName = servicesList.find(s => s.id == p.category_id)?.name || 'Dịch vụ nha khoa';
