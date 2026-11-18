@@ -344,6 +344,17 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
+    // Capture-Phase Hard Enforcer: Khóa cứng 100% tiếng Việt cho tên và tối đa 11 số cho phone
+    document.addEventListener("input", function(e) {
+        if (e.target && e.target.classList.contains("p-name")) {
+            e.target.value = e.target.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, "");
+        }
+        if (e.target && e.target.classList.contains("p-phone")) {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11);
+        }
+    }, true);
+
     // --- CẤU HÌNH ---
     const SHOW_DOCTOR_SELECTION = false; // Đổi thành true để hiện chọn bác sĩ
 
@@ -609,11 +620,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="patient-grid">
                     <div class="form-group">
                         <label>Họ và tên *</label>
-                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên" oninput="this.value = this.value.replace(/[0-9]/g, '')">
+                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên" maxlength="50" oninput="this.value = this.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, '')">
                     </div>
                     <div class="form-group">
                         <label>Số điện thoại *</label>
-                        <input type="tel" class="form-control p-phone" placeholder="Nhập SĐT (10 - 11 số)" maxlength="11" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
+                        <input type="tel" class="form-control p-phone" placeholder="Nhập SĐT (10 - 11 số)" maxlength="11" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)">
                     </div>
                     <div class="form-group">
                         <label>Dịch vụ riêng *</label>
@@ -702,7 +713,7 @@ document.addEventListener("DOMContentLoaded", function () {
             cards.forEach(card => {
                 const name = card.querySelector(".p-name");
                 const phone = card.querySelector(".p-phone");
-                name.value = name.value.replace(/[0-9]/g, '');
+                name.value = name.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, '');
                 if (!name.value.trim()) { 
                     name.classList.add("has-error"); 
                     valid = false; 
