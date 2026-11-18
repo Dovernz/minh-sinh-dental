@@ -529,7 +529,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="patient-grid">
                     <div class="form-group">
                         <label>Họ và tên *</label>
-                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên">
+                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên" oninput="this.value = this.value.replace(/[0-9]/g, '')">
                     </div>
                     <div class="form-group">
                         <label>Số điện thoại *</label>
@@ -622,6 +622,7 @@ document.addEventListener("DOMContentLoaded", function () {
             cards.forEach(card => {
                 const name = card.querySelector(".p-name");
                 const phone = card.querySelector(".p-phone");
+                name.value = name.value.replace(/[0-9]/g, '');
                 if (!name.value.trim()) { 
                     name.classList.add("has-error"); 
                     valid = false; 
