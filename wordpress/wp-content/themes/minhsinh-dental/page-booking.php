@@ -357,10 +357,34 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Capture-Phase Hard Enforcer: Khóa cứng 100% tiếng Việt cho tên và tối đa 11 số cho phone
+    const NAME_INVALID_REGEX = /[^\p{L}\s]/u;
+    const NAME_WARNING_MSG = "⚠️ Họ và tên chỉ được chứa chữ cái và dấu cách, không chứa số hoặc ký tự đặc biệt.";
+
+    function validateNameField(inputEl) {
+        const val = inputEl.value;
+        let errEl = inputEl.parentNode.querySelector(".name-error-msg");
+        if (NAME_INVALID_REGEX.test(val)) {
+            inputEl.classList.add("name-input-error");
+            if (!errEl) {
+                errEl = document.createElement("p");
+                errEl.className = "name-error-msg";
+                inputEl.parentNode.appendChild(errEl);
+            }
+            errEl.textContent = NAME_WARNING_MSG;
+            return false;
+        } else {
+            inputEl.classList.remove("name-input-error");
+            if (errEl) {
+                errEl.remove();
+            }
+            return true;
+        }
+    }
+
+    // Real-time handler: Cho phép gõ tự do (bao gồm dấu cách và Telex), cảnh báo khi có số/ký tự đặc biệt
     document.addEventListener("input", function(e) {
         if (e.target && e.target.classList.contains("p-name")) {
-            e.target.value = e.target.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, "");
+            validateNameField(e.target);
         }
         if (e.target && e.target.classList.contains("p-phone")) {
             e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11);
@@ -632,7 +656,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="patient-grid">
                     <div class="form-group">
                         <label>Họ và tên *</label>
-                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên" maxlength="50" oninput="this.value = this.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, '')">
+                        <input type="text" class="form-control p-name" placeholder="Nhập họ tên" maxlength="50">
                     </div>
                     <div class="form-group">
                         <label>Số điện thoại *</label>
@@ -721,16 +745,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (step === 3) {
             let valid = true;
+            let hasNameError = false;
             const cards = document.querySelectorAll(".patient-card");
             cards.forEach(card => {
                 const name = card.querySelector(".p-name");
                 const phone = card.querySelector(".p-phone");
-                name.value = name.value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]/g, '');
-                if (!name.value.trim()) { 
-                    name.classList.add("has-error"); 
+                
+                const isNameValid = validateNameField(name);
+                const trimmedName = name.value.trim();
+
+                if (!trimmedName || !isNameValid || trimmedName.length < 2) { 
+                    name.classList.add("name-input-error");
+                    if (!isNameValid) {
+                        hasNameError = true;
+                    }
                     valid = false; 
                 } else { 
-                    name.classList.remove("has-error"); 
+                    name.classList.remove("name-input-error"); 
                 }
                 
                 const cleanPhone = phone.value.replace(/\D/g, '').slice(0, 11);
@@ -743,7 +774,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
             if (!valid) {
-                alert("Vui lòng điền đầy đủ họ tên và số điện thoại hợp lệ (từ 10 đến 11 số)!");
+                if (hasNameError) {
+                    alert(NAME_WARNING_MSG);
+                } else {
+                    alert("Vui lòng điền đầy đủ họ tên và số điện thoại hợp lệ (từ 10 đến 11 số)!");
+                }
             }
             return valid;
         }

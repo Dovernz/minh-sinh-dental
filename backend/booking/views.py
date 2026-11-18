@@ -333,7 +333,7 @@ class BookingCreateView(APIView):
 
 Cảm ơn bạn đã đặt lịch khám.
 Thời gian: {p_time} ngày {d_str}.
-Mã nhóm: {group_code}
+Mã đặt chỗ: {group_code}
 
 Trân trọng,"""
                         html_msg = f"""
@@ -347,7 +347,7 @@ Trân trọng,"""
                                 <p style="font-size: 15px;">Dưới đây là thông tin chi tiết lịch hẹn của bạn:</p>
                                 <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6; border-right: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
                                     <p style="margin: 8px 0; font-size: 15px;"><b>👤 Khách hàng:</b> {item.get('full_name')} - {item.get('phone')}</p>
-                                    <p style="margin: 8px 0; font-size: 15px;"><b>🔖 Mã nhóm:</b> <span style="font-weight: bold; color: #2563eb;">{group_code}</span></p>
+                                    <p style="margin: 8px 0; font-size: 15px;"><b>🔖 Mã đặt chỗ:</b> <span style="font-weight: bold; color: #2563eb;">{group_code}</span></p>
                                     <p style="margin: 8px 0; font-size: 15px;"><b>⏰ Thời gian:</b> <span style="color: #b91c1c; font-weight: bold;">{p_time} | Ngày {d_str}</span></p>
                                     <p style="margin: 8px 0; font-size: 15px;"><b>🏥 Cơ sở:</b> {c_name}</p>
                                     <p style="margin: 8px 0; font-size: 15px;"><b>📍 Địa chỉ:</b> {c_address}</p>

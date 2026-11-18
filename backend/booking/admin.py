@@ -797,7 +797,7 @@ class BookingAdmin(BaseRBACAdmin):
     form = BookingAdminForm
     list_display = ('booking_id', 'pnr_code_badge', 'customer', 'start_time', 'status', 'individual_service_cost', 'billing_status', 'pnr_lookup_action')
     list_filter = ('clinic', 'status')
-    search_fields = ('pnr_code', 'group_code', 'customer__name', 'customer__phone', 'notes', 'estimated_duration')
+    search_fields = ('booking_id', 'pnr_code', 'group_code', 'customer__name', 'customer__phone', 'notes', 'estimated_duration')
     actions = ['checkin_selected_bookings', 'complete_selected_bookings', 'checkin_group_action']
 
     def pnr_code_badge(self, obj):
@@ -808,7 +808,9 @@ class BookingAdmin(BaseRBACAdmin):
 
     def individual_service_cost(self, obj):
         from django.utils.html import format_html
-        return format_html('<span style="font-weight:600; color:#1e293b;">{:,.0f} đ</span>', obj.total_amount)
+        amt = float(obj.total_amount or 0)
+        formatted = f"{amt:,.0f} đ"
+        return format_html('<span style="font-weight:600; color:#1e293b;">{}</span>', formatted)
     individual_service_cost.short_description = 'Tiền dịch vụ khách'
 
     def billing_status(self, obj):
@@ -818,7 +820,8 @@ class BookingAdmin(BaseRBACAdmin):
             colors = {'PAID': ('#dcfce7', '#15803d', 'Đã thanh toán'), 'INSTALLMENT': ('#fef9c3', '#a16207', 'Còn nợ'), 'UNPAID': ('#fee2e2', '#b91c1c', 'Chưa TT')}
             bg, fg, label = colors.get(st, ('#f1f5f9', '#475569', st))
             return format_html('<span style="background:{}; color:{}; padding:3px 8px; border-radius:4px; font-weight:600; font-size:11px;">{}</span>', bg, fg, label)
-        return format_html('<span style="color:#94a3b8; font-size:11px;">Chưa xuất bill</span>')
+        from django.utils.safestring import mark_safe
+        return mark_safe('<span style="color:#94a3b8; font-size:11px;">Chưa xuất bill</span>')
     billing_status.short_description = 'Hóa đơn'
 
     def pnr_lookup_action(self, obj):
@@ -839,14 +842,14 @@ class BookingAdmin(BaseRBACAdmin):
         count = queryset.update(status='Completed')
         self.message_user(request, f"Đã đánh dấu hoàn thành cho {count} lịch hẹn.")
 
-    @admin.action(description="Check-in toàn bộ nhóm theo lịch hẹn đã chọn")
+    @admin.action(description="Check-in toàn bộ đặt chỗ theo lịch hẹn đã chọn")
     def checkin_group_action(self, request, queryset):
         groups = set(queryset.exclude(group_code__isnull=True).exclude(group_code='').values_list('group_code', flat=True))
         if not groups:
-            self.message_user(request, "Không có lịch hẹn nào có mã nhóm.", level='warning')
+            self.message_user(request, "Không có lịch hẹn nào có mã đặt chỗ.", level='warning')
             return
         count = Booking.objects.filter(group_code__in=groups).update(status='Confirmed')
-        self.message_user(request, f"Đã check-in cho toàn bộ {count} lịch hẹn thuộc {len(groups)} nhóm.")
+        self.message_user(request, f"Đã check-in cho toàn bộ {count} lịch hẹn thuộc {len(groups)} mã đặt chỗ.")
 
     class Media:
         js = ('admin/js/booking_chained_select.js',)
