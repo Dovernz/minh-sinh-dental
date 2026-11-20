@@ -205,6 +205,26 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 .error-msg { color: var(--ms-error); font-size: 12px; display: none; margin-top: 4px; }
 .has-error .form-control, .form-control.has-error { border-color: var(--ms-error) !important; }
 .has-error .error-msg { display: block; }
+.name-input-error {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+.name-error-msg {
+    color: #ef4444 !important;
+    font-size: 11.5px !important;
+    line-height: 1.4 !important;
+    margin-top: 4px !important;
+    margin-bottom: 0 !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+.name-error-msg .warning-icon {
+    font-size: 11px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+}
 
 /* Buttons */
 .btn-add-companion { background: var(--ms-primary-light); color: var(--ms-primary); border: 1px dashed var(--ms-primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
@@ -370,7 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 errEl.className = "name-error-msg";
                 inputEl.parentNode.appendChild(errEl);
             }
-            errEl.textContent = NAME_WARNING_MSG;
+            errEl.innerHTML = '<span class="warning-icon">⚠️</span><span>Họ và tên chỉ được chứa chữ cái và dấu cách, không chứa số hoặc ký tự đặc biệt.</span>';
             return false;
         } else {
             inputEl.classList.remove("name-input-error");

@@ -946,8 +946,8 @@ export default function BookingForm() {
                     onBlur={handleLeaderNameBlur}
                   />
                   {errors.leaderName && (
-                    <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> {errors.leaderName}
+                    <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-1">
+                      <AlertCircle className="w-3 h-3 flex-shrink-0" /> {errors.leaderName}
                     </p>
                   )}
                   <p className="text-[11px] text-gray-400">Chỉ cho phép chữ cái tiếng Việt và khoảng trắng</p>
@@ -1044,7 +1044,7 @@ export default function BookingForm() {
                           />
                           {mErrors?.full_name && (
                             <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-0.5">
-                              <AlertCircle className="w-3 h-3" /> {mErrors.full_name}
+                              <AlertCircle className="w-3 h-3 flex-shrink-0" /> {mErrors.full_name}
                             </p>
                           )}
                         </div>
