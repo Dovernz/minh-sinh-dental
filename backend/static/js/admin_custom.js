@@ -208,3 +208,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
 });
+
+// --- SSO 1-CLICK CẦU NỐI ĐĂNG NHẬP WORDPRESS TRÊN HEADER & NAVIGATION ---
+function initWordpressSsoHeaderButton() {
+    if (document.getElementById('header-sso-wp-btn')) return;
+
+    const header = document.querySelector('header');
+    if (!header) return;
+
+    let targetContainer = header.querySelector('.flex.items-center.ml-auto') 
+        || header.querySelector('.ml-auto')
+        || header.querySelector('nav')
+        || header;
+
+    const ssoBtn = document.createElement('a');
+    ssoBtn.id = 'header-sso-wp-btn';
+    ssoBtn.href = '/admin/sso-to-wordpress/?target=index.php';
+    ssoBtn.target = '_blank';
+    ssoBtn.rel = 'noopener noreferrer';
+    ssoBtn.title = 'Chuyển nhanh sang Quản trị Website WordPress (1-Click SSO)';
+    ssoBtn.className = 'sso-header-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:from-blue-700 hover:to-indigo-700 hover:shadow-md transition-all duration-200 border border-blue-400/30 mr-3';
+    ssoBtn.innerHTML = `
+        <span class="text-sm leading-none">🌐</span>
+        <span class="font-bold hidden sm:inline">Quản trị Website (WordPress)</span>
+        <svg class="w-3.5 h-3.5 text-blue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+    `;
+
+    if (targetContainer.firstChild) {
+        targetContainer.insertBefore(ssoBtn, targetContainer.firstChild);
+    } else {
+        targetContainer.appendChild(ssoBtn);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initWordpressSsoHeaderButton();
+    setTimeout(initWordpressSsoHeaderButton, 300);
+    setTimeout(initWordpressSsoHeaderButton, 1000);
+});

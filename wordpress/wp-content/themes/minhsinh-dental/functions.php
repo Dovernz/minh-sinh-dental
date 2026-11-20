@@ -205,6 +205,91 @@ function minhsinh_handle_sso_login() {
 }
 add_action('init', 'minhsinh_handle_sso_login', 1);
 
+// =============================================================================
+// 2B. SINGLE SIGN-ON (SSO) CHIỀU 2: TỰ ĐỘNG ĐĂNG NHẬP SANG DJANGO ADMIN
+// =============================================================================
+
+/**
+ * Thêm nút "🦷 Quản trị Phòng Khám (Django CRM)" vào thanh Admin Bar của WordPress
+ */
+function minhsinh_add_django_admin_bar_node($wp_admin_bar) {
+    if (!is_user_logged_in() || !current_user_can('edit_posts')) {
+        return;
+    }
+    $wp_admin_bar->add_node(array(
+        'id'    => 'minhsinh_django_sso_node',
+        'title' => '<span class="ab-icon" style="font-size: 15px; margin-right: 2px;">🦷</span><span class="ab-label" style="font-weight: 700; color: #38bdf8 !important;">Quản trị Phòng Khám (Django CRM)</span>',
+        'href'  => admin_url('?minhsinh_sso_to_django=1'),
+        'meta'  => array(
+            'target' => '_blank',
+            'title'  => 'Chuyển nhanh sang Hệ thống Quản trị Phòng Khám & CRM (Django)',
+            'class'  => 'minhsinh-django-sso-link',
+        ),
+    ));
+}
+add_action('admin_bar_menu', 'minhsinh_add_django_admin_bar_node', 90);
+
+/**
+ * Thêm mục "🦷 Django CRM" vào sidebar WordPress Admin
+ */
+function minhsinh_add_django_admin_menu() {
+    if (!current_user_can('edit_posts')) {
+        return;
+    }
+    add_menu_page(
+        'Quản trị Phòng Khám',
+        '🦷 Django CRM',
+        'edit_posts',
+        'sso-to-django-redirect',
+        '__return_false',
+        'dashicons-external',
+        3
+    );
+}
+add_action('admin_menu', 'minhsinh_add_django_admin_menu');
+
+/**
+ * Xử lý tạo SSO Token và chuyển hướng từ WordPress sang Django Admin
+ */
+function minhsinh_handle_sso_to_django_redirect() {
+    $is_trigger = isset($_GET['minhsinh_sso_to_django']) || (isset($_GET['page']) && $_GET['page'] === 'sso-to-django-redirect');
+    if (!$is_trigger) {
+        return;
+    }
+
+    if (!is_user_logged_in()) {
+        wp_safe_redirect(wp_login_url());
+        exit;
+    }
+
+    $current_user = wp_get_current_user();
+    $allowed_roles = array('administrator', 'editor', 'author');
+    $has_access = !empty(array_intersect($allowed_roles, (array) $current_user->roles)) || current_user_can('edit_posts');
+
+    if (!$has_access) {
+        wp_die('Tài khoản của bạn không có quyền truy cập vào Django CRM.', 'Truy Cập Bị Từ Chối', array('response' => 403));
+    }
+
+    $is_su = in_array('administrator', (array) $current_user->roles, true);
+    $payload = array(
+        'u'     => $current_user->user_login,
+        'e'     => !empty($current_user->user_email) ? $current_user->user_email : $current_user->user_login . '@minhsinh.vn',
+        'is_su' => $is_su,
+        'exp'   => time() + 60,
+        'nonce' => wp_generate_password(12, false, false),
+    );
+
+    $json_payload = json_encode($payload);
+    $b64_payload  = rtrim(strtr(base64_encode($json_payload), '+/', '-_'), '=');
+    $sig          = hash_hmac('sha256', $b64_payload, MINHSINH_SSO_SECRET_KEY);
+    $token        = $b64_payload . '.' . $sig;
+
+    $django_url = '/admin/sso-login/?token=' . urlencode($token);
+    wp_redirect($django_url);
+    exit;
+}
+add_action('init', 'minhsinh_handle_sso_to_django_redirect', 2);
+
 
 // =============================================================================
 // 3. PHÂN QUYỀN CHẶT CHẼ: CHỈ ADMIN & MARKETING ĐƯỢC PHÉP TRUY CẬP WORDPRESS

@@ -258,7 +258,7 @@ UNFOLD = {
         lambda request: static("css/admin_custom.css") + "?v=66666666",
     ],
     "SCRIPTS": [
-        lambda request: static("js/admin_custom.js") + "?v=88888888",
+        lambda request: static("js/admin_custom.js") + "?v=88888889",
         '/static/js/live_search.js',
     ],
     "COLORS": {
@@ -330,12 +330,19 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "Bài viết & Blog (WordPress)",
-                "icon": "campaign",
+                "title": "🌐 Quản trị Website (WordPress)",
+                "icon": "public",
                 "separator": True,
                 "collapsible": True,
                 "permission": has_wordpress_perm,
                 "items": [
+                    {
+                        "title": "Bảng điều khiển WordPress",
+                        "icon": "dashboard",
+                        "link": "/admin/sso-to-wordpress/?target=index.php",
+                        "link_attrs": {"target": "_blank", "rel": "noopener noreferrer"},
+                        "permission": has_wordpress_perm,
+                    },
                     {
                         "title": "Quản lý Bài viết",
                         "icon": "article",
