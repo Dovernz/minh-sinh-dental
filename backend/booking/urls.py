@@ -1,6 +1,17 @@
 from django.urls import path
 import django.views.generic
-from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingCreateView, BookingGroupDetailView, DailyScheduleView, AvailableSlotsView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import render
+from .permissions import has_system_user_perm
+from .views import SiteSettingsAPIView, ArticleByCategoryUrlView, ArticleDetailView, MenuLinkListAPIView, parse_docx_api, article_detail_api, articles_list_api, ClinicListView, ServiceListView, BookingGroupDetailView, DailyScheduleView, TopupInfoView, get_services_by_category, get_booking_detail, ClinicListAPIView, AdminTimeSlotListView, BookingCompleteView, BookingCancelView, DoctorListView, ServiceTreeAPIView, EmployeeEmbedAPIView, CommissionStatsAPIView, ServiceStatsAPIView, DentalChartViewSet
+from .booking_flow_views import AvailableSlotsView, BookingCreateView, BookingDistributionPreviewView
+
+@staff_member_required
+def admin_employee_embed_api_view(request):
+    if not has_system_user_perm(request.user):
+        raise PermissionDenied
+    return render(request, 'admin/employee_embed.html')
 from .commission_apis import CommissionOverviewAPIView, CommissionDetailAPIView
 from .pnr_views import (
     PNRLookupAPIView,
@@ -29,6 +40,7 @@ urlpatterns = [
     path('clinics/', ClinicListView.as_view(), name='api-clinics'),
     path('services/', ServiceListView.as_view(), name='api-services'),
     path('bookings/', BookingCreateView.as_view(), name='api-bookings'),
+    path('bookings/distribute-preview/', BookingDistributionPreviewView.as_view(), name='api-bookings-distribute-preview'),
     path('bookings/group/<str:group_code>/', BookingGroupDetailView.as_view(), name='api-booking-group-detail'),
     path('bookings/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete'),
     path('booking/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete-alias'),
@@ -39,12 +51,13 @@ urlpatterns = [
     path('get-services-by-category/', get_services_by_category, name='get-services-by-category'),
     path('bookings/<int:pk>/detail/', get_booking_detail, name='booking-detail'),
     path('parse-docx/', parse_docx_api, name='parse-docx'),
-    path('admin-employee-embed/', django.views.generic.TemplateView.as_view(template_name='admin/employee_embed.html'), name='admin-employee-embed'),
+    path('admin-employee-embed/', admin_employee_embed_api_view, name='admin-employee-embed'),
     path('doctors/', DoctorListView.as_view(), name='api-doctors'),
     path('service-tree/', ServiceTreeAPIView.as_view(), name='api-service-tree'),
     path('employees/', EmployeeEmbedAPIView.as_view(), name='api-employees'),
     path('commission-stats/', CommissionStatsAPIView.as_view(), name='api-commission-stats'),
     path('service-stats/', ServiceStatsAPIView.as_view(), name='api-service-stats'),
     path('dental-charts/', DentalChartViewSet.as_view({'get': 'list', 'post': 'create'}), name='api-dental-charts'),
+    path('dental-charts/<int:pk>/', DentalChartViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='api-dental-chart-detail'),
 ]
 

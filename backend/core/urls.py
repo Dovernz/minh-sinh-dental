@@ -1,7 +1,10 @@
 from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 import urllib.parse
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied
+from booking.permissions import has_booking_perm, has_transaction_perm, has_finance_inventory_perm, has_commission_perm, has_system_user_perm, has_dental_chart_perm
 from django.contrib import admin
 from django.urls import path, include
 from booking.views import tinymce_upload
@@ -51,21 +54,41 @@ def booking_success_view(request, booking_id):
 
 @staff_member_required
 def admin_booking_embed_view(request):
+    if not has_booking_perm(request.user):
+        raise PermissionDenied
     context = admin.site.each_context(request)
     context['title'] = 'Đặt lịch (Tổng đài)'
     return render(request, 'admin/admin_booking.html', context)
 
 @staff_member_required
 def pos_embed_view(request):
+    if not has_transaction_perm(request.user):
+        raise PermissionDenied
     context = admin.site.each_context(request)
     context['title'] = 'Thanh toán (POS)'
     return render(request, 'admin/pos_embed.html', context)
 
 @staff_member_required
 def admin_commissions_embed_view(request):
+    if not has_commission_perm(request.user):
+        raise PermissionDenied
     context = admin.site.each_context(request)
     context['title'] = 'Hoa hồng Bác sĩ'
     return render(request, 'admin/commissions_embed.html', context)
+
+@staff_member_required
+def admin_employee_embed_view(request):
+    if not has_system_user_perm(request.user):
+        raise PermissionDenied
+    return render(request, 'admin/employee_embed.html')
+
+@staff_member_required
+@ensure_csrf_cookie
+@xframe_options_exempt
+def dental_chart_standalone_view(request):
+    if not has_dental_chart_perm(request.user):
+        raise PermissionDenied
+    return render(request, 'dental_chart_standalone.html')
 
 from booking.views import POSBookingAPIView, POSMasterDataAPIView, POSSubmitAPIView, POSConfirmPaymentAPIView, DebtCollectionEmbedView, DebtCollectionRawView, POSDebtListAPIView
 from booking.admin_views import admin_pnr_lookup_view
@@ -77,7 +100,7 @@ urlpatterns = [
     # Standalone React Apps hosted directly inside Django (Port 8000)
     path('booking/', xframe_options_exempt(TemplateView.as_view(template_name='booking_standalone.html')), name='booking-standalone'),
     path('booking/success/<str:booking_id>/', xframe_options_exempt(booking_success_view), name='booking-success'),
-    path('dental-chart/', xframe_options_exempt(TemplateView.as_view(template_name='dental_chart_standalone.html')), name='dental-chart-standalone'),
+    path('dental-chart/', dental_chart_standalone_view, name='dental-chart-standalone'),
 
     path('admin/pnr-lookup/', admin_pnr_lookup_view, name='admin-pnr-lookup'),
     path('admin/pos-debt/', DebtCollectionEmbedView.as_view(), name='admin-pos-debt'),
@@ -96,7 +119,7 @@ urlpatterns = [
     path('admin/booking-embed/', admin_booking_embed_view, name='admin_booking_embed'),
     path('admin/sso-to-wordpress/', sso_to_wordpress_view, name='admin-sso-to-wordpress'),
     path('admin/sso-login/', sso_login_from_wordpress_view, name='admin-sso-login'),
-    path('admin-employee-embed/', TemplateView.as_view(template_name='admin/employee_embed.html'), name='admin-employee-embed'),
+    path('admin-employee-embed/', admin_employee_embed_view, name='admin-employee-embed'),
     path('admin/', admin.site.urls),
     path('api/', include('booking.urls')),
     path('tinymce/', include('tinymce.urls')),

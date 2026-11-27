@@ -3,7 +3,8 @@ from django.db.models import Q
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import HasBookingPermission, HasTransactionPermission
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -14,12 +15,12 @@ from .models import (
 )
 
 class PNRLookupAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasBookingPermission]
 
     def get(self, request, pnr_code):
         bookings = Booking.objects.filter(
             Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
-        ).select_related('customer', 'clinic', 'category').prefetch_related('details__service_detail')
+        ).select_related('customer', 'clinic', 'category').prefetch_related('details__service_detail').order_by('booking_id')
 
         if not bookings.exists():
             return Response({"error": f"Không tìm thấy mã PNR {pnr_code}"}, status=404)
@@ -96,7 +97,7 @@ class PNRLookupAPIView(APIView):
         })
 
 class PNRPaymentAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasTransactionPermission]
 
     @transaction.atomic
     def post(self, request, pnr_code=None):
@@ -178,7 +179,7 @@ class PNRPaymentAPIView(APIView):
         })
 
 class IndividualPaymentAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasTransactionPermission]
 
     @transaction.atomic
     def post(self, request):
@@ -233,7 +234,7 @@ class IndividualPaymentAPIView(APIView):
         })
 
 class PNRPassengerStatusUpdateAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasBookingPermission]
 
     def post(self, request, pnr_code, booking_id):
         new_status = request.data.get('status')
@@ -261,38 +262,23 @@ class CapacityCheckAPIView(APIView):
         clinic = get_object_or_404(Clinic, pk=clinic_id)
         
         try:
-            import zoneinfo
-            from django.conf import settings
-            tz = zoneinfo.ZoneInfo(getattr(settings, 'TIME_ZONE', 'Asia/Ho_Chi_Minh'))
-            start_dt = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M").replace(tzinfo=tz)
-            end_dt = start_dt + timedelta(minutes=duration)
+            dt_obj = datetime.strptime(f"{date_str} {start_time_str}", "%Y-%m-%d %H:%M")
         except (ValueError, TypeError):
             return Response({"error": "Định dạng ngày hoặc giờ không hợp lệ (YYYY-MM-DD HH:MM)"}, status=400)
 
-        active_statuses = ['Pending', 'Confirmed', 'Completed', 'booked', 'paid', 'Booked', 'Paid', 'Khám', 'In_progress']
-        
-        occupied = Booking.objects.filter(
-            clinic=clinic, 
-            status__in=active_statuses, 
-            start_time__lt=end_dt, 
-            end_time__gt=start_dt
-        ).count()
-        
-        total_chairs = clinic.total_chairs or 1
-        available_chairs = max(0, total_chairs - occupied)
-        is_available = available_chairs >= passenger_count
-        
-        warning = None
-        if not is_available:
-            warning = f"Cảnh báo: Khung giờ {start_time_str} tại {clinic.name} chỉ còn {available_chairs}/{total_chairs} ghế trống, không đủ cho {passenger_count} khách!"
-            
+        from .schedule_services import get_slot_capacity
+        cap = get_slot_capacity(
+            clinic=clinic,
+            target_date=dt_obj.date(),
+            start_time_obj=dt_obj.time(),
+            duration_minutes=duration,
+            requested_count=passenger_count,
+        )
+
         return Response({
             "clinic_id": clinic.clinic_id,
             "clinic_name": clinic.name,
-            "total_chairs": total_chairs,
-            "occupied_chairs": occupied,
-            "available_chairs": available_chairs,
-            "requested_passengers": passenger_count,
-            "is_available": is_available,
-            "warning": warning
+            "date": date_str,
+            "start_time": start_time_str,
+            **cap,
         })

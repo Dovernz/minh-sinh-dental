@@ -1,4 +1,6 @@
-(function($) {
+(function() {
+    var $ = (typeof django !== 'undefined' && django.jQuery) ? django.jQuery : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
+    if (!$) return;
     $(document).ready(function() {
         const categorySelect = $('#id_category');
         const serviceSelect = $('#id_service_detail');
@@ -138,4 +140,4 @@
             });
         }
     });
-})(django.jQuery);
+})();

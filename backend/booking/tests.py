@@ -1,6 +1,7 @@
+import json
 from datetime import datetime, time, timedelta
-from django.test import TestCase
-from django.contrib.auth.models import User
+from django.test import TestCase, RequestFactory
+from django.contrib.auth.models import User, Group
 from django.utils import timezone
 
 from booking.models import (
@@ -21,12 +22,18 @@ from booking.commission_apis import (
     extract_commission_items,
     get_commission_rates,
 )
+from booking.views import POSDebtListAPIView
 
 
 class BookingCommissionTestCase(TestCase):
+    fixtures = ['rbac_roles.json']
+
     def setUp(self):
         user = User.objects.create_user(username='bs_pt')
         user2 = User.objects.create_user(username='bs_ft')
+
+        self.acc_user = User.objects.create_user(username='acc_comm', is_staff=True)
+        self.acc_user.groups.add(Group.objects.get(name='Accountant'))
 
         clinic = Clinic.objects.create(name='Minh Sinh 1', address='123 Kim Ma')
 
@@ -120,6 +127,9 @@ class BookingCommissionTestCase(TestCase):
 
     def test_api_commissions_summary(self):
         response = self.client.get('/api/reports/commissions/')
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.acc_user)
+        response = self.client.get('/api/reports/commissions/')
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIsInstance(data, list)
@@ -130,10 +140,15 @@ class BookingCommissionTestCase(TestCase):
         bs_pt = self.bs_pt
         emp_id = getattr(bs_pt, 'employee_id', bs_pt.pk)
         response = self.client.get(f'/api/reports/commissions/{emp_id}/')
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.acc_user)
+        response = self.client.get(f'/api/reports/commissions/{emp_id}/')
         self.assertEqual(response.status_code, 200)
 
 
 class BookingQueryOptimizationTests(TestCase):
+    fixtures = ['rbac_roles.json']
+
     def test_daily_schedule_loads_booking_relations_in_one_query(self):
         clinic = Clinic.objects.create(name='Chi nhánh lịch', total_chairs=2)
         category = ServiceCategory.objects.create(name='Dịch vụ lịch')
@@ -171,6 +186,8 @@ class BookingQueryOptimizationTests(TestCase):
         )
 
     def test_pos_debt_list_aggregates_payments_in_one_query(self):
+        self.assertEqual(self.client.get('/api/pos/debts/').status_code, 401)
+
         clinic = Clinic.objects.create(name='Chi nhánh công nợ')
         customer = Customer.objects.create(name='Khách nợ', phone='0911111111')
         booking = Booking.objects.create(customer=customer, clinic=clinic)
@@ -183,10 +200,20 @@ class BookingQueryOptimizationTests(TestCase):
         Payment.objects.create(billing=billing, amount=25, amount_remain=75)
         Payment.objects.create(billing=billing, amount=10, amount_remain=65)
 
+        reception_user = User.objects.create_user(username='rec_opt', is_staff=True)
+        reception_user.groups.add(Group.objects.get(name='Reception'))
+        reception_user.has_perm('booking.view_payment')
+
+        request = RequestFactory().get('/api/pos/debts/')
+        request.user = reception_user
+
         with self.assertNumQueries(1):
-            response = self.client.get('/api/pos/debts/')
+            response = POSDebtListAPIView.as_view()(request)
 
         self.assertEqual(response.status_code, 200)
-        debt = response.json()['debts'][0]
+        debt = json.loads(response.content)['debts'][0]
         self.assertEqual(debt['paid_amount'], 35.0)
         self.assertEqual(debt['remain_amount'], 65.0)
+
+        self.client.force_login(reception_user)
+        self.assertEqual(self.client.get('/api/pos/debts/').status_code, 200)

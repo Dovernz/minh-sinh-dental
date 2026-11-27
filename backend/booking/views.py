@@ -1,4 +1,8 @@
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from .permissions import (
+    HasBookingPermission, HasDentalChartPermission, StaffPermissionRequiredMixin,
+    has_transaction_perm, has_commission_perm, has_system_user_perm
+)
 from .commission_apis import calculate_commissions, get_commission_rates
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
@@ -26,6 +30,7 @@ def get_services_by_category(request):
     return JsonResponse(list(services), safe=False)
 
 class ClinicListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
     queryset = Clinic.objects.all()
 
     def get(self, request):
@@ -33,10 +38,12 @@ class ClinicListView(generics.ListAPIView):
         return Response(list(clinics), status=status.HTTP_200_OK)
 
 class ServiceListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
     queryset = ServiceCategory.objects.all()
     serializer_class = ServiceCategorySerializer
 
 class DailyScheduleView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         clinic_id = request.query_params.get('clinic_id')
         date_str = request.query_params.get('date')
@@ -145,6 +152,7 @@ class DailyScheduleView(APIView):
         return Response(matrix, status=status.HTTP_200_OK)
 
 class AvailableSlotsView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         clinic_id = request.query_params.get('clinic_id')
         date_str = request.query_params.get('date')
@@ -400,8 +408,8 @@ class BookingGroupDetailView(APIView):
                     "customer_email": b.customer.email if b.customer else "",
                     "category_id": b.category.category_id if b.category else None,
                     "category_name": b.category.name if b.category else "",
-                    "start_time": b.start_time.strftime("%Y-%m-%d %H:%M") if b.start_time else None,
-                    "end_time": b.end_time.strftime("%Y-%m-%d %H:%M") if b.end_time else None,
+                    "start_time": (timezone.localtime(b.start_time) if timezone.is_aware(b.start_time) else b.start_time).strftime("%Y-%m-%d %H:%M") if b.start_time else None,
+                    "end_time": (timezone.localtime(b.end_time) if timezone.is_aware(b.end_time) else b.end_time).strftime("%Y-%m-%d %H:%M") if b.end_time else None,
                     "estimated_duration": b.estimated_duration,
                     "status": b.status,
                     "notes": b.notes,
@@ -412,6 +420,7 @@ class BookingGroupDetailView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class TopupInfoView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         from .models import TopupInfo
         config = TopupInfo.objects.filter(is_default=True).first()
@@ -564,7 +573,7 @@ def article_detail_api(request, slug):
 
 
 def articles_list_api(request):
-    queryset = Article.objects.filter(status='Published')
+    queryset = Article.objects.filter(status='Published').select_related('category')
     
     category_param = request.GET.get('category')
     if category_param:
@@ -576,7 +585,7 @@ def articles_list_api(request):
             'id': article.article_id,
             'title': article.title,
             'slug': article.slug,
-            'category': article.category,
+            'category': article.category.title if article.category else None,
             'thumbnail': article.thumbnail.url if article.thumbnail else None,
             # 'created_on': article.created_on.strftime('%d/%m/%Y') if hasattr(article, 'created_on') else ''
         })
@@ -586,6 +595,7 @@ from .models import SiteSettings, MenuLink
 from .serializers import SiteSettingsSerializer, MenuLinkSerializer
 
 class SiteSettingsAPIView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         settings = SiteSettings.objects.first()
         if not settings:
@@ -594,6 +604,7 @@ class SiteSettingsAPIView(APIView):
         return Response(serializer.data)
 
 class MenuLinkListAPIView(generics.ListAPIView):
+    permission_classes = [AllowAny]
     queryset = MenuLink.objects.filter(is_active=True, parent__isnull=True).order_by('order')
     serializer_class = MenuLinkSerializer
 
@@ -678,7 +689,9 @@ class ArticleDetailView(View):
 from django.views import View
 from django.http import JsonResponse
 
-class POSBookingAPIView(View):
+class POSBookingAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = True
     def get(self, request):
         try:
             date_str = request.GET.get('date')
@@ -727,7 +740,9 @@ class POSBookingAPIView(View):
         except Exception as e: 
             return JsonResponse({'error': str(e)}, status=500)
 
-class POSMasterDataAPIView(View):
+class POSMasterDataAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = True
     def get(self, request):
         try:
             from booking.models import Clinic, TopupInfo, ServiceCategory, ServiceDetail, Employee, Discount
@@ -766,7 +781,9 @@ import json
 from django.db import transaction
 
 @method_decorator(csrf_exempt, name='dispatch')
-class POSSubmitAPIView(View):
+class POSSubmitAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = True
     def post(self, request):
         try:
             import json
@@ -820,8 +837,13 @@ class POSSubmitAPIView(View):
                 for srv in data.get('services', []):
                     if srv.get('service_id'):
                         BookingDetail.objects.create(
-                            booking=booking, service_detail_id=srv['service_id'], doctor_id=srv.get('doctor_id') or None,
-                            tooth_position=srv.get('tooth', ''), quantity=1, actual_price=srv.get('price', 0)
+                            booking=booking,
+                            service_detail_id=srv['service_id'],
+                            consulting_doctor_id=srv.get('consulting_doctor_id') or srv.get('doctor_id') or None,
+                            performing_doctor_id=srv.get('performing_doctor_id') or srv.get('doctor_id') or None,
+                            tooth_position=srv.get('tooth', ''),
+                            quantity=1,
+                            actual_price=srv.get('price', 0)
                         )
             return JsonResponse({'status': 'success', 'booking_id': booking.booking_id, 'billing_id': billing.billing_id})
         except Exception as e: 
@@ -830,7 +852,9 @@ class POSSubmitAPIView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class POSConfirmPaymentAPIView(View):
+class POSConfirmPaymentAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = True
     def post(self, request):
         try:
             import json
@@ -871,7 +895,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.clickjacking import xframe_options_exempt
 
 
-class DebtCollectionEmbedView(TemplateView):
+class DebtCollectionEmbedView(StaffPermissionRequiredMixin, TemplateView):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = False
     template_name = 'admin/debt_collection_embed.html'
 
     def get_context_data(self, **kwargs):
@@ -884,10 +910,14 @@ class DebtCollectionEmbedView(TemplateView):
         return context
 
 @method_decorator(xframe_options_exempt, name='dispatch')
-class DebtCollectionRawView(TemplateView):
+class DebtCollectionRawView(StaffPermissionRequiredMixin, TemplateView):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = False
     template_name = 'admin/debt_collection_raw.html' 
 
-class POSDebtListAPIView(View):
+class POSDebtListAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_transaction_perm)
+    api_mode = True
     def get(self, request):
         try:
             from booking.models import Billing
@@ -928,6 +958,7 @@ class ClinicListAPIView(View):
             return JsonResponse({'error': str(e)}, status=500)
 
 class AdminTimeSlotListView(APIView):
+    permission_classes = [IsAuthenticated, HasBookingPermission]
     def get(self, request):
         from .models import TimeSlot
         slots = TimeSlot.objects.all().order_by('start_time')
@@ -941,6 +972,7 @@ class AdminTimeSlotListView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class BookingCompleteView(APIView):
+    permission_classes = [IsAuthenticated, HasBookingPermission]
     def post(self, request, pk):
         try:
             booking = Booking.objects.get(pk=pk)
@@ -953,6 +985,7 @@ class BookingCompleteView(APIView):
         return Response({"message": "Booking completed successfully", "id": pk}, status=status.HTTP_200_OK)
 
 class BookingCancelView(APIView):
+    permission_classes = [IsAuthenticated, HasBookingPermission]
     def post(self, request, pk):
         try:
             booking = Booking.objects.get(pk=pk)
@@ -990,7 +1023,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 @method_decorator(csrf_exempt, name='dispatch')
-class EmployeeEmbedAPIView(View):
+class EmployeeEmbedAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_system_user_perm)
+    api_mode = True
     def get(self, request):
         from booking.models import Employee
         emp_id = request.GET.get('employee_id')
@@ -1053,7 +1088,9 @@ class EmployeeEmbedAPIView(View):
         except Employee.DoesNotExist:
             return JsonResponse({'error': 'Not found'}, status=404)
 
-class CommissionStatsAPIView(View):
+class CommissionStatsAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_commission_perm)
+    api_mode = True
     def get(self, request):
         from booking.models import BookingDetail
         details = BookingDetail.objects.filter(booking__status='Completed').select_related('booking', 'service_detail', 'consulting_doctor', 'performing_doctor')
@@ -1085,7 +1122,9 @@ class CommissionStatsAPIView(View):
                 })
         return JsonResponse(data, safe=False)
 
-class ServiceStatsAPIView(View):
+class ServiceStatsAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_commission_perm)
+    api_mode = True
     def get(self, request):
         from booking.models import BookingDetail
         from django.db.models import Sum
@@ -1099,15 +1138,16 @@ from .serializers import DentalChartSerializer
 from django.db.models import Max
 
 class DentalChartViewSet(viewsets.ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasDentalChartPermission]
     serializer_class = DentalChartSerializer
     
     def get_queryset(self):
         customer_id = self.request.query_params.get('customer_id')
         qs = DentalChart.objects.all()
         if customer_id:
-            qs = qs.filter(customer_id=customer_id)
+            if not str(customer_id).isdigit():
+                return DentalChart.objects.none()
+            qs = qs.filter(customer_id=int(customer_id))
         return qs.order_by('-sequence_num')
 
     def perform_create(self, serializer):

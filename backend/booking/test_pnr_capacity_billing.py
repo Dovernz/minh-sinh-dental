@@ -6,6 +6,7 @@ vn_tz = zoneinfo.ZoneInfo('Asia/Ho_Chi_Minh')
 from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
 from django.core.management import call_command
+from django.contrib.auth.models import User, Group
 from booking.models import (
     Clinic, Customer, ServiceCategory, ServiceDetail, 
     Booking, BookingDetail, Billing, Payment
@@ -38,7 +39,12 @@ class AviationPNRTestCase(TestCase):
         self.assertEqual(len(codes), 50)
 
 class PNRLookupAPITestCase(APITestCase):
+    fixtures = ['rbac_roles.json']
+
     def setUp(self):
+        self.reception_user = User.objects.create_user(username='pnr_reception', is_staff=True)
+        self.reception_user.groups.add(Group.objects.get(name='Reception'))
+        self.client.force_authenticate(user=self.reception_user)
         self.clinic = Clinic.objects.create(name="Minh Sinh Main", total_chairs=5)
         self.cust_a = Customer.objects.create(name="Customer A", phone="0901112222")
         self.cust_b = Customer.objects.create(name="Customer B", phone="0903334444")
@@ -129,7 +135,12 @@ class CapacityCheckAPITestCase(APITestCase):
         self.assertIsNone(response.data['warning'])
 
 class FlexiblePaymentAPITestCase(APITestCase):
+    fixtures = ['rbac_roles.json']
+
     def setUp(self):
+        self.reception_user = User.objects.create_user(username='pnr_reception', is_staff=True)
+        self.reception_user.groups.add(Group.objects.get(name='Reception'))
+        self.client.force_authenticate(user=self.reception_user)
         self.clinic = Clinic.objects.create(name="Payment Clinic", total_chairs=5)
         self.cust1 = Customer.objects.create(name="Payer 1", phone="0981111111")
         self.cust2 = Customer.objects.create(name="Payer 2", phone="0982222222")

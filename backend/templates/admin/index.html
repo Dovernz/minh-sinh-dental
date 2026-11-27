@@ -39,10 +39,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col lg:flex-row gap-6 w-full">
+<div class="flex flex-col lg:flex-row gap-6 w-full max-w-full overflow-x-hidden">
     <!-- CỘT TRÁI: DASHBOARD THỐNG KÊ -->
     {% get_dashboard_stats as stats %}
-    <div class="w-full lg:w-2/3">
+    <div class="w-full lg:w-2/3 min-w-0">
         <h2 class="text-xl font-bold mb-4 dash-text-title">Tổng quan Hệ thống</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="dash-card rounded-md p-5 shadow-sm transition-colors duration-200">

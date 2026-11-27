@@ -202,37 +202,28 @@ def check_section_perm(request, perms):
     return any(request.user.has_perm(p) for p in perms)
 
 def has_booking_perm(request):
-    return check_section_perm(request, [
-        'booking.view_booking', 'booking.add_booking', 'booking.change_booking',
-        'operations.view_managebooking', 'operations.view_dailyschedule', 'operations.view_weeklyschedule'
-    ])
+    from booking.permissions import has_booking_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 def has_transaction_perm(request):
-    return check_section_perm(request, [
-        'booking.view_payment', 'booking.add_payment', 'booking.change_payment',
-        'booking.view_bookingbill', 'booking.add_bookingbill'
-    ])
+    from booking.permissions import has_transaction_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 def has_customer_service_perm(request):
-    return check_section_perm(request, [
-        'booking.view_customer', 'booking.add_customer', 'booking.change_customer',
-        'booking.view_clinic', 'booking.view_service', 'booking.view_servicedetail',
-        'booking.view_servicecategory', 'booking.view_timeslot', 'booking.view_catalogdiscount'
-    ])
+    from booking.permissions import has_customer_service_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 def has_finance_inventory_perm(request):
-    return check_section_perm(request, [
-        'booking.view_inventorydetail', 'booking.add_inventorydetail', 'booking.change_inventorydetail',
-        'booking.view_inventoryusage', 'booking.add_inventoryusage',
-        'booking.view_topupinfo', 'booking.view_commissionrate', 'booking.view_payment'
-    ])
+    from booking.permissions import has_finance_inventory_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
+
+def has_commission_perm(request):
+    from booking.permissions import has_commission_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 def has_wordpress_perm(request):
-    return check_section_perm(request, [
-        'booking.manage_wordpress_posts',
-        'booking.view_article', 'booking.add_article', 'booking.change_article',
-        'booking.view_marketingarticle'
-    ])
+    from booking.permissions import has_wordpress_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 def has_web_config_perm(request):
     return check_section_perm(request, [
@@ -241,11 +232,8 @@ def has_web_config_perm(request):
     ])
 
 def has_system_user_perm(request):
-    return check_section_perm(request, [
-        'auth.view_user', 'auth.add_user', 'auth.change_user',
-        'auth.view_group', 'auth.add_group', 'auth.change_group',
-        'booking.view_employee', 'booking.add_employee', 'booking.change_employee'
-    ])
+    from booking.permissions import has_system_user_perm as _perm
+    return bool(request.user and request.user.is_authenticated and request.user.is_staff and _perm(request.user))
 
 UNFOLD = {
     "INDEX_TITLE": "Báº£ng Ä‘iÃ¡Â»Âu khiÃ¡Â»Æ’n",
@@ -300,7 +288,7 @@ UNFOLD = {
                 "items": [
                     {"title": "Thanh toán (POS)", "icon": "point_of_sale", "link": "/admin/pos-system/", "permission": has_transaction_perm},
                     {"title": "Thu hồi Công nợ", "icon": "price_check", "link": "/admin/pos-debt/", "permission": has_transaction_perm},
-                    {"title": "Hóa đơn & Thanh toán", "icon": "receipt_long", "link": "/admin/booking/payment/"},
+                    {"title": "Hóa đơn & Thanh toán", "icon": "receipt_long", "link": "/admin/booking/payment/", "permission": has_transaction_perm},
                 ],
             },
             {
@@ -323,10 +311,10 @@ UNFOLD = {
                 "collapsible": True,
                 "permission": has_finance_inventory_perm,
                 "items": [
-                    {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/", "permission": has_finance_inventory_perm},
-                    {"title": "Cấu hình Thanh toán", "icon": "account_balance_wallet", "link": reverse_lazy("admin:booking_topupinfo_changelist")},
-                    {"title": "Vật tư Kho", "icon": "inventory_2", "link": "/admin/booking/inventorydetail/"},
-                    {"title": "Tiêu hao Vật tư", "icon": "history", "link": "/admin/booking/inventoryusage/"},
+                    {"title": "Hoa hồng Bác sĩ", "icon": "account_balance", "link": "/admin/commissions-embed/", "permission": has_commission_perm},
+                    {"title": "Cấu hình Thanh toán", "icon": "account_balance_wallet", "link": reverse_lazy("admin:booking_topupinfo_changelist"), "permission": has_finance_inventory_perm},
+                    {"title": "Vật tư Kho", "icon": "inventory_2", "link": "/admin/booking/inventorydetail/", "permission": has_finance_inventory_perm},
+                    {"title": "Tiêu hao Vật tư", "icon": "history", "link": "/admin/booking/inventoryusage/", "permission": has_finance_inventory_perm},
                 ],
             },
             {
@@ -383,6 +371,12 @@ UNFOLD = {
 }
 
 # Email SMTP Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

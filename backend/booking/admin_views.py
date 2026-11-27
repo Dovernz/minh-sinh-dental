@@ -3,6 +3,8 @@ from decimal import Decimal
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied
+from .permissions import has_booking_perm, has_transaction_perm
 from django.contrib import admin, messages
 from django.db.models import Q
 from django.db import transaction
@@ -11,6 +13,8 @@ from .models import Booking, Billing, Payment, BookingStatusHistory
 
 @staff_member_required
 def admin_pnr_lookup_view(request):
+    if not has_booking_perm(request.user):
+        raise PermissionDenied
     pnr_code = request.GET.get('pnr', '').strip()
     if request.method == 'POST':
         pnr_code = request.POST.get('pnr', pnr_code).strip()
@@ -20,6 +24,10 @@ def admin_pnr_lookup_view(request):
         try:
             with transaction.atomic():
                 if action in ['pay_all', 'group_pay']:
+                    if not has_transaction_perm(request.user):
+                        if is_ajax:
+                            return JsonResponse({'status': 'error', 'message': 'Bạn không có quyền thu tiền / thanh toán.'}, status=403)
+                        raise PermissionDenied
                     if not pnr_code:
                         if is_ajax:
                             return JsonResponse({'status': 'error', 'message': 'Thiếu mã PNR hoặc mã đoàn.'}, status=400)
