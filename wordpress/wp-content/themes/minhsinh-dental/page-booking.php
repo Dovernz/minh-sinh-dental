@@ -154,49 +154,49 @@ get_header();
 }
 
 .minhsinh-booking-wrapper { background-color: var(--ms-bg); padding: 40px 15px; font-family: 'Inter', sans-serif; color: var(--ms-text-dark); }
-.minhsinh-container { width: 92%; max-width: 1320px; margin: 0 auto; }
+.minhsinh-container { width: 92%; max-width: 1320px; margin: 0 auto; box-sizing: border-box; }
 .booking-header-section { text-align: center; margin-bottom: 30px; }
 .booking-main-title { font-size: 28px; font-weight: 700; color: var(--ms-primary); margin-bottom: 8px; }
 .booking-sub-title { font-size: 15px; color: var(--ms-text-muted); }
 
-.minhsinh-booking-container { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06); overflow: hidden; border: 1px solid #e2e8f0; }
+.minhsinh-booking-container { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06); overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box; }
 
 /* Stepper */
-.stepper-wrapper { display: flex; justify-content: space-between; background: var(--ms-primary-light); padding: 20px 30px; border-bottom: 1px solid #e2e8f0; }
+.stepper-wrapper { display: flex; justify-content: space-between; background: var(--ms-primary-light); padding: 20px 30px; border-bottom: 1px solid #e2e8f0; box-sizing: border-box; }
 .step-item { display: flex; align-items: center; gap: 10px; opacity: 0.4; transition: 0.3s; }
 .step-item.active { opacity: 1; }
 .step-item.completed { opacity: 0.8; }
-.step-counter { width: 28px; height: 28px; background: #cbd5e1; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+.step-counter { width: 28px; height: 28px; background: #cbd5e1; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
 .step-item.active .step-counter, .step-item.completed .step-counter { background: var(--ms-primary); }
 .step-name { font-size: 13.5px; font-weight: 600; display: none; }
 @media(min-width: 768px) { .step-name { display: block; } }
 
 /* Body */
-.booking-body { padding: 36px 40px; min-height: 400px; }
-.booking-step-pane { display: none; animation: fadeIn 0.4s ease; }
+.booking-body { padding: 36px 40px; min-height: 400px; box-sizing: border-box; }
+.booking-step-pane { display: none; animation: fadeIn 0.4s ease; box-sizing: border-box; }
 .booking-step-pane.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .pane-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; color: var(--ms-text-dark); }
-.pane-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.pane-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
 
 /* Clinics */
 .clinics-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-bottom: 15px; }
-.clinic-tab-btn { text-align: left; background: #fff; border: 2px solid var(--ms-border); padding: 12px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+.clinic-tab-btn { text-align: left; background: #fff; border: 2px solid var(--ms-border); padding: 12px; border-radius: 10px; cursor: pointer; transition: 0.2s; box-sizing: border-box; }
 .clinic-tab-btn.active { border-color: var(--ms-primary); background: var(--ms-primary-light); }
 .clinic-tab-btn strong { display: block; font-size: 14px; }
 .clinic-address-text { font-size: 12px; color: var(--ms-text-muted); }
 
 /* Multi-Patient Cards */
-.patient-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 22px 24px; margin-bottom: 20px; position: relative; transition: 0.3s; }
+.patient-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 22px 24px; margin-bottom: 20px; position: relative; transition: 0.3s; box-sizing: border-box; }
 .patient-card:hover { border-color: var(--ms-primary); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
-.patient-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--ms-border); }
+.patient-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--ms-border); flex-wrap: wrap; gap: 10px; }
 .patient-title { font-weight: 700; color: var(--ms-primary); font-size: 15px; }
 .btn-remove-patient { background: #fee2e2; color: #ef4444; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
 .patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
 .patient-grid .form-group { margin-bottom: 0; }
 
 /* Form Controls */
-.form-group { margin-bottom: 15px; }
+.form-group { margin-bottom: 15px; box-sizing: border-box; }
 .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .form-control { width: 100%; box-sizing: border-box; outline: none; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; padding: 10px 14px; background: #fff; color: var(--ms-text-dark); font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
 .form-control:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
@@ -227,15 +227,15 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 }
 
 /* Buttons */
-.btn-add-companion { background: var(--ms-primary-light); color: var(--ms-primary); border: 1px dashed var(--ms-primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; }
+.btn-add-companion { background: var(--ms-primary-light); color: var(--ms-primary); border: 1px dashed var(--ms-primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; box-sizing: border-box; }
 .btn-add-companion:hover { background: var(--ms-primary); color: #fff; }
-.btn-ms { padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
+.btn-ms { padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; box-sizing: border-box; }
 .btn-primary { background: var(--ms-primary); color: #fff; }
 .btn-secondary { background: #e2e8f0; color: var(--ms-text-dark); }
 
 /* Time Slots */
-.time-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-.time-slot { padding: 10px 6px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
+.time-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; box-sizing: border-box; }
+.time-slot { padding: 10px 6px; border: 1px solid var(--ms-border); border-radius: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; box-sizing: border-box; }
 .time-slot:hover:not(.disabled) { border-color: var(--ms-primary); background: #f0f7ff; }
 .time-slot.selected, .time-slot.selected:hover {
     background: #1e40af !important;
@@ -253,79 +253,59 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
     color: #bfdbfe !important;
     font-weight: 600 !important;
 }
-.time-slot.selected, .time-slot.selected:hover {
-    background: #1e40af !important;
-    color: #ffffff !important;
-    border: 2px solid #3b82f6 !important;
-    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.45) !important;
-    transform: scale(1.05);
-    font-weight: 700 !important;
-}
-.time-slot.selected div, .time-slot.selected:hover div {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}
-.time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
-    color: #bfdbfe !important;
-    font-weight: 600 !important;
-}
-.time-slot.selected, .time-slot.selected:hover {
-    background: #1e40af !important;
-    color: #ffffff !important;
-    border: 2px solid #3b82f6 !important;
-    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.45) !important;
-    transform: scale(1.05);
-    font-weight: 700 !important;
-}
-.time-slot.selected div, .time-slot.selected:hover div {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}
-.time-slot.selected .slot-badge-avail, .time-slot.selected:hover .slot-badge-avail {
-    color: #bfdbfe !important;
-    font-weight: 600 !important;
-}
 .time-slot.disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; opacity: 0.65; pointer-events: none; }
+.time-slot.disabled.past-slot { background: #f1f5f9; color: #94a3b8; opacity: 0.6; }
 .slot-badge-full { display: block; font-size: 10px; font-weight: 400; color: #ef4444; margin-top: 2px; }
 .slot-badge-avail { display: block; font-size: 10px; font-weight: 400; color: #10b981; margin-top: 2px; }
-.selected-time-info { margin-top: 14px; padding: 12px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; color: var(--ms-primary); font-size: 14px; }
+.slot-badge-past { display: block; font-size: 10px; font-weight: 400; color: #94a3b8; margin-top: 2px; }
+.selected-time-info { margin-top: 14px; padding: 12px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; color: var(--ms-primary); font-size: 14px; box-sizing: border-box; }
 
 /* Success */
-.success-box { text-align: center; }
+.success-box { text-align: center; box-sizing: border-box; }
 .success-icon { width: 64px; height: 64px; background: var(--ms-success); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; }
-.group-code-badge { display: inline-block; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 18px; margin-bottom: 25px; }
-.summary-card { text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
-.summary-item { padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.group-code-badge { display: inline-block; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 18px; margin-bottom: 25px; box-sizing: border-box; }
+.summary-card { text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-sizing: border-box; }
+.summary-item { padding: 10px 0; border-bottom: 1px solid #e2e8f0; box-sizing: border-box; word-break: break-word; }
 .summary-item:last-child { border-bottom: none; }
 .summary-item strong { color: var(--ms-primary); }
 
 /* Footer Actions */
-.booking-footer-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 20px 40px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+.booking-footer-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 20px 40px; background: #f8fafc; border-top: 1px solid #e2e8f0; box-sizing: border-box; }
 
-/* Responsive Media Queries */
-@media (max-width: 640px) {
-    .minhsinh-booking-wrapper { padding: 16px 12px; }
-    .minhsinh-container { width: 100%; }
-    .stepper-wrapper { padding: 14px 12px; }
-    .booking-body { padding: 20px 14px; }
-    .patient-grid { grid-template-columns: 1fr; gap: 14px; }
-    .patient-card { padding: 16px 14px; }
-    .btn-ms { width: 100%; padding: 14px; text-align: center; }
-    .booking-footer-actions { padding: 16px 14px; flex-direction: column-reverse; gap: 10px; }
+/* Responsive Media Queries (Fluid Responsive cho PC >= 1280px, Tablet 768-1024px, Mobile 375-414px) */
+@media (max-width: 1024px) {
+    .minhsinh-container { width: 95%; max-width: 100%; }
+    .booking-body { padding: 28px 30px; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+    .minhsinh-booking-wrapper { padding: 20px 10px; }
+    .minhsinh-container { width: 100%; }
+    .stepper-wrapper { padding: 16px 15px; }
+    .booking-body { padding: 24px 20px; }
+    .patient-grid { grid-template-columns: 1fr; gap: 14px; }
+    .patient-card { padding: 18px 16px; }
+    .booking-footer-actions { padding: 16px 20px; }
+}
+
+@media (max-width: 414px) {
+    .minhsinh-booking-wrapper { padding: 12px 8px; }
+    .stepper-wrapper { padding: 12px 10px; }
+    .booking-body { padding: 18px 12px; }
+    .patient-card { padding: 14px 12px; }
+    .btn-ms { width: 100%; padding: 12px; text-align: center; }
+    .booking-footer-actions { padding: 14px 12px; flex-direction: column-reverse; gap: 10px; }
     .booking-main-title { font-size: 22px; }
     .clinics-tabs { grid-template-columns: 1fr; }
     .time-slots-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (max-width: 390px) {
-    .booking-main-title { font-size: 20px; }
+@media (max-width: 375px) {
     .time-slots-grid { grid-template-columns: repeat(2, 1fr); }
+    .booking-main-title { font-size: 20px; }
 }
 
-/* Calendar & Success UI enhancements (Rule 22 Responsive) */
+/* Calendar & Success UI enhancements */
 .minhsinh-booking-container { border-radius: 10px !important; }
 .patient-card { border-radius: 10px !important; }
 .summary-card { border-radius: 10px !important; }
@@ -338,6 +318,7 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
     justify-content: center;
     margin-top: 20px;
     flex-wrap: wrap;
+    box-sizing: border-box;
 }
 .btn-calendar {
     display: inline-flex;
@@ -352,6 +333,7 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
     text-decoration: none;
     border: 1.5px solid transparent;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 .btn-calendar-ics {
     background: #0284c7;
@@ -401,7 +383,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Real-time handler: Cho phép gõ tự do (bao gồm dấu cách và Telex), cảnh báo khi có số/ký tự đặc biệt
+    // Real-time handler: Cho phép gõ tự do, cảnh báo khi có số/ký tự đặc biệt
     document.addEventListener("input", function(e) {
         if (e.target && e.target.classList.contains("p-name")) {
             validateNameField(e.target);
@@ -410,6 +392,18 @@ document.addEventListener("DOMContentLoaded", function () {
             e.target.value = e.target.value.replace(/\D/g, "").slice(0, 11);
         }
     }, true);
+
+    // Event delegation cho thay đổi giờ khám riêng của từng khách (.p-time)
+    document.addEventListener("change", function(e) {
+        if (e.target && e.target.classList.contains("p-time")) {
+            refreshAllPatientTimeSelects();
+        }
+    }, true);
+
+    // Lắng nghe sự kiện 'ms:capacityDistributed' từ booking-capacity.js
+    document.addEventListener('ms:capacityDistributed', function(e) {
+        refreshAllPatientTimeSelects();
+    });
 
     // --- CẤU HÌNH ---
     const SHOW_DOCTOR_SELECTION = false; // Đổi thành true để hiện chọn bác sĩ
@@ -425,6 +419,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let servicesList = []; // Lưu cache dịch vụ
     let currentStep = 1;
+    let currentSlots = []; // Lưu toàn cục danh sách slots từ fetchSlots
 
     // DOM Elements
     const btnNext = document.getElementById("btnNext");
@@ -443,10 +438,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Thiết lập ngày tối thiểu là hôm nay
-        const today = new Date().toISOString().split('T')[0];
-        bookingDateInput.min = today;
-        bookingDateInput.value = today;
-        bookingData.date = today;
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        bookingDateInput.min = todayStr;
+        bookingDateInput.value = todayStr;
+        bookingData.date = todayStr;
 
         bookingDateInput.onchange = () => {
             bookingData.date = bookingDateInput.value;
@@ -465,6 +461,23 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Mặc định thêm khách hàng đầu tiên
         addPatient(true); 
+    }
+
+    // Helper (e): Kiểm tra khung giờ đã qua so với giờ hiện tại của ngày hôm nay
+    function isPastTimeSlot(slotTime, selectedDate) {
+        if (!slotTime || !selectedDate) return false;
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        if (selectedDate < todayStr) return true;
+        if (selectedDate > todayStr) return false;
+        
+        // selectedDate === todayStr
+        const [slotH, slotM] = slotTime.split(':').map(Number);
+        const slotTotalMins = (slotH || 0) * 60 + (slotM || 0);
+        const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+        
+        return slotTotalMins <= currentTotalMins;
     }
 
     // 1. Fetch Dữ liệu
@@ -612,21 +625,26 @@ document.addEventListener("DOMContentLoaded", function () {
             }));
         }
 
+        // Lưu currentSlots toàn cục phục vụ cho refreshAllPatientTimeSelects
+        currentSlots = slots;
+
         grid.innerHTML = "";
+        let firstValidSlotTime = null;
         let isCurrentTimeStillValid = false;
 
         slots.forEach((s, i) => {
+            const isPast = isPastTimeSlot(s.start_time, bookingData.date);
+            const isFullOrNoChairs = s.is_full === true || s.available_chairs <= 0;
+            
+            // Yêu cầu b & d: KHÔNG disable các khung giờ chỉ vì available_chairs < totalPatients 
+            // (nếu slot còn ít nhất 1 ghế và chưa qua giờ hiện tại, vẫn cho chọn)
             let canBook = true;
-            if (i + slotsNeeded > slots.length) {
+            if (isPast || isFullOrNoChairs) {
                 canBook = false;
-            } else {
-                for (let k = 0; k < slotsNeeded; k++) {
-                    const checkSlot = slots[i + k];
-                    if (!checkSlot || checkSlot.available_chairs < totalPatients || checkSlot.is_full) {
-                        canBook = false;
-                        break;
-                    }
-                }
+            }
+
+            if (canBook && !firstValidSlotTime) {
+                firstValidSlotTime = s.start_time;
             }
 
             const isSelected = bookingData.time === s.start_time;
@@ -635,11 +653,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const slot = document.createElement("div");
-            slot.className = `time-slot ${!canBook ? 'disabled' : ''} ${isSelected && canBook ? 'selected' : ''}`;
+            slot.className = `time-slot ${!canBook ? 'disabled' : ''} ${isPast ? 'past-slot' : ''} ${isSelected && canBook ? 'selected' : ''}`;
             slot.dataset.time = s.start_time;
 
-            if (!canBook) {
-                slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-full">Đã kín</span>`;
+            if (isPast) {
+                slot.setAttribute('aria-disabled', 'true');
+                slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-past">Đã qua</span>`;
+            } else if (isFullOrNoChairs) {
+                slot.setAttribute('aria-disabled', 'true');
+                slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-full">Hết chỗ</span>`;
             } else {
                 slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-avail">${s.available_chairs} ghế</span>`;
                 slot.onclick = () => {
@@ -653,28 +675,244 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     displaySelectedTimePreview(s.start_time, endTime, estimateTime);
                     syncFirstPatient();
+                    
+                    // Gọi tự động phân bổ nếu cần khi đổi slot
+                    autoDistributePatientsIfNeeded();
                 };
             }
             grid.appendChild(slot);
         });
 
-        if (bookingData.time && isCurrentTimeStillValid) {
+        // Yêu cầu e: Nếu bookingData.time đang chọn đã qua hoặc hết ghế, tự động chuyển sang slot hợp lệ đầu tiên chưa qua và còn ghế
+        if (bookingData.time) {
+            const currentSlotObj = slots.find(s => s.start_time === bookingData.time);
+            const isCurrentPast = isPastTimeSlot(bookingData.time, bookingData.date);
+            const isCurrentFull = currentSlotObj ? (currentSlotObj.is_full || currentSlotObj.available_chairs <= 0) : true;
+            
+            if (isCurrentPast || isCurrentFull || !isCurrentTimeStillValid) {
+                if (firstValidSlotTime) {
+                    bookingData.time = firstValidSlotTime;
+                    const newSelectedEl = grid.querySelector(`.time-slot[data-time="${firstValidSlotTime}"]`);
+                    if (newSelectedEl) {
+                        document.querySelectorAll(".time-slot").forEach(el => el.classList.remove("selected"));
+                        newSelectedEl.classList.add("selected");
+                    }
+                    const endTime = addMinutes(bookingData.time, estimateTime);
+                    displaySelectedTimePreview(bookingData.time, endTime, estimateTime);
+                    syncFirstPatient();
+                } else {
+                    bookingData.time = "";
+                    const infoEl = document.getElementById("selectedTimeInfo");
+                    if (infoEl) infoEl.style.display = "none";
+                }
+            } else {
+                const endTime = addMinutes(bookingData.time, estimateTime);
+                displaySelectedTimePreview(bookingData.time, endTime, estimateTime);
+            }
+        } else if (!bookingData.time && firstValidSlotTime) {
+            // Nếu chưa chọn giờ nào, có thể chọn mặc định slot đầu tiên hợp lệ
+            bookingData.time = firstValidSlotTime;
+            const newSelectedEl = grid.querySelector(`.time-slot[data-time="${firstValidSlotTime}"]`);
+            if (newSelectedEl) {
+                document.querySelectorAll(".time-slot").forEach(el => el.classList.remove("selected"));
+                newSelectedEl.classList.add("selected");
+            }
             const endTime = addMinutes(bookingData.time, estimateTime);
             displaySelectedTimePreview(bookingData.time, endTime, estimateTime);
-        } else if (bookingData.time && !isCurrentTimeStillValid) {
-            bookingData.time = "";
-            const infoEl = document.getElementById("selectedTimeInfo");
-            if (infoEl) infoEl.style.display = "none";
+            syncFirstPatient();
         }
+
+        // Cập nhật lại dropdown giờ của các khách
+        refreshAllPatientTimeSelects();
+        
+        // Gọi auto distribute sau khi fetch slots xong nếu cần
+        autoDistributePatientsIfNeeded();
+    }
+
+    // Yêu cầu b: Hàm autoDistributePatientsIfNeeded()
+    function autoDistributePatientsIfNeeded() {
+        const autoDistributeToggle = window.MSBookingCapacity && typeof window.MSBookingCapacity.getAutoDistribute === 'function' 
+            ? window.MSBookingCapacity.getAutoDistribute() 
+            : true; // Mặc định bật hoặc theo trạng thái UI
+
+        const patientCards = document.querySelectorAll(".patient-card");
+        const totalPatients = patientCards.length;
+        if (totalPatients === 0 || !bookingData.time) return;
+
+        // Tìm slot hiện tại của bookingData.time trong currentSlots
+        const currentSlotIndex = currentSlots.findIndex(s => s.start_time === bookingData.time);
+        if (currentSlotIndex === -1) return;
+
+        const currentSlot = currentSlots[currentSlotIndex];
+        const availableChairsInMain = currentSlot ? currentSlot.available_chairs : 0;
+
+        // Điều kiện auto-distribute: số khách > 5 hoặc số khách > số ghế trống của bookingData.time (và autoDistribute đang bật)
+        if (autoDistributeToggle && (totalPatients > 5 || totalPatients > availableChairsInMain)) {
+            let assignedCount = 0;
+            
+            for (let i = currentSlotIndex; i < currentSlots.length; i++) {
+                const slot = currentSlots[i];
+                if (isPastTimeSlot(slot.start_time, bookingData.date) || slot.is_full || slot.available_chairs <= 0) {
+                    continue;
+                }
+
+                const capacity = slot.available_chairs;
+                const canTake = Math.min(capacity, totalPatients - assignedCount);
+
+                for (let c = 0; c < canTake; c++) {
+                    if (assignedCount < totalPatients) {
+                        const targetCard = patientCards[assignedCount];
+                        const timeSelect = targetCard.querySelector('.p-time');
+                        if (timeSelect) {
+                            timeSelect.value = slot.start_time;
+                        }
+                        assignedCount++;
+                    }
+                }
+
+                if (assignedCount >= totalPatients) break;
+            }
+
+            // Nếu vẫn còn khách chưa được phân bổ (do thiếu slot), phân bổ phần còn lại vào slot hợp lệ cuối cùng tìm được
+            if (assignedCount < totalPatients) {
+                let lastValidSlotTime = bookingData.time;
+                for (let i = currentSlots.length - 1; i >= 0; i--) {
+                    if (!isPastTimeSlot(currentSlots[i].start_time, bookingData.date) && !currentSlots[i].is_full) {
+                        lastValidSlotTime = currentSlots[i].start_time;
+                        break;
+                    }
+                }
+                for (let i = assignedCount; i < totalPatients; i++) {
+                    const timeSelect = patientCards[i].querySelector('.p-time');
+                    if (timeSelect) {
+                        timeSelect.value = lastValidSlotTime;
+                    }
+                }
+            }
+
+            // Cập nhật lại giao diện các select time sau khi distribute
+            refreshAllPatientTimeSelects();
+        }
+    }
+
+    // Yêu cầu c: Viết hàm refreshAllPatientTimeSelects()
+    function refreshAllPatientTimeSelects() {
+        const patientCards = document.querySelectorAll(".patient-card");
+        
+        patientCards.forEach(card => {
+            const timeSelect = card.querySelector('.p-time');
+            if (!timeSelect) return;
+
+            const currentSelectedVal = timeSelect.value;
+            let optionsHtml = "";
+
+            if (!currentSlots || currentSlots.length === 0) {
+                // Fallback nếu chưa có currentSlots
+                for (let h = 8; h <= 19; h++) {
+                    let hh = h < 10 ? '0' + h : h;
+                    const t1 = `${hh}:00`;
+                    const t2 = `${hh}:30`;
+                    [t1, t2].forEach(t => {
+                        const isPast = isPastTimeSlot(t, bookingData.date);
+                        if (!isPast) {
+                            optionsHtml += `<option value="${t}" ${currentSelectedVal === t ? 'selected' : ''}>${t} (5 ghế trống)</option>`;
+                        } else {
+                            optionsHtml += `<option value="${t}" disabled ${currentSelectedVal === t ? 'selected' : ''}>${t} (Đã qua)</option>`;
+                        }
+                    });
+                }
+            } else {
+                currentSlots.forEach(slot => {
+                    const t = slot.start_time;
+                    const isPast = isPastTimeSlot(t, bookingData.date);
+                    
+                    // Tính số ghế đã bị các .patient-card KHÁC trong cùng nhóm chiếm ở khung giờ t
+                    let occupiedByOthers = 0;
+                    patientCards.forEach(otherCard => {
+                        if (otherCard !== card) {
+                            const otherTimeSelect = otherCard.querySelector('.p-time');
+                            if (otherTimeSelect && otherTimeSelect.value === t) {
+                                occupiedByOthers++;
+                            }
+                        }
+                    });
+
+                    const slotAvailableChairs = slot.available_chairs !== undefined ? slot.available_chairs : 5;
+                    const slotIsFull = slot.is_full === true;
+                    const rem = Math.max(0, slotAvailableChairs - occupiedByOthers);
+
+                    let disabledAttr = "";
+                    let textLabel = "";
+
+                    if (isPast) {
+                        // Nếu isPastTimeSlot(t, bookingData.date): option.disabled = true, text = `${t} (Đã qua)` — TUYỆT ĐỐI KHÔNG hiển thị số lượng slot/ghế.
+                        disabledAttr = "disabled";
+                        textLabel = `${t} (Đã qua)`;
+                    } else if (rem <= 0 || slotIsFull) {
+                        // Nếu !isPast && (rem <= 0 || slotIsFull): option.disabled = true, text = `${t} (Hết chỗ)`.
+                        disabledAttr = "disabled";
+                        textLabel = `${t} (Hết chỗ)`;
+                    } else {
+                        // Nếu !isPast && rem > 0: option.disabled = false, text = `${t} (${rem} ghế trống)`.
+                        disabledAttr = "";
+                        textLabel = `${t} (${rem} ghế trống)`;
+                    }
+
+                    const isSelected = currentSelectedVal === t ? "selected" : "";
+                    optionsHtml += `<option value="${t}" ${disabledAttr} ${isSelected}>${textLabel}</option>`;
+                });
+            }
+
+            timeSelect.innerHTML = optionsHtml;
+
+            // Đảm bảo nếu giá trị đang chọn bị disabled thì tự động chuyển sang option hợp lệ đầu tiên chưa disabled
+            if (timeSelect.selectedOptions.length === 0 || timeSelect.selectedOptions[0].disabled) {
+                const firstEnabledOpt = timeSelect.querySelector("option:not([disabled])");
+                if (firstEnabledOpt) {
+                    timeSelect.value = firstEnabledOpt.value;
+                }
+            }
+        });
+    }
+
+    // Yêu cầu a: reindexPatients() và cập nhật tiêu đề Khách 1, Khách 2, Khách 3...
+    function reindexPatients() {
+        const patientCards = document.querySelectorAll(".patient-card");
+        patientCards.forEach((card, idx) => {
+            const titleEl = card.querySelector(".patient-title");
+            const removeBtnHtml = idx > 0 ? `<button type="button" class="btn-remove-patient" onclick="removePatient(${card.dataset.id})">✕ Xóa</button>` : '';
+            const headerFlex = card.querySelector(".patient-card-header");
+            
+            const guestNumber = idx + 1;
+            const guestLabel = guestNumber === 1 ? `Khách ${guestNumber} (Người liên hệ chính)` : `Khách ${guestNumber}`;
+            
+            if (titleEl) {
+                titleEl.innerText = guestLabel;
+            }
+            
+            // Cập nhật lại nút xóa (chỉ từ khách 2 trở đi mới có nút xóa)
+            const existingRemoveBtn = headerFlex.querySelector(".btn-remove-patient");
+            if (idx === 0) {
+                if (existingRemoveBtn) existingRemoveBtn.remove();
+            } else {
+                if (!existingRemoveBtn) {
+                    headerFlex.insertAdjacentHTML('beforeend', `<button type="button" class="btn-remove-patient" onclick="removePatient(${card.dataset.id})">✕ Xóa</button>`);
+                }
+            }
+        });
     }
 
     // 2. Quản lý Multi-Patient
     function addPatient(isFirst = false) {
-        const pId = Date.now();
+        const pId = Date.now() + Math.floor(Math.random() * 1000);
+        const currentCount = document.querySelectorAll(".patient-card").length;
+        const guestNumber = currentCount + 1;
+        const guestLabel = isFirst ? `Khách ${guestNumber} (Người liên hệ chính)` : `Khách ${guestNumber}`;
+
         const patientHtml = `
             <div class="patient-card" id="patient-${pId}" data-id="${pId}">
                 <div class="patient-card-header">
-                    <span class="patient-title">${isFirst ? 'Khách hàng #1 (Người liên hệ chính)' : 'Khách hàng tiếp theo (Người đi cùng)'}</span>
+                    <span class="patient-title">${guestLabel}</span>
                     ${!isFirst ? `<button type="button" class="btn-remove-patient" onclick="removePatient(${pId})">✕ Xóa</button>` : ''}
                 </div>
                 <div class="patient-grid">
@@ -707,22 +945,36 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
         patientsContainer.insertAdjacentHTML('beforeend', patientHtml);
         
+        reindexPatients();
+
         // Nếu là khách đầu tiên, đồng bộ dịch vụ và giờ từ bước 1 & 2
         if(isFirst) {
             const card = document.getElementById(`patient-${pId}`);
-            card.querySelector('.p-service').value = mainServiceSelect.value;
-            card.querySelector('.p-time').value = bookingData.time || "08:00";
+            if (card) {
+                card.querySelector('.p-service').value = mainServiceSelect.value;
+                card.querySelector('.p-time').value = bookingData.time || "08:00";
+            }
         }
+
+        refreshAllPatientTimeSelects();
     }
 
     window.removePatient = function(id) {
-        document.getElementById(`patient-${id}`).remove();
-        fetchSlots();
+        const cardEl = document.getElementById(`patient-${id}`);
+        if (cardEl) {
+            cardEl.remove();
+            reindexPatients();
+            fetchSlots();
+            refreshAllPatientTimeSelects();
+            if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
+        }
     };
 
     document.getElementById("btnAddCompanion").onclick = () => {
         addPatient(false);
         fetchSlots();
+        autoDistributePatientsIfNeeded();
+        if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
     };
 
     function generateTimeOptions() {
@@ -740,9 +992,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (validateStep(currentStep)) {
             if (currentStep < 4) {
                 currentStep++;
-                if(currentStep === 3) syncFirstPatient();
+                if(currentStep === 3) {
+                    syncFirstPatient();
+                    autoDistributePatientsIfNeeded();
+                }
                 if(currentStep === 4) submitBooking();
                 updateUI();
+                if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
             }
         }
     };
@@ -751,6 +1007,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (currentStep > 1) {
             currentStep--;
             updateUI();
+            if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
         }
     };
 
@@ -815,6 +1072,7 @@ document.addEventListener("DOMContentLoaded", function () {
             firstCard.querySelector(".p-service").value = mainServiceSelect.value;
             firstCard.querySelector(".p-time").value = bookingData.time;
         }
+        refreshAllPatientTimeSelects();
     }
 
     function updateUI() {
@@ -905,8 +1163,10 @@ Thời gian: ${booking.time} ngày ${booking.date}`);
 
     async function submitBooking() {
         const patients = [];
-        document.querySelectorAll(".patient-card").forEach(card => {
+        document.querySelectorAll(".patient-card").forEach((card, idx) => {
             patients.push({
+                guest_number: idx + 1,
+                guest_label: `Khách ${idx + 1}`,
                 fullName: card.querySelector(".p-name").value,
                 phone: card.querySelector(".p-phone").value,
                 category_id: card.querySelector(".p-service").value,
@@ -962,7 +1222,7 @@ Thời gian: ${booking.time} ngày ${booking.date}`);
         let summaryHtml = `<div class="summary-item"><strong>Cơ sở:</strong> ${bookingData.clinicName} | <strong>Ngày:</strong> ${bookingData.date}</div>`;
         patients.forEach((p, idx) => {
             const sName = servicesList.find(s => s.id == p.category_id)?.name || 'Dịch vụ nha khoa';
-            summaryHtml += `<div class="summary-item"><strong>Khách ${idx+1}:</strong> ${p.fullName} - ${p.phone}<br><small>Dịch vụ: ${sName} | Giờ: ${p.start_time}</small></div>`;
+            summaryHtml += `<div class="summary-item"><strong>Khách ${idx + 1}:</strong> ${p.fullName} - ${p.phone}<br><small>Dịch vụ: ${sName} | Giờ: ${p.start_time}</small></div>`;
         });
         summaryListEl.innerHTML = summaryHtml;
     }

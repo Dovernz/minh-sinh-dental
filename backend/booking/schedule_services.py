@@ -36,6 +36,7 @@ def get_slot_capacity(clinic, target_date, start_time_obj, duration_minutes=30, 
     available_chairs = max(0, total_chairs - active_bookings)
     is_full = available_chairs <= 0
     is_available = available_chairs >= requested_count
+    is_past = start_dt <= timezone.localtime(timezone.now())
     
     warning_message = None if is_available else f"Cảnh báo: Khung giờ {start_time_obj.strftime('%H:%M')} tại {clinic.name} chỉ còn {available_chairs}/{total_chairs} ghế trống, không đủ cho {requested_count} khách!"
     
@@ -46,6 +47,7 @@ def get_slot_capacity(clinic, target_date, start_time_obj, duration_minutes=30, 
         'available_chairs': available_chairs,
         'is_full': is_full,
         'is_available': is_available,
+        'is_past': is_past,
         'requested_passengers': requested_count,
         'warning_message': warning_message,
         'warning': warning_message
@@ -112,8 +114,13 @@ def compute_auto_distribution(clinic, target_date, requested_start_time, patient
             p_end_dt = p_start_dt + timedelta(minutes=p_dur)
             extra_occupied_spans.append({'start': p_start_dt, 'end': p_end_dt})
             
+            guest_order = int(p.get('guest_order') or p.get('passenger_index') or (idx + 1))
+            guest_label = p.get('guest_label') or f'Khách {guest_order}'
+            
             entry = dict(p)
             entry['patient_index'] = idx
+            entry['guest_order'] = guest_order
+            entry['guest_label'] = guest_label
             entry['original_start_time'] = requested_start_time.strftime('%H:%M')
             entry['assigned_start_time'] = slot.start_time.strftime('%H:%M')
             entry['assigned_end_time'] = timezone.localtime(p_end_dt).strftime('%H:%M')
@@ -154,9 +161,11 @@ def compute_auto_distribution(clinic, target_date, requested_start_time, patient
         'date': target_date.strftime('%Y-%m-%d'),
         'requested_start_time': requested_start_time.strftime('%H:%M'),
         'total_chairs': get_clinic_total_chairs(clinic),
+        'max_guests_per_slot': get_clinic_total_chairs(clinic),
         'requested_count': len(patients_list),
         'initial_slot_available': initial_slot_available,
         'needs_distribution': needs_distribution,
+        'exceeds_slot_capacity': needs_distribution,
         'can_fulfill_all': can_fulfill_all,
         'unassigned_count': unassigned_count,
         'warning_message': warning_message,

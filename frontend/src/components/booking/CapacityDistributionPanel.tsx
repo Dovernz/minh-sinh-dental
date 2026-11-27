@@ -46,18 +46,25 @@ export default function CapacityDistributionPanel({
     ? Math.max(0, capacityCheck.total_chairs - capacityCheck.active_bookings)
     : null;
   const availableChairs = capacityCheck?.available_chairs ?? realFreeChairs ?? 0;
+
+  // 1. Logic cảnh báo rõ ràng khi số khách > 5 HOẶC > số ghế còn lại (availableChairs) HOẶC is_full / !is_available
+  const isOverGroupLimit = totalGroupSize > 5;
   const isFullOrExceeded = capacityCheck
-    ? capacityCheck.is_full || !capacityCheck.is_available || totalGroupSize > availableChairs
-    : false;
+    ? capacityCheck.is_full || !capacityCheck.is_available || totalGroupSize > availableChairs || isOverGroupLimit
+    : isOverGroupLimit;
+
   const isExactFit = capacityCheck
     ? !capacityCheck.is_full && totalGroupSize === availableChairs && availableChairs > 0
     : false;
 
+  // 2. Trong showDistributeSection: hiển thị khi !compact && (...)
   const showDistributeSection =
     !compact &&
     (distributeLoading ||
       (distributePreview &&
-        (distributePreview.needs_distribution || totalGroupSize > availableChairs)));
+        (distributePreview.needs_distribution || totalGroupSize > availableChairs)) ||
+      totalGroupSize > 5 ||
+      (capacityCheck ? totalGroupSize > availableChairs : false));
 
   const normalizedItems = distributePreview
     ? normalizeDistributionSummary(
@@ -72,14 +79,14 @@ export default function CapacityDistributionPanel({
       {capacityLoading && !capacityCheck && (
         <div className="w-full min-w-0 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-blue-800 shadow-sm transition-all dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
           <div className="flex items-center gap-2.5 text-xs font-medium sm:text-sm">
-            <Loader2 className="h-4 h-4 w-4 w-4 shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
             <span className="truncate">Đang kiểm tra số ghế trống theo thời gian thực...</span>
           </div>
         </div>
       )}
 
       {/* Main Capacity Status Card */}
-      {capacityCheck && (
+      {(capacityCheck || totalGroupSize > 5) && (
         <div
           className={`w-full min-w-0 rounded-xl border p-3.5 shadow-sm transition-all sm:p-4 ${
             isFullOrExceeded
@@ -125,34 +132,36 @@ export default function CapacityDistributionPanel({
           </div>
 
           {/* Metrics summary */}
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 text-xs sm:text-sm">
-            <div className="rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-              <span className="block text-slate-500 dark:text-slate-400 text-xs">Tổng ghế</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {capacityCheck.total_chairs} ghế
-              </span>
+          {capacityCheck && (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 text-xs sm:text-sm">
+              <div className="rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <span className="block text-slate-500 dark:text-slate-400 text-xs">Tổng ghế</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {capacityCheck.total_chairs} ghế
+                </span>
+              </div>
+              <div className="rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <span className="block text-slate-500 dark:text-slate-400 text-xs">Đã đặt trước</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {capacityCheck.active_bookings} ghế
+                </span>
+              </div>
+              <div className="col-span-2 sm:col-span-1 rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <span className="block text-slate-500 dark:text-slate-400 text-xs">Còn trống</span>
+                <span
+                  className={`font-semibold ${
+                    isFullOrExceeded
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {availableChairs} / {capacityCheck.total_chairs} ghế
+                </span>
+              </div>
             </div>
-            <div className="rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-              <span className="block text-slate-500 dark:text-slate-400 text-xs">Đã đặt trước</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {capacityCheck.active_bookings} ghế
-              </span>
-            </div>
-            <div className="col-span-2 sm:col-span-1 rounded-lg bg-white/70 p-2 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-              <span className="block text-slate-500 dark:text-slate-400 text-xs">Còn trống</span>
-              <span
-                className={`font-semibold ${
-                  isFullOrExceeded
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-emerald-600 dark:text-emerald-400'
-                }`}
-              >
-                {availableChairs} / {capacityCheck.total_chairs} ghế
-              </span>
-            </div>
-          </div>
+          )}
 
-          {/* Warning Message if Full / Exceeded */}
+          {/* Warning Message if Full / Exceeded / > 5 */}
           {isFullOrExceeded && (
             <div className="mt-3 flex gap-2.5 rounded-lg border border-red-200 bg-red-100/70 p-3 text-xs text-red-900 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-200 sm:text-sm">
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
@@ -161,16 +170,20 @@ export default function CapacityDistributionPanel({
                   Cảnh báo giới hạn ghế trống
                 </span>
                 <p className="mt-0.5">
-                  {capacityCheck.warning_message ||
-                    capacityCheck.warning ||
-                    `Khung giờ ${selectedTime} chỉ còn ${availableChairs} ghế trống, trong khi nhóm có ${totalGroupSize} khách.`}
+                  {isOverGroupLimit && !capacityCheck
+                    ? `Nhóm có ${totalGroupSize} khách (vượt ngưỡng tối đa 5 ghế/khung giờ). Hệ thống sẽ tự động phân bổ các khách vượt ngưỡng sang khung giờ trống tiếp theo nếu bật Tự động phân phối.`
+                    : capacityCheck?.warning_message ||
+                      capacityCheck?.warning ||
+                      (isOverGroupLimit
+                        ? `Nhóm có ${totalGroupSize} khách (vượt ngưỡng tối đa 5 ghế/khung giờ). Hệ thống sẽ tự động phân bổ các khách vượt ngưỡng sang khung giờ trống tiếp theo nếu bật Tự động phân phối.`
+                        : `Khung giờ ${selectedTime} chỉ còn ${availableChairs} ghế trống, trong khi nhóm có ${totalGroupSize} khách.`)}
                 </p>
               </div>
             </div>
           )}
 
           {/* Exact Fit Warning */}
-          {isExactFit && (
+          {isExactFit && !isOverGroupLimit && (
             <div className="mt-3 flex gap-2.5 rounded-lg border border-amber-200 bg-amber-100/70 p-2.5 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-200 sm:text-sm">
               <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
               <div className="min-w-0 flex-1 break-words">
@@ -266,7 +279,36 @@ export default function CapacityDistributionPanel({
                   </label>
                 </div>
               </>
-            ) : null}
+            ) : (
+              /* Fallback when distributePreview is null but totalGroupSize > 5 || capacityCheck capacity exceeded */
+              <>
+                <p className="text-xs text-indigo-900 dark:text-indigo-200 break-words bg-indigo-100/60 dark:bg-indigo-900/30 p-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
+                  Nhóm của bạn có {totalGroupSize} khách, vượt quá giới hạn hoặc số ghế trống hiện tại. Kích hoạt tính năng tự động phân phối để hệ thống sắp xếp sang các khung giờ trống tiếp theo.
+                </p>
+
+                {/* Toggle Checkbox */}
+                <div className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900/40">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={autoDistribute}
+                      onChange={(e) => onAutoDistributeChange(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 dark:border-indigo-700 dark:bg-slate-900"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-semibold text-indigo-950 dark:text-indigo-200 group-hover:text-indigo-600 transition-colors sm:text-sm break-words block">
+                        Tự động phân phối lịch sang khung giờ sau (auto_distribute)
+                      </span>
+                      <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 break-words leading-relaxed">
+                        {autoDistribute
+                          ? 'Hệ thống sẽ tự động xếp những khách vượt quá số ghế vào các khung giờ trống liền kề khi đặt lịch.'
+                          : 'Chỉ đặt tại khung giờ đã chọn; nếu vượt quá ghế trống, đơn có thể bị từ chối hoặc cần chỉnh giờ thủ công.'}
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -386,7 +386,7 @@ class BookingGroupDetailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, group_code):
-        bookings = Booking.objects.filter(group_code=group_code).select_related('customer', 'category', 'clinic')
+        bookings = Booking.objects.filter(group_code=group_code).select_related('customer', 'category', 'clinic').order_by('guest_order', 'booking_id')
         if not bookings.exists():
             return Response({"error": f"Không tìm thấy nhóm khách hàng {group_code}"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -403,6 +403,8 @@ class BookingGroupDetailView(APIView):
             "bookings": [
                 {
                     "booking_id": b.booking_id,
+                    "guest_order": b.guest_order or 1,
+                    "guest_label": b.guest_label,
                     "customer_name": b.customer.name if b.customer else "",
                     "customer_phone": b.customer.phone if b.customer else "",
                     "customer_email": b.customer.email if b.customer else "",

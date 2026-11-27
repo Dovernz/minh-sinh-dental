@@ -43,6 +43,7 @@ interface TimeSlot {
   is_full?: boolean;
   status?: 'available' | 'full' | 'limited';
   available_seats?: number;
+  is_past?: boolean;
 }
 
 interface Member {
@@ -75,6 +76,40 @@ const TIME_STEPS = [
   "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
   "17:30", "18:00", "18:30", "19:00"
 ];
+
+// Helper lấy thời gian hiện tại chuẩn múi giờ Việt Nam (Asia/Ho_Chi_Minh)
+const getVietnamNow = () => {
+  const now = new Date();
+  const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+  const timeStr = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(now);
+  const [h, m] = timeStr.split(':').map(Number);
+  const totalMinutes = (h || 0) * 60 + (m || 0);
+  return { dateStr, timeStr, totalMinutes };
+};
+
+// Kiểm tra khung giờ đã qua so với giờ hiện tại tại Việt Nam
+const isPastTimeSlot = (slotTime: string, selectedDate: string): boolean => {
+  if (!slotTime || !selectedDate) return false;
+  const vnNow = getVietnamNow();
+  if (selectedDate < vnNow.dateStr) return true;
+  if (selectedDate > vnNow.dateStr) return false;
+
+  const rawTime = slotTime.includes(' - ') ? slotTime.split(' - ')[0] : slotTime;
+  const [slotH, slotM] = rawTime.split(':').map(Number);
+  const slotTotalMinutes = (slotH || 0) * 60 + (slotM || 0);
+  return slotTotalMinutes <= vnNow.totalMinutes;
+};
+
+// Khởi tạo slot đầu tiên chưa qua giờ hiện tại
+const getInitialTimeSlot = (dateStr: string) => {
+  const validSlot = TIME_STEPS.find(t => !isPastTimeSlot(t, dateStr));
+  return validSlot || '08:00';
+};
 
 const formatPNR = (pnr: string) => {
   if (!pnr) return "MS-XXXX";
@@ -119,15 +154,18 @@ export default function BookingForm() {
     submit?: string;
   }>({});
 
-  const [formData, setFormData] = useState({
-    clinicId: '',
-    date: new Date().toISOString().split('T')[0],
-    selectedTime: '08:00',
-    leaderName: '',
-    leaderPhone: '',
-    leaderServiceId: '',
-    members: [] as Member[],
-    honeypot: ''
+  const [formData, setFormData] = useState(() => {
+    const vnNow = getVietnamNow();
+    return {
+      clinicId: '',
+      date: vnNow.dateStr,
+      selectedTime: getInitialTimeSlot(vnNow.dateStr),
+      leaderName: '',
+      leaderPhone: '',
+      leaderServiceId: '',
+      members: [] as Member[],
+      honeypot: ''
+    };
   });
 
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(() => {
@@ -150,6 +188,7 @@ export default function BookingForm() {
     }
     return null;
   });
+
   const handleDownloadICS = (res: BookingResult) => {
     const rawDate = res.appointment_date || new Date().toISOString().split("T")[0];
     const dateStr = rawDate.replace(/-/g, "");
@@ -169,8 +208,8 @@ export default function BookingForm() {
     const dtStart = `${dateStr}T${pad(h)}${pad(m)}00`;
     const dtEnd = `${dateStr}T${pad(endH)}${pad(endM)}00`;
     const pnrDisplay = res.group_code ? `MS-${res.group_code}` : res.pnr_code;
-    const memberListStr = res.members.map((mem, idx) => `${idx + 1}. ${mem.full_name} (${mem.service_name} - ${mem.start_time})`).join("\\n");
-    const desc = `Khám răng tại Nha Khoa Minh Sinh.\\nMã đặt chỗ: ${pnrDisplay}\\nCơ sở: ${res.branch_name}\\nĐịa chỉ: ${res.branch_address}\\n\\nDanh sách khách khám:\\n${memberListStr}\\n\\n* Quý khách vui lòng đến trước 10 phút để được phục vụ chu đáo nhất.`;
+    const memberListStr = res.members.map((mem, idx) => `${idx + 1}. Khách ${idx + 1}: ${mem.full_name} (${mem.service_name} - ${mem.start_time})`).join("\\n");
+    const desc = `Khám răng tại Nha Khoa Minh Sinh.\\nMã đặt chỗ: ${pnrDisplay}\\nCơ sở: ${res.clinic_name}\\nĐịa chỉ: ${res.clinic_address}\\n\\nDanh sách khách khám:\\n${memberListStr}\\n\\n* Quý khách vui lòng đến trước 10 phút để được phục vụ chu đáo nhất.`;
     
     const ics = [
       "BEGIN:VCALENDAR",
@@ -193,7 +232,7 @@ export default function BookingForm() {
       `DTSTART;TZID=Asia/Ho_Chi_Minh:${dtStart}`,
       `DTEND;TZID=Asia/Ho_Chi_Minh:${dtEnd}`,
       "SUMMARY:Khám răng tại Nha Khoa Minh Sinh",
-      `LOCATION:${res.branch_address || ""}`,
+      `LOCATION:${res.clinic_address || ""}`,
       `DESCRIPTION:${desc}`,
       "STATUS:CONFIRMED",
       "BEGIN:VALARM",
@@ -230,15 +269,14 @@ export default function BookingForm() {
     const dtStart = `${dateStr}T${pad(h)}${pad(m)}00`;
     const dtEnd = `${dateStr}T${pad(endH)}${pad(endM)}00`;
     const pnrDisplay = res.group_code ? `MS-${res.group_code}` : res.pnr_code;
-    const memberListStr = res.members.map((mem, idx) => `${idx + 1}. ${mem.full_name} (${mem.service_name} - ${mem.start_time})`).join("\n");
-    const desc = `Khám răng tại Nha Khoa Minh Sinh.\nMã đặt chỗ: ${pnrDisplay}\nCơ sở: ${res.branch_name}\nĐịa chỉ: ${res.branch_address}\n\nDanh sách khách khám:\n${memberListStr}\n\n* Quý khách vui lòng đến trước 10 phút để được phục vụ chu đáo nhất.`;
+    const memberListStr = res.members.map((mem, idx) => `${idx + 1}. Khách ${idx + 1}: ${mem.full_name} (${mem.service_name} - ${mem.start_time})`).join("\n");
+    const desc = `Khám răng tại Nha Khoa Minh Sinh.\nMã đặt chỗ: ${pnrDisplay}\nCơ sở: ${res.clinic_name}\nĐịa chỉ: ${res.clinic_address}\n\nDanh sách khách khám:\n${memberListStr}\n\n* Quý khách vui lòng đến trước 10 phút để được phục vụ chu đáo nhất.`;
     
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Khám răng tại Nha Khoa Minh Sinh")}&dates=${dtStart}/${dtEnd}&ctz=Asia/Ho_Chi_Minh&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(res.branch_address || "")}`;
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("Khám răng tại Nha Khoa Minh Sinh")}&dates=${dtStart}/${dtEnd}&ctz=Asia/Ho_Chi_Minh&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(res.clinic_address || "")}`;
     window.open(url, "_blank");
   };
 
-
-  // Tổng số người trong đoàn (Người đặt chính + Thành viên)
+  // Tổng số người trong đoàn (Khách 1 + Các khách đi cùng)
   const totalGroupSize = useMemo(() => 1 + formData.members.length, [formData.members]);
 
   useEffect(() => {
@@ -276,14 +314,43 @@ export default function BookingForm() {
     fetchData();
   }, []);
 
+  // Tải danh sách slot và tự động chọn slot hợp lệ đầu tiên nếu slot hiện tại đã qua / hết chỗ
   useEffect(() => {
     if (formData.clinicId && formData.date) {
       const fetchSlots = async () => {
         try {
           const res = await fetch(`/api/available-slots/?clinic_id=${formData.clinicId}&date=${formData.date}`);
           const data = await res.json();
-          const slots = Array.isArray(data) ? data : (data?.slots || []);
+          const slots: TimeSlot[] = Array.isArray(data) ? data : (data?.slots || []);
           setAvailableSlots(slots);
+
+          // Tìm slot hợp lệ đầu tiên không bị quá khứ và còn ghế
+          const firstValidSlot = slots.find(s => {
+            const t = s.start_time || (s.time && s.time.includes(' - ') ? s.time.split(' - ')[0] : s.time) || '';
+            const isPast = s.is_past === true || isPastTimeSlot(t, formData.date);
+            const seats = s.available_chairs ?? s.available_seats ?? 5;
+            return !isPast && seats > 0;
+          });
+
+          const currentSlot = slots.find(s => {
+            const t = s.start_time || (s.time && s.time.includes(' - ') ? s.time.split(' - ')[0] : s.time) || '';
+            return t === formData.selectedTime;
+          });
+
+          const isCurrentPast = isPastTimeSlot(formData.selectedTime, formData.date) || currentSlot?.is_past === true;
+          const isCurrentFull = currentSlot ? (currentSlot.available_chairs ?? currentSlot.available_seats ?? 5) <= 0 : false;
+
+          if (isCurrentPast || isCurrentFull) {
+            const validTime = firstValidSlot 
+              ? (firstValidSlot.start_time || (firstValidSlot.time && firstValidSlot.time.includes(' - ') ? firstValidSlot.time.split(' - ')[0] : firstValidSlot.time) || '08:00')
+              : getInitialTimeSlot(formData.date);
+            
+            setFormData(prev => ({
+              ...prev,
+              selectedTime: validTime,
+              members: prev.members.map(m => ({ ...m, start_time: validTime }))
+            }));
+          }
         } catch (err) {
           console.error("Lỗi tải lịch trống:", err);
           setAvailableSlots([]);
@@ -293,6 +360,7 @@ export default function BookingForm() {
     }
   }, [formData.clinicId, formData.date]);
 
+  // Kiểm tra sức chứa và tự động phân phối khi cần
   useEffect(() => {
     if (!formData.clinicId || !formData.date || !formData.selectedTime) return;
     const controller = new AbortController();
@@ -309,7 +377,10 @@ export default function BookingForm() {
       if (controller.signal.aborted) return;
       setCapacityCheck(cap);
       setCapacityLoading(false);
-      if (cap && (cap.is_full || !cap.is_available || totalGroupSize > cap.available_chairs)) {
+
+      const isNotEnoughSeats = cap && (cap.is_full || !cap.is_available || totalGroupSize > cap.available_chairs);
+
+      if (isNotEnoughSeats) {
         setDistributeLoading(true);
         const preview = await fetchDistributePreview({
           clinicId: formData.clinicId,
@@ -323,13 +394,17 @@ export default function BookingForm() {
           setDistributePreview(preview);
           setDistributeLoading(false);
         }
+
+        if (autoDistribute) {
+          autoAllocateSlots(formData.selectedTime);
+        }
       } else {
         setDistributePreview(null);
       }
     };
     runCapacityCheck();
     return () => controller.abort();
-  }, [formData.clinicId, formData.date, formData.selectedTime, totalGroupSize]);
+  }, [formData.clinicId, formData.date, formData.selectedTime, totalGroupSize, autoDistribute, availableSlots]);
 
   // Tìm Category ID từ Service ID
   const getCategoryIdForService = (serviceId: string): number => {
@@ -355,30 +430,34 @@ export default function BookingForm() {
   // --- THUẬT TOÁN TỰ ĐỘNG CHIA CA NỐI TIẾP (Smart Auto-Allocation) ---
   const autoAllocateSlots = (startSlotTime?: string) => {
     const startTime = startSlotTime || formData.selectedTime;
-    const startIndex = availableSlots.findIndex(s => (
-      s.time === startTime || 
-      s.start_time === startTime || 
-      (s.time && s.time.startsWith(startTime))
-    ));
-    
+    const slotsSource: TimeSlot[] = (availableSlots && availableSlots.length > 0)
+      ? availableSlots
+      : TIME_STEPS.map(t => ({ time: t, start_time: t, available_chairs: 5 }));
+
+    let startIndex = slotsSource.findIndex(s => {
+      const t = s.start_time || (s.time && s.time.includes(' - ') ? s.time.split(' - ')[0] : s.time) || '';
+      return t === startTime || s.time === startTime;
+    });
+
     if (startIndex === -1) {
-      return;
+      startIndex = 0;
     }
 
     let remainingToAllocate = [
-      { type: 'leader', id: 'leader', name: formData.leaderName || 'Người đặt lịch' },
-      ...formData.members.map(m => ({ type: 'member', id: m.id, name: m.full_name || 'Thành viên' }))
+      { type: 'leader', id: 'leader', name: formData.leaderName || 'Khách 1' },
+      ...formData.members.map((m, idx) => ({ type: 'member', id: m.id, name: m.full_name || `Khách ${idx + 2}` }))
     ];
 
     const newAllocations: { id: string; time: string; type: string }[] = [];
     let currentIdx = startIndex;
 
-    while (remainingToAllocate.length > 0 && currentIdx < availableSlots.length) {
-      const slot = availableSlots[currentIdx];
-      const seats = slot.available_chairs ?? slot.available_seats ?? 5;
+    while (remainingToAllocate.length > 0 && currentIdx < slotsSource.length) {
+      const slot = slotsSource[currentIdx];
       const slotTime = slot.start_time || (slot.time && slot.time.includes(' - ') ? slot.time.split(' - ')[0] : slot.time) || '';
+      const isPast = slot.is_past === true || isPastTimeSlot(slotTime, formData.date);
+      const seats = slot.available_chairs ?? slot.available_seats ?? 5;
       
-      if (seats > 0) {
+      if (!isPast && seats > 0) {
         const batch = remainingToAllocate.splice(0, seats);
         batch.forEach(person => {
           newAllocations.push({ id: person.id, time: slotTime, type: person.type });
@@ -390,21 +469,36 @@ export default function BookingForm() {
     const leaderAlloc = newAllocations.find(a => a.type === 'leader');
     const memberAllocations = newAllocations.filter(a => a.type === 'member');
 
-    setFormData(prev => ({
-      ...prev,
-      selectedTime: leaderAlloc?.time || prev.selectedTime,
-      members: prev.members.map(m => {
+    setFormData(prev => {
+      const nextSelectedTime = leaderAlloc?.time || prev.selectedTime;
+      const nextMembers = prev.members.map(m => {
         const found = memberAllocations.find(ma => ma.id === m.id);
         return found ? { ...m, start_time: found.time } : m;
-      })
-    }));
+      });
+
+      const isSameLeaderTime = prev.selectedTime === nextSelectedTime;
+      const isSameMembersTime = prev.members.every((m, i) => m.start_time === nextMembers[i]?.start_time);
+
+      if (isSameLeaderTime && isSameMembersTime) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedTime: nextSelectedTime,
+        members: nextMembers
+      };
+    });
 
     setAutoAllocationNotice(`Đã tự động chia ca nối tiếp cho ${totalGroupSize} khách khám bắt đầu từ ${startTime}.`);
     setTimeout(() => setAutoAllocationNotice(''), 6000);
   };
 
   const handleGlobalTimeSelect = (time: string) => {
+    if (isPastTimeSlot(time, formData.date)) return;
     const slot = availableSlots.find(s => s.time === time || s.start_time === time);
+    if (slot?.is_past) return;
+
     const seats = slot?.available_chairs ?? slot?.available_seats ?? 5;
 
     if (seats >= totalGroupSize) {
@@ -413,7 +507,7 @@ export default function BookingForm() {
         selectedTime: time,
         members: prev.members.map(m => ({ ...m, start_time: time }))
       }));
-      setAutoAllocationNotice(`Cả đoàn (${totalGroupSize} người) đã được xếp vào khung giờ ${time}.`);
+      setAutoAllocationNotice(`Cả đoàn (${totalGroupSize} khách) đã được xếp vào khung giờ ${time}.`);
       setTimeout(() => setAutoAllocationNotice(''), 4000);
     } else {
       autoAllocateSlots(time);
@@ -421,7 +515,9 @@ export default function BookingForm() {
   };
 
   const getRemainingSeatsForSlot = (time: string, excludeMemberId?: string) => {
+    const isPast = isPastTimeSlot(time, formData.date);
     const slot = availableSlots.find(s => s.time === time || s.start_time === time);
+    if (isPast || slot?.is_past === true) return 0;
     if (!slot) return 5;
     
     const totalSeats = slot.available_chairs ?? slot.available_seats ?? 5;
@@ -432,7 +528,7 @@ export default function BookingForm() {
       if (m.start_time === time && m.id !== excludeMemberId) occupiedByGroup++;
     });
 
-    return totalSeats - occupiedByGroup;
+    return Math.max(0, totalSeats - occupiedByGroup);
   };
 
   const calculateCapacityWarnings = () => {
@@ -442,7 +538,16 @@ export default function BookingForm() {
 
     const warnings: string[] = [];
     Object.keys(counts).forEach(time => {
+      const isPast = isPastTimeSlot(time, formData.date);
+      if (isPast) {
+        warnings.push(`Khung giờ ${time} đã qua thời gian hiện tại.`);
+        return;
+      }
       const slot = availableSlots.find(s => s.time === time || s.start_time === time);
+      if (slot?.is_past) {
+        warnings.push(`Khung giờ ${time} đã qua.`);
+        return;
+      }
       const seats = slot?.available_chairs ?? slot?.available_seats ?? 5;
       if (counts[time] > seats) {
         warnings.push(`Khung giờ ${time} chỉ còn ${seats} chỗ nhưng bạn đang xếp ${counts[time]} người.`);
@@ -451,7 +556,7 @@ export default function BookingForm() {
     return warnings;
   };
 
-  // --- XỬ LÝ NHẬP LIỆU & VALIDATION CHO NGƯỜI ĐẶT LỊCH ---
+  // --- XỬ LÝ NHẬP LIỆU & VALIDATION CHO NGƯỜI ĐẶT LỊCH (KHÁCH 1) ---
   const handleLeaderNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setFormData(prev => ({ ...prev, leaderName: val }));
@@ -467,7 +572,7 @@ export default function BookingForm() {
   const handleLeaderNameBlur = () => {
     const trimmed = formData.leaderName.trim();
     if (!trimmed) {
-      setErrors(prev => ({ ...prev, leaderName: 'Vui lòng nhập họ và tên người đặt lịch' }));
+      setErrors(prev => ({ ...prev, leaderName: 'Vui lòng nhập họ và tên Khách 1' }));
     } else if (hasInvalidNameChars(formData.leaderName)) {
       setErrors(prev => ({ ...prev, leaderName: NAME_INVALID_WARNING }));
     } else if (trimmed.length < 2) {
@@ -496,7 +601,7 @@ export default function BookingForm() {
     }
   };
 
-  // --- QUẢN LÝ THÀNH VIÊN ĐI CÙNG ---
+  // --- QUẢN LÝ KHÁCH ĐI CÙNG (KHÁCH 2..N) ---
   const addMember = () => {
     if (formData.members.length >= 19) return;
     
@@ -559,7 +664,7 @@ export default function BookingForm() {
     }
   };
 
-  const handleMemberNameBlur = (id: string) => {
+  const handleMemberNameBlur = (id: string, idx: number) => {
     const member = formData.members.find(m => m.id === id);
     if (!member) return;
     const trimmed = member.full_name.trim();
@@ -570,7 +675,7 @@ export default function BookingForm() {
           ...prev.members,
           [id]: {
             ...prev.members?.[id],
-            full_name: 'Vui lòng nhập họ tên cho thành viên'
+            full_name: `Vui lòng nhập họ tên cho Khách ${idx + 2}`
           }
         }
       }));
@@ -669,10 +774,10 @@ export default function BookingForm() {
     const newErrors: typeof errors = { members: {} };
     let hasError = false;
 
-    // Validate họ tên người đặt
+    // Validate họ tên Khách 1 (người đặt)
     const trimmedLeaderName = formData.leaderName.trim();
     if (!trimmedLeaderName) {
-      newErrors.leaderName = 'Vui lòng nhập họ và tên người đặt lịch';
+      newErrors.leaderName = 'Vui lòng nhập họ và tên Khách 1 (Người liên hệ chính)';
       hasError = true;
     } else if (hasInvalidNameChars(formData.leaderName)) {
       newErrors.leaderName = NAME_INVALID_WARNING;
@@ -682,7 +787,7 @@ export default function BookingForm() {
       hasError = true;
     }
 
-    // Validate SĐT người đặt
+    // Validate SĐT Khách 1
     const cleanLeaderPhone = formData.leaderPhone.replace(/\D/g, '');
     if (!cleanLeaderPhone) {
       newErrors.leaderPhone = 'Vui lòng nhập số điện thoại';
@@ -692,12 +797,12 @@ export default function BookingForm() {
       hasError = true;
     }
 
-    // Validate danh sách thành viên đi cùng
+    // Validate danh sách Khách 2..N
     formData.members.forEach((m, idx) => {
       const mErrors: { full_name?: string; phone?: string } = {};
       const mName = m.full_name.trim();
       if (!mName) {
-        mErrors.full_name = `Vui lòng nhập họ tên cho thành viên ${idx + 1}`;
+        mErrors.full_name = `Vui lòng nhập họ tên cho Khách ${idx + 2}`;
         hasError = true;
       } else if (hasInvalidNameChars(m.full_name)) {
         mErrors.full_name = NAME_INVALID_WARNING;
@@ -726,6 +831,14 @@ export default function BookingForm() {
 
   const handleProceedToStep3 = () => {
     if (validateStep2()) {
+      const currentSlot = availableSlots.find(s => (s.time === formData.selectedTime || s.start_time === formData.selectedTime));
+      const seats = currentSlot?.available_chairs ?? currentSlot?.available_seats ?? 5;
+      const isPast = isPastTimeSlot(formData.selectedTime, formData.date) || currentSlot?.is_past === true;
+
+      if ((seats < totalGroupSize || isPast) && autoDistribute) {
+        autoAllocateSlots(formData.selectedTime);
+      }
+
       setStep(3);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -746,7 +859,7 @@ export default function BookingForm() {
     if (warnings.length > 0 && !autoDistribute) {
       setErrors(prev => ({
         ...prev,
-        submit: 'Không thể đặt lịch: Có khung giờ vượt quá số ghế trống. Vui lòng bật Tự động phân phối hoặc chọn lại giờ!'
+        submit: 'Không thể đặt lịch: Có khung giờ vượt quá số ghế trống hoặc đã qua. Vui lòng bật Tự động phân phối hoặc chọn lại giờ!'
       }));
       return;
     }
@@ -758,21 +871,23 @@ export default function BookingForm() {
       const leaderCatId = getCategoryIdForService(formData.leaderServiceId);
       const leaderPhoneClean = formData.leaderPhone.replace(/\D/g, '');
 
-      // Payload cấu trúc đầy đủ chuẩn backend Django BookingCreateView:
-      // clinic_id, date, start_time, patients (fullName, phone, start_time, category_id)
+      // Payload cấu trúc đầy đủ chuẩn backend Django BookingCreateView kèm nhãn Khách 1..N
       const patients = [
         {
+          guest_number: 1,
+          guest_label: 'Khách 1',
           fullName: formData.leaderName.trim(),
           phone: leaderPhoneClean,
           email: '',
           start_time: formData.selectedTime,
           category_id: leaderCatId
         },
-        ...formData.members.map(m => {
+        ...formData.members.map((m, idx) => {
           const mPhoneClean = m.phone ? m.phone.replace(/\D/g, '') : '';
           return {
+            guest_number: idx + 2,
+            guest_label: `Khách ${idx + 2}`,
             fullName: m.full_name.trim(),
-            // Fallback số điện thoại của người đặt nếu thành viên không có số riêng
             phone: mPhoneClean.length >= 10 ? mPhoneClean : leaderPhoneClean,
             email: '',
             start_time: m.start_time || formData.selectedTime,
@@ -793,9 +908,11 @@ export default function BookingForm() {
         leader_phone: leaderPhoneClean,
         leader_service_id: parseInt(formData.leaderServiceId, 10) || 1,
         leader_start_time: formData.selectedTime,
-        members: formData.members.map(m => {
+        members: formData.members.map((m, idx) => {
           const mPhoneClean = m.phone ? m.phone.replace(/\D/g, '') : '';
           return {
+            guest_number: idx + 2,
+            guest_label: `Khách ${idx + 2}`,
             full_name: m.full_name.trim(),
             phone: mPhoneClean.length >= 10 ? mPhoneClean : leaderPhoneClean,
             service_id: parseInt(m.service_id, 10) || 1,
@@ -820,7 +937,7 @@ export default function BookingForm() {
             service_name: getServiceName(formData.leaderServiceId),
             start_time: formData.selectedTime
           },
-          ...formData.members.map(m => {
+          ...formData.members.map((m, idx) => {
             const mClean = m.phone ? m.phone.replace(/\D/g, '') : '';
             return {
               full_name: m.full_name.trim(),
@@ -885,7 +1002,11 @@ export default function BookingForm() {
   );
 
   const capacityWarnings = calculateCapacityWarnings();
-  const perfectSlots = availableSlots.filter(s => (s.available_chairs ?? s.available_seats ?? 0) >= totalGroupSize);
+  const perfectSlots = availableSlots.filter(s => {
+    const t = s.start_time || (s.time && s.time.includes(' - ') ? s.time.split(' - ')[0] : s.time) || '';
+    const isPast = s.is_past === true || isPastTimeSlot(t, formData.date);
+    return !isPast && (s.available_chairs ?? s.available_seats ?? 0) >= totalGroupSize;
+  });
 
   return (
     <div className="w-full max-w-7xl mx-auto p-3.5 sm:p-6 md:p-8 lg:p-10 bg-white rounded-[10px] shadow-xl sm:shadow-2xl border border-gray-100 overflow-x-hidden">
@@ -952,10 +1073,22 @@ export default function BookingForm() {
                   <label className="text-xs sm:text-sm font-bold text-gray-700">Ngày hẹn khám</label>
                   <input
                     type="date"
-                    min={new Date().toISOString().split('T')[0]}
+                    min={getVietnamNow().dateStr}
                     className="w-full px-3.5 py-3 rounded-[10px] border-2 border-gray-200 focus:border-blue-500 bg-white text-gray-800 text-sm outline-none transition-all"
                     value={formData.date}
-                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    onChange={e => {
+                      const newDate = e.target.value;
+                      const initialSlot = getInitialTimeSlot(newDate);
+                      setFormData(prev => ({
+                        ...prev,
+                        date: newDate,
+                        selectedTime: isPastTimeSlot(prev.selectedTime, newDate) ? initialSlot : prev.selectedTime,
+                        members: prev.members.map(m => ({
+                          ...m,
+                          start_time: isPastTimeSlot(m.start_time, newDate) ? initialSlot : m.start_time
+                        }))
+                      }));
+                    }}
                   />
                 </div>
               </div>
@@ -986,7 +1119,7 @@ export default function BookingForm() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-gray-100">
               <div>
                 <h2 className="text-xl sm:text-2xl font-black text-gray-800">Thông tin người khám</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Vui lòng điền thông tin người liên hệ chính và người đi cùng (nếu có)</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Vui lòng điền thông tin Khách 1 (Người liên hệ chính) và các khách đi cùng (nếu có)</p>
               </div>
               <div className="self-start sm:self-auto bg-amber-50 text-amber-800 px-3.5 py-1.5 rounded-full text-xs font-bold border border-amber-200 flex items-center gap-1.5 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -994,10 +1127,10 @@ export default function BookingForm() {
               </div>
             </div>
 
-            {/* Khung người liên hệ chính (Trưởng nhóm) */}
+            {/* Card Khách 1 (Người liên hệ chính) */}
             <div className="bg-white border-2 border-blue-200 rounded-[10px] p-4 sm:p-6 space-y-4 shadow-sm">
               <div className="flex items-center gap-2 text-blue-700 font-bold text-xs sm:text-sm uppercase tracking-wider">
-                <User className="w-4 h-4" /> Người đặt lịch & liên hệ chính
+                <User className="w-4 h-4" /> Khách 1 (Người liên hệ chính)
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1049,12 +1182,12 @@ export default function BookingForm() {
               </div>
             </div>
 
-            {/* Khung thành viên đi cùng */}
+            {/* Khung thành viên đi cùng (Khách 2, Khách 3...) */}
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-gray-800 text-sm sm:text-base">
-                    Thành viên đi cùng ({formData.members.length})
+                    Khách đi cùng ({formData.members.length})
                   </h3>
                   <span className="text-xs text-gray-500 font-normal">(tùy chọn)</span>
                 </div>
@@ -1076,6 +1209,7 @@ export default function BookingForm() {
 
               <div className="space-y-3">
                 {formData.members.map((m, idx) => {
+                  const guestNum = idx + 2;
                   const mErrors = errors.members?.[m.id];
                   return (
                     <motion.div
@@ -1084,14 +1218,14 @@ export default function BookingForm() {
                       className="bg-gray-50/90 p-3.5 sm:p-4 rounded-[10px] border border-gray-200 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-gray-600 bg-white px-2.5 py-1 rounded-lg border border-gray-200">
-                          Thành viên #{idx + 1}
+                        <span className="text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                          Khách {guestNum}
                         </span>
                         <button
                           type="button"
                           onClick={() => removeMember(m.id)}
                           className="text-red-500 hover:text-red-700 transition-colors p-1.5 rounded-lg hover:bg-red-50 flex items-center gap-1 text-xs font-medium"
-                          title="Xóa thành viên"
+                          title={`Xóa Khách ${guestNum}`}
                         >
                           <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">Xóa</span>
                         </button>
@@ -1102,13 +1236,13 @@ export default function BookingForm() {
                           <label className="text-[11px] font-bold text-gray-700">Họ và tên *</label>
                           <input
                             type="text"
-                            placeholder={`Họ và tên thành viên ${idx + 1}`}
+                            placeholder={`Họ và tên Khách ${guestNum}`}
                             className={`w-full px-3 py-2 rounded-[10px] border text-xs sm:text-sm bg-white outline-none transition-all ${
                               mErrors?.full_name ? 'border-red-500 ring-1 ring-red-200' : 'border-gray-200 focus:ring-2 focus:ring-blue-500'
                             }`}
                             value={m.full_name}
                             onChange={e => handleMemberNameChange(m.id, e.target.value)}
-                            onBlur={() => handleMemberNameBlur(m.id)}
+                            onBlur={() => handleMemberNameBlur(m.id, idx)}
                           />
                           {mErrors?.full_name && (
                             <p className="text-[11px] text-red-500 font-medium flex items-center gap-1 mt-0.5">
@@ -1123,7 +1257,7 @@ export default function BookingForm() {
                           </label>
                           <input
                             type="tel"
-                            placeholder="Dùng SĐT người đặt nếu để trống"
+                            placeholder="Dùng SĐT Khách 1 nếu để trống"
                             maxLength={11}
                             className={`w-full px-3 py-2 rounded-[10px] border text-xs sm:text-sm bg-white outline-none transition-all ${
                               mErrors?.phone ? 'border-red-500 ring-2 ring-red-100' : 'border-gray-200 focus:ring-2 focus:ring-blue-500'
@@ -1141,7 +1275,7 @@ export default function BookingForm() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-700">Dịch vụ cho thành viên *</label>
+                        <label className="text-[11px] font-bold text-gray-700">Dịch vụ cho Khách {guestNum} *</label>
                         {renderServiceSelect(m.service_id, e => updateMemberService(m.id, e.target.value))}
                       </div>
                     </motion.div>
@@ -1197,7 +1331,7 @@ export default function BookingForm() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black text-gray-800">Chọn giờ khám thông minh</h2>
-                  <p className="text-xs sm:text-sm text-gray-500">Đoàn của bạn gồm {totalGroupSize} người. Hệ thống tự động kiểm tra số ghế trống theo thời gian thực.</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Đoàn của bạn gồm {totalGroupSize} khách. Hệ thống tự động kiểm tra số ghế trống theo thời gian thực.</p>
                 </div>
               </div>
               
@@ -1205,11 +1339,11 @@ export default function BookingForm() {
               {perfectSlots.length > 0 && (
                 <div className="bg-green-50 border border-green-200 p-3.5 sm:p-4 rounded-[10px]">
                   <p className="text-xs sm:text-sm font-bold text-green-900 mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-green-600 shrink-0" /> Khung giờ còn đủ ghế cho cả đoàn ({totalGroupSize} người):
+                    <Sparkles className="w-4 h-4 text-green-600 shrink-0" /> Khung giờ còn đủ ghế cho cả đoàn ({totalGroupSize} khách):
                   </p>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {perfectSlots.slice(0, 6).map(s => {
-                      const t = s.time || s.start_time || '';
+                      const t = s.start_time || (s.time && s.time.includes(' - ') ? s.time.split(' - ')[0] : s.time) || '';
                       return (
                         <button
                           key={t}
@@ -1255,6 +1389,7 @@ export default function BookingForm() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-1.5 sm:gap-2">
                 {TIME_STEPS.map(time => {
                   const slot = availableSlots.find(s => s.time === time || s.start_time === time);
+                  const isPast = slot?.is_past === true || isPastTimeSlot(time, formData.date);
                   const seats = slot?.available_chairs ?? slot?.available_seats ?? 0;
                   const isFull = seats <= 0;
                   const isSelected = formData.selectedTime === time;
@@ -1263,21 +1398,33 @@ export default function BookingForm() {
                     <button
                       key={time}
                       type="button"
-                      disabled={isFull}
+                      disabled={isPast || isFull}
                       onClick={() => handleGlobalTimeSelect(time)}
                       className={`relative p-2.5 sm:p-3 rounded-[10px] border-2 transition-all flex flex-col items-center justify-center gap-0.5 ${
                         isSelected
                           ? 'bg-blue-600 text-white font-bold ring-2 ring-blue-600 shadow-md transform scale-105 transition-all border-blue-600'
+                          : isPast
+                          ? 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-70'
                           : isFull
                           ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed'
                           : 'border-gray-200 bg-white hover:border-blue-300'
                       }`}
                     >
-                      <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white font-bold' : 'text-gray-800'}`}>
+                      <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white font-bold' : isPast ? 'text-gray-400' : 'text-gray-800'}`}>
                         {time}
                       </span>
-                      <span className={`text-[10px] font-medium ${isSelected ? 'text-blue-100 font-medium' : isFull ? 'text-gray-400' : seats < 3 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                        {isFull ? 'Hết chỗ' : `${seats} ghế`}
+                      <span className={`text-[10px] font-medium ${
+                        isSelected
+                          ? 'text-blue-100 font-medium'
+                          : isPast
+                          ? 'text-gray-400 font-medium'
+                          : isFull
+                          ? 'text-gray-400'
+                          : seats < 3
+                          ? 'text-red-500 font-bold'
+                          : 'text-gray-500'
+                      }`}>
+                        {isPast ? 'Đã qua' : isFull ? 'Hết chỗ' : `${seats} ghế`}
                       </span>
                       {isSelected && (
                         <div className="absolute -top-1.5 -right-1.5 bg-white text-blue-600 rounded-full p-0.5 shadow-sm">
@@ -1290,24 +1437,27 @@ export default function BookingForm() {
               </div>
             </div>
 
-            {/* Lịch trình chi tiết từng thành viên */}
+            {/* Lịch trình chi tiết từng khách */}
             <div className="bg-white rounded-[10px] p-4 sm:p-6 text-slate-800 shadow-sm border border-blue-200 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-blue-100">
                 <h3 className="text-sm sm:text-base font-bold flex items-center gap-2 text-blue-900">
                   <ListOrdered className="w-4 h-4 text-blue-600" /> Lịch trình chi tiết từng khách
                 </h3>
-                <span className="text-xs text-slate-500">Có thể chỉnh giờ riêng cho từng thành viên bên dưới</span>
+                <span className="text-xs text-slate-500">Có thể chỉnh giờ riêng cho từng khách bên dưới</span>
               </div>
               
               <div className="space-y-2.5">
-                {/* Dòng Người đặt lịch */}
+                {/* Dòng Khách 1 (Người liên hệ chính) */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/70 p-3 sm:p-3.5 rounded-[10px] border border-blue-100 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                      NLH
-                    </div>
+                    <span className="px-3 py-1 rounded-full bg-blue-600 text-white font-black text-xs shrink-0 shadow-sm">
+                      Khách 1
+                    </span>
                     <div>
-                      <div className="text-xs sm:text-sm font-bold text-slate-900">{formData.leaderName || 'Người đặt lịch'}</div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-900">
+                        Khách 1: {formData.leaderName || 'Người đặt lịch'}
+                        <span className="ml-2 text-[11px] font-normal text-blue-600">(Người liên hệ chính)</span>
+                      </div>
                       <div className="text-[10px] text-blue-700 font-bold uppercase tracking-wider">{getServiceName(formData.leaderServiceId)}</div>
                     </div>
                   </div>
@@ -1318,40 +1468,69 @@ export default function BookingForm() {
                     onChange={e => setFormData({ ...formData, selectedTime: e.target.value })}
                   >
                     {TIME_STEPS.map(t => {
+                      const slot = availableSlots.find(s => s.time === t || s.start_time === t);
+                      const isPast = slot?.is_past === true || isPastTimeSlot(t, formData.date);
                       const rem = getRemainingSeatsForSlot(t);
-                      return <option key={t} value={t} disabled={rem <= 0}>{t} ({rem} chỗ trống)</option>;
+                      const isSlotFull = slot?.is_full === true || slot?.status === 'full' || rem <= 0;
+
+                      return (
+                        <option key={t} value={t} disabled={isPast || isSlotFull}>
+                          {isPast
+                            ? `${t} (Đã qua)`
+                            : isSlotFull
+                            ? `${t} (Hết chỗ)`
+                            : `${t} (${rem} chỗ trống)`}
+                        </option>
+                      );
                     })}
                   </select>
                 </div>
 
-                {/* Các dòng Thành viên đi cùng */}
-                {formData.members.map((m, idx) => (
-                  <div
-                    key={m.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 sm:p-3.5 rounded-[10px] border border-slate-200/80 shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <div className="text-xs sm:text-sm font-bold text-slate-900">{m.full_name || `Thành viên ${idx + 1}`}</div>
-                        <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{getServiceName(m.service_id)}</div>
-                      </div>
-                    </div>
-
-                    <select
-                      className="w-full sm:w-auto bg-white border border-slate-200 text-slate-800 rounded-[10px] px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm"
-                      value={m.start_time}
-                      onChange={e => updateMemberTime(m.id, e.target.value)}
+                {/* Các dòng Khách đi cùng (Khách 2..N) */}
+                {formData.members.map((m, idx) => {
+                  const guestNum = idx + 2;
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 sm:p-3.5 rounded-[10px] border border-slate-200/80 shadow-sm"
                     >
-                      {TIME_STEPS.map(t => {
-                        const rem = getRemainingSeatsForSlot(t, m.id);
-                        return <option key={t} value={t} disabled={rem <= 0}>{t} ({rem} chỗ trống)</option>;
-                      })}
-                    </select>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 font-black text-xs shrink-0 shadow-sm">
+                          Khách {guestNum}
+                        </span>
+                        <div>
+                          <div className="text-xs sm:text-sm font-bold text-slate-900">
+                            Khách {guestNum}: {m.full_name || `Khách ${guestNum}`}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{getServiceName(m.service_id)}</div>
+                        </div>
+                      </div>
+
+                      <select
+                        className="w-full sm:w-auto bg-white border border-slate-200 text-slate-800 rounded-[10px] px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm"
+                        value={m.start_time}
+                        onChange={e => updateMemberTime(m.id, e.target.value)}
+                      >
+                        {TIME_STEPS.map(t => {
+                          const slot = availableSlots.find(s => s.time === t || s.start_time === t);
+                          const isPast = slot?.is_past === true || isPastTimeSlot(t, formData.date);
+                          const rem = getRemainingSeatsForSlot(t, m.id);
+                          const isSlotFull = slot?.is_full === true || slot?.status === 'full' || rem <= 0;
+
+                          return (
+                            <option key={t} value={t} disabled={isPast || isSlotFull}>
+                              {isPast
+                                ? `${t} (Đã qua)`
+                                : isSlotFull
+                                ? `${t} (Hết chỗ)`
+                                : `${t} (${rem} chỗ trống)`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -1371,7 +1550,7 @@ export default function BookingForm() {
             {capacityWarnings.length > 0 && !autoDistribute && (
               <div className="p-4 bg-red-50 border-2 border-red-200 rounded-[10px] space-y-2">
                 <div className="flex items-center gap-2 text-red-700 font-black text-xs sm:text-sm">
-                  <AlertTriangle className="w-5 h-5 shrink-0" /> CẢNH BÁO: KHUNG GIỜ VƯỢT QUÁ SỨC CHỨA
+                  <AlertTriangle className="w-5 h-5 shrink-0" /> CẢNH BÁO: KHUNG GIỜ VƯỢT QUÁ SỨC CHỨA HOẶC ĐÃ QUA
                 </div>
                 {capacityWarnings.map((w, i) => (
                   <p key={i} className="text-xs text-red-600 font-medium pl-6">• {w}</p>
@@ -1487,10 +1666,10 @@ export default function BookingForm() {
                   members={bookingResult.members}
                 />
 
-                {/* Danh sách thành viên trong vé */}
+                {/* Danh sách khách khám trong vé */}
                 <div className="space-y-3">
                   <div className="text-[10px] font-black text-blue-300 uppercase tracking-widest">
-                    Danh sách khách khám & Khung giờ ({bookingResult.members.length} người)
+                    Danh sách khách khám & Khung giờ ({bookingResult.members.length} khách)
                   </div>
                   <div className="grid grid-cols-1 gap-2">
                     {bookingResult.members.map((m, i) => (
@@ -1500,6 +1679,9 @@ export default function BookingForm() {
                       >
                         <div className="space-y-0.5">
                           <div className="text-xs sm:text-sm font-black flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-blue-500/40 text-blue-200 text-[10px] font-black border border-blue-400/30">
+                              Khách {i + 1}
+                            </span>
                             <span>{m.full_name}</span>
                             {m.phone && <span className="text-[11px] font-normal text-blue-200">({m.phone})</span>}
                           </div>
@@ -1530,7 +1712,6 @@ export default function BookingForm() {
               </div>
             </div>
 
-            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <button
                 onClick={() => bookingResult && handleDownloadICS(bookingResult)}

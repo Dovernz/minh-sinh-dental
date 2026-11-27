@@ -30,6 +30,7 @@
         width: 100%;
         margin-top: clamp(12px, 2vw, 20px);
         font-family: inherit;
+        overflow-x: hidden;
       }
 
       /* Badges & Banners */
@@ -43,6 +44,8 @@
         font-weight: 500;
         line-height: 1.4;
         transition: all 0.3s ease;
+        width: 100%;
+        word-break: break-word;
       }
 
       .ms-badge-green {
@@ -79,6 +82,7 @@
         border-radius: 10px;
         padding: clamp(14px, 2.5vw, 20px);
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        width: 100%;
       }
 
       .ms-warning-box {
@@ -86,6 +90,7 @@
         border-radius: 6px;
         margin-bottom: 14px;
         font-size: clamp(13px, 1.1vw, 14.5px);
+        word-break: break-word;
       }
 
       .ms-checkbox-label {
@@ -98,6 +103,7 @@
         font-size: clamp(13.5px, 1.2vw, 15px);
         color: #2c3e50;
         margin-bottom: 16px;
+        word-break: break-word;
       }
 
       .ms-checkbox-label input[type="checkbox"] {
@@ -106,14 +112,16 @@
         margin-top: 2px;
         cursor: pointer;
         accent-color: #0066cc;
+        flex-shrink: 0;
       }
 
       /* Distribution Preview Grid & List */
       .ms-summary-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: clamp(8px, 1.5vw, 12px);
         margin-bottom: 16px;
+        width: 100%;
       }
 
       .ms-summary-card {
@@ -123,12 +131,14 @@
         padding: 10px 12px;
         border-radius: 6px;
         font-size: clamp(12.5px, 1vw, 13.5px);
+        word-break: break-word;
       }
 
       .ms-patients-preview-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        width: 100%;
       }
 
       .ms-patient-preview-item {
@@ -142,13 +152,17 @@
         border: 1px solid #eee;
         border-radius: 6px;
         font-size: clamp(12.5px, 1.1vw, 14px);
+        width: 100%;
       }
 
       .ms-patient-info {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 8px;
         font-weight: 500;
+        min-width: 0;
+        flex: 1;
       }
 
       .ms-time-tag {
@@ -158,6 +172,7 @@
         border-radius: 4px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
       }
 
       /* Result Screen Styles */
@@ -172,10 +187,17 @@
         margin: 10px 0;
       }
 
+      .ms-result-patient-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 12px;
+      }
+
       .ms-result-patient-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 12px;
+        min-width: 320px;
       }
 
       .ms-result-patient-table th, 
@@ -184,13 +206,26 @@
         border: 1px solid #e0e0e0;
         text-align: left;
         font-size: clamp(12px, 1.1vw, 14px);
+        word-break: break-word;
       }
 
       .ms-result-patient-table th {
         background: #f5f5f5;
       }
 
-      /* Responsive Adjustments */
+      /* Responsive Media Breakpoints */
+      @media (min-width: 1280px) {
+        .ms-capacity-container {
+          max-width: 100%;
+        }
+      }
+
+      @media (min-width: 768px) and (max-width: 1024px) {
+        .ms-summary-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
       @media (max-width: 767px) {
         .ms-patient-preview-item {
           flex-direction: column;
@@ -198,6 +233,20 @@
         }
         .ms-summary-grid {
           grid-template-columns: 1fr;
+        }
+        .ms-banner-badge {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      @media (max-width: 414px) {
+        .ms-capacity-container {
+          padding-left: 4px;
+          padding-right: 4px;
+        }
+        .ms-distribute-panel {
+          padding: 10px;
         }
       }
     `;
@@ -268,7 +317,9 @@
 
       patients.push({
         id: card.dataset.id || `patient_${idx + 1}`,
-        name: nameInput ? (nameInput.value || nameInput.textContent.trim()) : `Khách hàng ${idx + 1}`,
+        guest_number: idx + 1,
+        guest_label: 'Khách ' + (idx + 1),
+        name: nameInput ? (nameInput.value || nameInput.textContent.trim()) : `Khách ${idx + 1}`,
         service_id: serviceSelect ? serviceSelect.value : '',
         service_name: serviceSelect && serviceSelect.options && serviceSelect.selectedIndex >= 0 ? (serviceSelect.options[serviceSelect.selectedIndex]?.text || '') : '',
         time: timeSelect ? timeSelect.value : '',
@@ -289,7 +340,13 @@
         const mainOpt = mainServiceSelect.options[mainServiceSelect.selectedIndex];
         totalDuration = parseInt(mainOpt?.dataset?.estimate, 10) || 30;
       }
-      patients.push({ id: 'p1', name: 'Khách hàng 1', duration: totalDuration });
+      patients.push({ 
+        id: 'p1', 
+        guest_number: 1, 
+        guest_label: 'Khách 1', 
+        name: 'Khách 1', 
+        duration: totalDuration 
+      });
     }
 
     return {
@@ -311,7 +368,6 @@
   }
 
   async function executeSync(bookingData) {
-    // 4. Chuẩn hóa tham số trong executeSync(bookingData)
     const domParams = getBookingParamsFromDOM();
     let params = domParams;
 
@@ -321,7 +377,11 @@
       const resolvedStartTime = timeMatch ? timeMatch[1] : domParams.start_time;
 
       const resolvedPatients = (Array.isArray(bookingData.patients) && bookingData.patients.length > 0) 
-        ? bookingData.patients 
+        ? bookingData.patients.map((p, idx) => ({
+            ...p,
+            guest_number: p.guest_number || (idx + 1),
+            guest_label: p.guest_label || ('Khách ' + (idx + 1))
+          }))
         : domParams.patients;
 
       params = {
@@ -362,32 +422,90 @@
       // Render Step 2 Banner
       renderStep2Banner(capacityData, params);
 
-      // 2. Check if capacity insufficient
+      // 2. Yêu cầu b: Kiểm tra điều kiện thiếu ghế hoặc số khách > 5
       const availableChairs = capacityData.available_chairs ?? 0;
-      const isInsufficient = availableChairs < params.passenger_count || capacityData.is_full || !capacityData.is_available;
+      const isInsufficient = (availableChairs < params.passenger_count) || (params.passenger_count > 5) || capacityData.is_full || !capacityData.is_available;
 
       if (isInsufficient) {
-        // POST Distribute Preview
-        const previewRes = await fetch('/api/capacity-distribute/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clinic_id: params.clinic_id,
-            date: params.date,
-            start_time: params.start_time,
-            patients: params.patients,
-            passenger_count: params.passenger_count,
-            duration: params.duration
-          }),
-          signal: abortController.signal
-        });
+        let distributeData = null;
+        try {
+          // POST Distribute Preview
+          const previewRes = await fetch('/api/capacity-distribute/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clinic_id: params.clinic_id,
+              date: params.date,
+              start_time: params.start_time,
+              patients: params.patients,
+              passenger_count: params.passenger_count,
+              duration: params.duration
+            }),
+            signal: abortController.signal
+          });
 
-        if (!previewRes.ok) throw new Error('Network error capacity-distribute');
-        const distributeData = await previewRes.json();
+          if (!previewRes.ok) throw new Error('Network error capacity-distribute');
+          distributeData = await previewRes.json();
+        } catch (apiErr) {
+          // Fallback preview từ danh sách slot còn mở trên DOM nếu API lỗi hoặc không trả về distributed_patients
+          console.warn('[MS Booking Capacity] API distribute error, generating fallback preview:', apiErr);
+          const openSlotElements = document.querySelectorAll('#timeSlotsGrid .time-slot:not(.disabled)');
+          const openTimes = Array.from(openSlotElements).map(el => {
+            const tText = el.dataset.time || el.textContent || '';
+            const m = tText.match(/\b(\d{2}:\d{2})\b/);
+            return m ? m[1] : null;
+          }).filter(Boolean);
+
+          let currentOpenIdx = 0;
+          const fallbackPatients = params.patients.map((p, idx) => {
+            const assignedTime = openTimes[currentOpenIdx] || params.start_time;
+            if (openTimes.length > 0 && currentOpenIdx < openTimes.length - 1) {
+              currentOpenIdx++;
+            }
+            return {
+              ...p,
+              assigned_time: assignedTime,
+              start_time: assignedTime
+            };
+          });
+
+          distributeData = {
+            needs_distribution: true,
+            can_fulfill_all: openTimes.length > 0,
+            warning_message: params.passenger_count > 5 
+              ? 'Số lượng khách vượt quá giới hạn tối đa (5 khách). Hệ thống đã tự động sắp xếp phân bổ sang các khung giờ lân cận.' 
+              : 'Số lượng ghế trống trong khung giờ chọn không đủ cho tất cả khách. Đã tự động phân bổ dự kiến.',
+            distribution_summary: [{ time: params.start_time, count: Math.min(params.passenger_count, availableChairs || 1) }],
+            distributed_patients: fallbackPatients,
+            unassigned_count: 0
+          };
+        }
+
         lastDistributeData = distributeData;
 
         // Render Step 3 Panel
-        renderStep3Panel(distributeData);
+        renderStep3Panel(distributeData, params);
+
+        // Xử lý tự động sắp xếp lịch nếu checkbox được bật và có danh sách phân bổ
+        if (isAutoDistributeChecked && distributeData && Array.isArray(distributeData.distributed_patients) && distributeData.distributed_patients.length > 0) {
+          const patientCards = document.querySelectorAll('#patientsListContainer .patient-card');
+          distributeData.distributed_patients.forEach((dp, idx) => {
+            if (patientCards[idx]) {
+              const timeSelect = patientCards[idx].querySelector('.p-time, select[name*=time]');
+              const targetTime = dp.assigned_time || dp.start_time;
+              if (timeSelect && targetTime) {
+                timeSelect.value = targetTime;
+                timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+          });
+
+          // Dispatch Custom Event để page-booking.php refresh lại trạng thái disabled của các dropdown .p-time
+          window.dispatchEvent(new CustomEvent('ms:capacityDistributed', {
+            detail: { distributed_patients: distributeData.distributed_patients }
+          }));
+        }
+
       } else {
         lastDistributeData = null;
         clearStep3Panel();
@@ -407,21 +525,25 @@
     const available = data.available_chairs ?? 0;
     const total = data.total_chairs ?? 0;
     const count = params.passenger_count;
-    const isEnough = available >= count && !data.is_full && data.is_available;
+    const isEnough = (available >= count) && (count <= 5) && !data.is_full && data.is_available;
 
     let badgeClass = 'ms-badge-green';
     let icon = '✓';
     let message = `Còn <strong>${available}/${total}</strong> ghế trống tại ${params.start_time}`;
 
     if (!isEnough) {
-      if (available > 0) {
+      if (count > 5) {
+        badgeClass = 'ms-badge-red';
+        icon = '⛔';
+        message = `Số lượng khách (${count}) vượt quá giới hạn tối đa cho phép (5 khách/lượt). Khung giờ sẽ được tự động phân bổ sang các mốc giờ kế tiếp.`;
+      } else if (available > 0) {
         badgeClass = 'ms-badge-orange';
         icon = '⚠️';
-        message = `Chỉ còn <strong>${available}/${total}</strong> ghế trống tại ${params.start_time} (Yêu cầu: ${count} ghế)`;
+        message = `Chỉ còn <strong>${available}/${total}</strong> ghế trống tại ${params.start_time} (Yêu cầu: ${count} ghế). Hệ thống sẽ tự động phân bổ lịch.`;
       } else {
         badgeClass = 'ms-badge-red';
         icon = '✕';
-        message = `Khung giờ ${params.start_time} đã hết ghế trống (0/${total})`;
+        message = `Khung giờ ${params.start_time} đã hết ghế trống (0/${total}). Hệ thống sẽ phân phối sang giờ khác.`;
       }
     }
 
@@ -433,7 +555,7 @@
     `;
   }
 
-  function renderStep3Panel(data) {
+  function renderStep3Panel(data, params) {
     const container = getStep3Container();
     if (!container) return;
 
@@ -441,10 +563,27 @@
       isAutoDistributeChecked = data.needs_distribution && data.can_fulfill_all;
     }
 
-    const warningMsg = data.warning_message || 'Số lượng ghế trống trong khung giờ chọn không đủ cho tất cả khách.';
+    const passengerCount = (params && params.passenger_count) || (params && params.patients && params.patients.length) || 0;
+    const unassignedCount = data.unassigned_count || 0;
+    const isOverLimit = Boolean((params && params.passenger_count > 5) || unassignedCount > 0 || !data.can_fulfill_all);
+    const topBadgeClass = isOverLimit ? 'ms-badge-red' : 'ms-badge-orange';
+    const topBadgeIcon = isOverLimit ? '⛔' : '⚠️';
+
+    let topBannerMessage = '';
+    if (params && params.passenger_count > 5) {
+      topBannerMessage = `Hiện có <strong>${passengerCount} khách</strong> (vượt quá mức tối đa 5 khách/lượt). Hệ thống đã tự động kích hoạt điều phối và phân bổ lịch sang các khung giờ kế tiếp.`;
+    } else if (!data.can_fulfill_all || unassignedCount > 0) {
+      topBannerMessage = `Hiện có <strong>${passengerCount} khách</strong>, vượt quá số ghế còn trống tại khung giờ đã chọn và không đủ ghế trong ngày (còn thiếu cho <strong>${unassignedCount}</strong> khách). Lịch đang được phân phối sang các khung giờ kế tiếp.`;
+    } else {
+      topBannerMessage = `Hiện có <strong>${passengerCount} khách</strong>, vượt quá số ghế còn trống tại khung giờ đã chọn. Hệ thống đang tự động phân bổ lịch hẹn sang các khung giờ kế tiếp.`;
+    }
+
+    const defaultWarning = params && params.passenger_count > 5 
+      ? 'Số lượng khách vượt quá 5 người. Đã kích hoạt cơ chế tự động phân bổ lịch.' 
+      : 'Số lượng ghế trống trong khung giờ chọn không đủ cho tất cả khách.';
+    const warningMsg = data.warning_message || defaultWarning;
     const summaryList = data.distribution_summary || [];
     const patientList = data.distributed_patients || [];
-    const unassignedCount = data.unassigned_count || 0;
 
     let summaryHtml = '';
     if (summaryList.length > 0) {
@@ -463,17 +602,22 @@
     if (patientList.length > 0) {
       patientsHtml = `
         <div class="ms-patients-preview-list">
-          ${patientList.map(p => `
+          ${patientList.map((p, idx) => {
+            const guestNum = p.guest_number || (idx + 1);
+            const rawPatientName = p.name || p.patient_name || '';
+            const displayName = rawPatientName ? ('Khách ' + guestNum + ': ' + rawPatientName) : ('Khách ' + guestNum);
+            return `
             <div class="ms-patient-preview-item">
               <div class="ms-patient-info">
-                <span>👤 ${p.name || p.patient_name}</span>
+                <span>👤 <strong>${displayName}</strong></span>
                 ${p.service_name ? `<small style="color:#666;">(${p.service_name})</small>` : ''}
               </div>
               <div>
                 <span class="ms-time-tag">Giờ mới: ${p.assigned_time || p.start_time}</span>
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       `;
     }
@@ -490,6 +634,10 @@
 
     container.innerHTML = `
       <div class="ms-distribute-panel">
+        <div class="ms-banner-badge ${topBadgeClass}" style="margin-bottom: 14px;">
+          <span class="ms-badge-icon">${topBadgeIcon}</span>
+          <span>${topBannerMessage}</span>
+        </div>
         <div class="ms-warning-box ms-badge-orange">
           ⚠️ ${warningMsg}
         </div>
@@ -556,32 +704,37 @@
       const bookings = resData.bookings || [];
       if (bookings.length > 0) {
         html += `
-          <table class="ms-result-patient-table">
-            <thead>
-              <tr>
-                <th>Khách hàng</th>
-                <th>Dịch vụ</th>
-                <th>Giờ hẹn thực tế</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${bookings.map((b, idx) => {
-                const patientName = b.patient_name || b.customer_name || b.full_name || b.fullName || b.name || `Khách hàng ${idx + 1}`;
-                const matchedService = Array.isArray(servicesList) && b.category_id
-                  ? servicesList.find(s => String(s.id || s.category_id) === String(b.category_id))
-                  : null;
-                const serviceName = b.service_name || b.service || b.category_name || (matchedService ? matchedService.name : '') || '-';
-                const startTime = b.start_time || b.assigned_time || b.time || '';
-                return `
+          <div class="ms-result-patient-table-wrapper">
+            <table class="ms-result-patient-table">
+              <thead>
                 <tr>
-                  <td><strong>${patientName}</strong></td>
-                  <td>${serviceName}</td>
-                  <td><span class="ms-time-tag">${startTime}</span></td>
+                  <th>Khách hàng</th>
+                  <th>Dịch vụ</th>
+                  <th>Giờ hẹn thực tế</th>
                 </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${bookings.map((b, idx) => {
+                  const guestNum = idx + 1;
+                  const rawName = b.patient_name || b.customer_name || b.full_name || b.fullName || b.name || '';
+                  const patientName = rawName ? ('Khách ' + guestNum + ': ' + rawName) : ('Khách ' + guestNum);
+                  
+                  const matchedService = Array.isArray(servicesList) && b.category_id
+                    ? servicesList.find(s => String(s.id || s.category_id) === String(b.category_id))
+                    : null;
+                  const serviceName = b.service_name || b.service || b.category_name || (matchedService ? matchedService.name : '') || '-';
+                  const startTime = b.start_time || b.assigned_time || b.time || '';
+                  return `
+                  <tr>
+                    <td><strong>${patientName}</strong></td>
+                    <td>${serviceName}</td>
+                    <td><span class="ms-time-tag">${startTime}</span></td>
+                  </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
         `;
       } else {
         html += `<p>Đặt lịch thành công!</p>`;

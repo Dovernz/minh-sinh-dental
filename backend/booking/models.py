@@ -229,8 +229,13 @@ class Booking(models.Model):
     created_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_bookings', help_text='Nhân viên tạo booking (Null nếu khách tự đặt trên web)')
 
     estimated_duration = models.IntegerField(null=True, blank=True, help_text='Thời lượng dự kiến (phút)')
+    guest_order = models.PositiveIntegerField(default=1, verbose_name="Thứ tự khách")
     group_code = models.CharField(max_length=50, blank=True, null=True, db_index=True, verbose_name="Mã đặt chỗ")
     pnr_code = models.CharField(max_length=20, blank=True, null=True, db_index=True, verbose_name="Mã PNR")
+
+    @property
+    def guest_label(self):
+        return f"Khách {self.guest_order or 1}"
 
     class Meta:
         db_table = 'db_table_bookings'

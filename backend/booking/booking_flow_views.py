@@ -66,14 +66,34 @@ class AvailableSlotsView(APIView):
         total_chairs = get_clinic_total_chairs(clinic)
         results = []
 
+        now_local = timezone.localtime(timezone.now())
+        today_local = now_local.date()
+
         for ts in time_slots:
+            slot_start_dt = make_aware_dt(target_date, ts.start_time)
+            slot_end_dt = make_aware_dt(target_date, ts.end_time)
+
             booked_count = sum(
                 1 for b in bookings
-                if b.start_time and b.end_time and
-                timezone.localtime(b.start_time).time() <= ts.start_time < timezone.localtime(b.end_time).time()
+                if b.start_time and (
+                    b_start := b.start_time,
+                    b_end := b.end_time or (b.start_time + timedelta(minutes=b.estimated_duration or 30)),
+                    b_start < slot_end_dt and b_end > slot_start_dt
+                )[-1]
             )
+
             available = max(0, total_chairs - booked_count)
             is_full = available <= 0
+            is_past = (target_date < today_local) or (slot_start_dt <= now_local)
+            is_available = (not is_full) and (not is_past)
+            slot_status = 'past' if is_past else ('full' if is_full else 'available')
+
+            if is_past:
+                warning_message = f"Khung giờ {ts.start_time.strftime('%H:%M')} đã qua."
+            elif is_full:
+                warning_message = f"Khung giờ {ts.start_time.strftime('%H:%M')} đã hết ghế trống."
+            else:
+                warning_message = None
 
             results.append({
                 'time': f"{ts.start_time.strftime('%H:%M')} - {ts.end_time.strftime('%H:%M')}",
@@ -81,10 +101,15 @@ class AvailableSlotsView(APIView):
                 'end_time': ts.end_time.strftime('%H:%M'),
                 'available_chairs': available,
                 'total_chairs': total_chairs,
+                'max_chairs': total_chairs,
                 'booked_count': booked_count,
+                'occupied_chairs': booked_count,
                 'active_bookings': booked_count,
                 'is_full': is_full,
-                'warning_message': f"Khung giờ {ts.start_time.strftime('%H:%M')} đã hết ghế trống." if is_full else None
+                'is_past': is_past,
+                'is_available': is_available,
+                'status': slot_status,
+                'warning_message': warning_message
             })
 
         return Response(results, status=status.HTTP_200_OK)
@@ -133,9 +158,13 @@ class BookingDistributionPreviewView(APIView):
 
         if isinstance(patients, list) and len(patients) > 0:
             normalized_patients = []
-            for p in patients:
+            for idx, p in enumerate(patients):
+                guest_order = int(p.get('guest_order') or p.get('passenger_index') or p.get('guest_index') or (idx + 1))
+                guest_label = p.get('guest_label') or f'Khách {guest_order}'
                 normalized_patients.append({
-                    'fullName': p.get('fullName') or p.get('full_name') or p.get('name') or 'Khách hàng',
+                    'guest_order': guest_order,
+                    'guest_label': guest_label,
+                    'fullName': p.get('fullName') or p.get('full_name') or p.get('name') or guest_label,
                     'phone': p.get('phone'),
                     'category_id': p.get('category_id'),
                     'service_name': p.get('service_name'),
@@ -147,10 +176,16 @@ class BookingDistributionPreviewView(APIView):
                 p_count = int(passenger_count or 1)
             except (ValueError, TypeError):
                 p_count = 1
-            normalized_patients = [
-                {'fullName': f'Khách {i+1}', 'duration': duration}
-                for i in range(max(1, p_count))
-            ]
+            normalized_patients = []
+            for i in range(max(1, p_count)):
+                guest_order = i + 1
+                guest_label = f'Khách {guest_order}'
+                normalized_patients.append({
+                    'guest_order': guest_order,
+                    'guest_label': guest_label,
+                    'fullName': guest_label,
+                    'duration': duration
+                })
 
         dist = compute_auto_distribution(
             clinic, target_date, req_start_time, normalized_patients, default_duration=duration
@@ -160,7 +195,11 @@ class BookingDistributionPreviewView(APIView):
             for item in dist['distributed_patients']:
                 item.pop('assigned_start_dt', None)
                 item.pop('assigned_end_dt', None)
-                item.setdefault('name', item.get('fullName') or item.get('full_name') or 'Khách hàng')
+                guest_order = item.get('guest_order', 1)
+                guest_label = item.get('guest_label', f'Khách {guest_order}')
+                item.setdefault('guest_order', guest_order)
+                item.setdefault('guest_label', guest_label)
+                item.setdefault('name', item.get('fullName') or item.get('full_name') or guest_label)
                 item.setdefault('assigned_time', item.get('assigned_start_time'))
 
         if 'distribution_summary' in dist:
@@ -198,8 +237,12 @@ class BookingCreateView(APIView):
             leader_phone = data.get('leader_phone') or data.get('phone') or ''
             patients = []
             for i in range(p_count):
+                guest_order = i + 1
+                guest_label = f'Khách {guest_order}'
                 patients.append({
-                    'fullName': leader_name if i == 0 else f"{leader_name} - Khách {i+1}",
+                    'guest_order': guest_order,
+                    'guest_label': guest_label,
+                    'fullName': leader_name if i == 0 else f"{leader_name} - {guest_label}",
                     'phone': leader_phone,
                     'start_time': default_start_time_str,
                     'category_id': data.get('category_id')
@@ -227,8 +270,11 @@ class BookingCreateView(APIView):
             )
 
         prepared_patients = []
-        for p in patients:
-            name = p.get('fullName') or p.get('full_name')
+        for idx, p in enumerate(patients):
+            guest_order = int(p.get('guest_order') or p.get('passenger_index') or p.get('guest_index') or (idx + 1))
+            guest_label = p.get('guest_label') or f'Khách {guest_order}'
+
+            name = p.get('fullName') or p.get('full_name') or guest_label
             phone = p.get('phone')
             if not name or not phone:
                 return Response(
@@ -262,7 +308,18 @@ class BookingCreateView(APIView):
                 except ServiceCategory.DoesNotExist:
                     pass
 
+            raw_note = p.get('note', '')
+            if raw_note:
+                if guest_label not in raw_note:
+                    formatted_note = f"[Khách {guest_order}] {raw_note}"
+                else:
+                    formatted_note = raw_note
+            else:
+                formatted_note = guest_label
+
             prepared_patients.append({
+                'guest_order': guest_order,
+                'guest_label': guest_label,
                 'fullName': name,
                 'full_name': name,
                 'phone': phone,
@@ -271,7 +328,7 @@ class BookingCreateView(APIView):
                 'category': p_category,
                 'category_id': cat_id,
                 'duration': int(p.get('duration') or p_duration),
-                'note': p.get('note', '')
+                'note': formatted_note
             })
 
         primary_start_time = prepared_patients[0]['start_time']
@@ -285,7 +342,6 @@ class BookingCreateView(APIView):
             batch_allocated_slots = []
 
             if auto_distribute:
-                # Check if all prepared_patients fit in requested slots without shifting
                 all_fit_without_shift = True
                 temp_allocated = []
                 for p in prepared_patients:
@@ -306,6 +362,8 @@ class BookingCreateView(APIView):
                         'can_fulfill_all': True,
                         'distributed_patients': [
                             {
+                                'guest_order': p['guest_order'],
+                                'guest_label': p['guest_label'],
                                 'fullName': p['fullName'],
                                 'phone': p['phone'],
                                 'category_id': p['category_id'],
@@ -388,6 +446,9 @@ class BookingCreateView(APIView):
                 assigned_start = item['assigned_start_dt']
                 assigned_end = item['assigned_end_dt']
                 duration_val = item.get('duration', 30)
+                g_order = int(item.get('guest_order', 1))
+                g_label = item.get('guest_label', f'Khách {g_order}')
+                item_note = item.get('note', '')
 
                 booking = Booking.objects.create(
                     clinic=locked_clinic,
@@ -400,7 +461,8 @@ class BookingCreateView(APIView):
                     pnr_code=pnr_code,
                     group_code=group_code,
                     created_user_id=created_user_id,
-                    notes=item.get('note', '')
+                    notes=item_note,
+                    guest_order=g_order
                 )
 
                 BookingStatusHistory.objects.create(
@@ -413,10 +475,13 @@ class BookingCreateView(APIView):
                 bookings_info.append({
                     'booking_id': booking.booking_id,
                     'pnr_code': pnr_code,
+                    'guest_order': g_order,
+                    'guest_label': g_label,
                     'customer_name': cust_name,
                     'customer_phone': cust_phone,
                     'start_time': timezone.localtime(assigned_start).strftime('%H:%M'),
                     'end_time': timezone.localtime(assigned_end).strftime('%H:%M'),
+                    'notes': item_note,
                     'is_shifted': item.get('is_shifted', False),
                     'status': booking.status
                 })
@@ -436,6 +501,8 @@ class BookingCreateView(APIView):
 
         threading.Thread(target=send_async_emails, daemon=True).start()
 
+        total_chairs = get_clinic_total_chairs(locked_clinic)
+
         return JsonResponse({
             'pnr_code': pnr_code,
             'group_code': group_code,
@@ -443,6 +510,8 @@ class BookingCreateView(APIView):
             'booking_id': created_booking_ids[0] if created_booking_ids else None,
             'status': 'success',
             'auto_distributed': needs_distribution,
+            'needs_distribution': needs_distribution,
+            'total_chairs': total_chairs,
             'warning_message': dist_warning,
             'distribution_summary': dist_summary,
             'bookings': bookings_info,

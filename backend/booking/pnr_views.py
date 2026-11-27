@@ -20,7 +20,7 @@ class PNRLookupAPIView(APIView):
     def get(self, request, pnr_code):
         bookings = Booking.objects.filter(
             Q(pnr_code__iexact=pnr_code) | Q(group_code__iexact=pnr_code)
-        ).select_related('customer', 'clinic', 'category').prefetch_related('details__service_detail').order_by('booking_id')
+        ).select_related('customer', 'clinic', 'category').prefetch_related('details__service_detail').order_by('guest_order', 'booking_id')
 
         if not bookings.exists():
             return Response({"error": f"Không tìm thấy mã PNR {pnr_code}"}, status=404)
@@ -54,6 +54,8 @@ class PNRLookupAPIView(APIView):
             et_local = timezone.localtime(b.end_time) if (b.end_time and timezone.is_aware(b.end_time)) else b.end_time
             passengers_list.append({
                 "booking_id": b.booking_id,
+                "guest_order": b.guest_order or 1,
+                "guest_label": b.guest_label,
                 "status": b.status,
                 "start_time": st_local.strftime("%Y-%m-%d %H:%M") if st_local else None,
                 "end_time": et_local.strftime("%Y-%m-%d %H:%M") if et_local else None,
