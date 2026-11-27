@@ -154,10 +154,9 @@ def sso_to_wordpress_view(request: HttpRequest) -> HttpResponse:
     """
     user = request.user
 
-    # Permission check: superuser, staff, or specific permissions
+    # Permission check: superuser or specific WordPress permissions
     has_access = (
         user.is_superuser
-        or user.is_staff
         or any(user.has_perm(perm) for perm in SSO_PERMISSIONS)
     )
 

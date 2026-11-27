@@ -421,6 +421,7 @@ document.addEventListener("DOMContentLoaded", function () {
         time: "", // Giờ chung từ bước 2
         patients: [] // Danh sách khách hàng
     };
+    window.__msBookingData = bookingData;
 
     let servicesList = []; // Lưu cache dịch vụ
     let currentStep = 1;
@@ -481,6 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clinics.forEach((c, idx) => {
             const btn = document.createElement("div");
             btn.className = `clinic-tab-btn ${idx === 0 ? 'active' : ''}`;
+            btn.dataset.clinicId = c.id;
             btn.innerHTML = `<strong>${c.name}</strong><span class="clinic-address-text">${c.address}</span>`;
             if(idx === 0) {
                 bookingData.clinicId = c.id;
@@ -568,6 +570,7 @@ document.addEventListener("DOMContentLoaded", function () {
             infoEl.style.display = "block";
             infoEl.innerHTML = `Khung thời gian dự kiến: <strong>${startTime} - ${endTime} (${duration} phút)</strong>`;
         }
+        if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
     }
 
     async function fetchSlots() {
@@ -633,6 +636,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const slot = document.createElement("div");
             slot.className = `time-slot ${!canBook ? 'disabled' : ''} ${isSelected && canBook ? 'selected' : ''}`;
+            slot.dataset.time = s.start_time;
 
             if (!canBook) {
                 slot.innerHTML = `<div>${s.start_time}</div><span class="slot-badge-full">Đã kín</span>`;
@@ -916,22 +920,33 @@ Thời gian: ${booking.time} ngày ${booking.date}`);
             date: bookingData.date,
             start_time: bookingData.time,
             category_id: mainServiceSelect.value,
+            auto_distribute: window.MSBookingCapacity ? window.MSBookingCapacity.getAutoDistribute() : false,
             patients: patients
         };
 
         console.log("Sending Payload:", payload);
 
         let generatedCode = 'MS-GRP-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+        let serverData = null;
         try {
             const response = await fetch('/api/bookings/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (response.ok) {
-                const resData = await response.json();
-                if (resData.group_code) generatedCode = resData.group_code;
-                else if (resData.booking_code) generatedCode = resData.booking_code;
+            serverData = await response.json().catch(() => null);
+            if (!response.ok) {
+                const errMsg = (serverData && (serverData.error || serverData.warning_message || serverData.message)) || 'Không đủ ghế trống tại khung giờ đã chọn. Vui lòng bật tự động phân phối hoặc chọn giờ khác.';
+                alert(errMsg);
+                currentStep = 3;
+                updateUI();
+                if (window.MSBookingCapacity) window.MSBookingCapacity.sync(bookingData);
+                return;
+            }
+            if (serverData) {
+                if (serverData.pnr_code) generatedCode = serverData.pnr_code;
+                else if (serverData.group_code) generatedCode = serverData.group_code;
+                else if (serverData.booking_code) generatedCode = serverData.booking_code;
             }
         } catch (error) {
             console.warn('Backend Django chưa sẵn sàng, dùng mã dự phòng:', error);
@@ -939,14 +954,20 @@ Thời gian: ${booking.time} ngày ${booking.date}`);
         const displayGroupCode = document.getElementById('displayGroupCode');
         if (displayGroupCode) displayGroupCode.innerText = 'Mã đặt chỗ: ' + generatedCode;
         setupCalendarButtons({ groupCode: generatedCode, clinicName: bookingData.clinicName, date: bookingData.date, time: bookingData.time });
+        const summaryListEl = document.getElementById('summaryList');
+        if (serverData && window.MSBookingCapacity && typeof window.MSBookingCapacity.renderBookingResult === 'function') {
+            window.MSBookingCapacity.renderBookingResult(serverData, summaryListEl, displayGroupCode, bookingData, servicesList);
+            return;
+        }
         let summaryHtml = `<div class="summary-item"><strong>Cơ sở:</strong> ${bookingData.clinicName} | <strong>Ngày:</strong> ${bookingData.date}</div>`;
         patients.forEach((p, idx) => {
             const sName = servicesList.find(s => s.id == p.category_id)?.name || 'Dịch vụ nha khoa';
             summaryHtml += `<div class="summary-item"><strong>Khách ${idx+1}:</strong> ${p.fullName} - ${p.phone}<br><small>Dịch vụ: ${sName} | Giờ: ${p.start_time}</small></div>`;
         });
-        document.getElementById('summaryList').innerHTML = summaryHtml;
+        summaryListEl.innerHTML = summaryHtml;
     }
 });
 </script>
+<script src="<?php echo esc_url(get_template_directory_uri()); ?>/js/booking-capacity.js?v=1.0.0" defer></script>
 
 <?php get_footer(); ?>

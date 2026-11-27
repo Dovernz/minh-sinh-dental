@@ -300,14 +300,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filterName === 'Upcoming') targetStatus = 'Pending';
         if (filterName === 'Canceled' || filterName === 'Cancelled') targetStatus = 'Cancelled';
 
+        const upcomingStatuses = new Set(['Pending', 'Confirmed', 'In_progress', 'booked', 'Booked', 'paid', 'Paid', 'Khám', 'Upcoming']);
+        const completedStatuses = new Set(['Completed', 'completed', 'Đã xong']);
+        const canceledStatuses = new Set(['Cancelled', 'cancelled', 'Canceled', 'canceled', 'Đã hủy']);
+
         bookingItems.forEach(item => {
-            let itemStatus = item.dataset.status;
-            if (!itemStatus || itemStatus.trim() === '') {
+            let itemStatus = (item.dataset.status || '').trim();
+            if (!itemStatus) {
                 itemStatus = 'Pending';
             }
-            // Ensure any legacy values align with the new expected statuses
-            if (itemStatus === 'Upcoming') itemStatus = 'Pending';
-            if (itemStatus === 'Canceled') itemStatus = 'Cancelled';
+            if (upcomingStatuses.has(itemStatus)) itemStatus = 'Pending';
+            else if (completedStatuses.has(itemStatus)) itemStatus = 'Completed';
+            else if (canceledStatuses.has(itemStatus)) itemStatus = 'Cancelled';
 
             if (itemStatus === targetStatus) {
                 item.style.display = 'block';

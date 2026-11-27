@@ -1,5 +1,6 @@
 from django.views import View
 from django.http import JsonResponse
+from booking.permissions import StaffPermissionRequiredMixin, has_commission_perm
 from booking.models import Booking, BookingDetail, Employee, CommissionRate, Payment, Billing
 from django.db.models import Sum, Q, F
 from django.utils.dateparse import parse_date
@@ -295,7 +296,10 @@ def extract_commission_items(start_date=None, end_date=None, doctor_id=None, cal
     return items
 
 
-class CommissionOverviewAPIView(View):
+class CommissionOverviewAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_commission_perm)
+    api_mode = True
+
     def get(self, request):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
@@ -324,7 +328,10 @@ class CommissionOverviewAPIView(View):
         return JsonResponse(result, safe=False)
 
 
-class CommissionDetailAPIView(View):
+class CommissionDetailAPIView(StaffPermissionRequiredMixin, View):
+    permission_check_func = staticmethod(has_commission_perm)
+    api_mode = True
+
     def get(self, request, doctor_id):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.utils import timezone
+from django.contrib.auth.models import User, Group
 from booking.models import (
     Clinic, Customer, ServiceCategory, ServiceDetail,
     Booking, BookingDetail, Billing, Payment
@@ -12,6 +13,8 @@ from booking.models import (
 vn_tz = zoneinfo.ZoneInfo('Asia/Ho_Chi_Minh')
 
 class PNRGroupE2ETestCase(APITestCase):
+    fixtures = ['rbac_roles.json']
+
     """
     E2E Test Suite for Dental PNR Group Booking System:
     - Case 1: Multi-Customer Booking & PNR Lookup
@@ -21,6 +24,10 @@ class PNRGroupE2ETestCase(APITestCase):
     """
 
     def setUp(self):
+        self.reception_user = User.objects.create_user(username='e2e_reception', is_staff=True)
+        self.reception_user.groups.add(Group.objects.get(name='Reception'))
+        self.client.force_authenticate(user=self.reception_user)
+
         # 1. Cơ sở phòng khám test
         self.clinic = Clinic.objects.create(
             name="Nha Khoa Minh Sinh - Luxury PNR Center",

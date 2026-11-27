@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 import mammoth
 import uuid
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from django.core.signing import TimestampSigner
 
 def image_handler(image):
@@ -45,6 +46,7 @@ class MarketingArticleForm(forms.ModelForm):
 
 from django.contrib.admin.widgets import AdminFileWidget
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 class CustomCloudinaryWidget(AdminFileWidget):
     def render(self, name, value, attrs=None, renderer=None):
@@ -203,20 +205,20 @@ class MarketingArticleAdmin(ModelAdmin):
 
     def has_module_permission(self, request):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Marketing').exists()
+        return super().has_module_permission(request) or request.user.groups.filter(name__in=['Marketing', 'Admin']).exists()
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Marketing').exists()
+        return super().has_view_permission(request, obj) or request.user.groups.filter(name__in=['Marketing', 'Admin']).exists()
 
     def has_add_permission(self, request):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Marketing').exists()
+        return super().has_add_permission(request) or request.user.groups.filter(name__in=['Marketing', 'Admin']).exists()
 
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Marketing').exists()
+        return super().has_change_permission(request, obj) or request.user.groups.filter(name__in=['Marketing', 'Admin']).exists()
 
     def has_delete_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Marketing').exists()
+        return super().has_delete_permission(request, obj) or request.user.groups.filter(name__in=['Marketing', 'Admin']).exists()

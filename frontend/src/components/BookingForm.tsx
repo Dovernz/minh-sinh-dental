@@ -3,6 +3,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, Users, Plus, Trash2, CheckCircle2, ChevronRight, ChevronLeft, AlertTriangle, Printer, Barcode, QrCode, PlaneTakeoff, Info, Zap, Sparkles, LayoutGrid, ListOrdered, Phone, User, Loader2, AlertCircle, CalendarPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CapacityDistributionPanel, { BookingDistributionSummaryBanner } from '@/components/booking/CapacityDistributionPanel';
+import {
+  fetchCapacityCheck,
+  fetchDistributePreview,
+  CapacityCheckResponse,
+  DistributePreviewResponse,
+  BookingCreateResponse
+} from '@/lib/bookingCapacityApi';
 
 interface Clinic {
   clinic_id?: number;
@@ -57,6 +65,9 @@ interface BookingResult {
     service_name: string;
     start_time: string;
   }[];
+  auto_distributed?: boolean;
+  warning_message?: string | null;
+  distribution_summary?: any;
 }
 
 const TIME_STEPS = [
@@ -94,6 +105,11 @@ export default function BookingForm() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [autoAllocationNotice, setAutoAllocationNotice] = useState<string>('');
+  const [capacityCheck, setCapacityCheck] = useState<CapacityCheckResponse | null>(null);
+  const [capacityLoading, setCapacityLoading] = useState<boolean>(false);
+  const [distributePreview, setDistributePreview] = useState<DistributePreviewResponse | null>(null);
+  const [distributeLoading, setDistributeLoading] = useState<boolean>(false);
+  const [autoDistribute, setAutoDistribute] = useState<boolean>(true);
 
   // State lỗi validation cho từng trường
   const [errors, setErrors] = useState<{
@@ -276,6 +292,44 @@ export default function BookingForm() {
       fetchSlots();
     }
   }, [formData.clinicId, formData.date]);
+
+  useEffect(() => {
+    if (!formData.clinicId || !formData.date || !formData.selectedTime) return;
+    const controller = new AbortController();
+    const runCapacityCheck = async () => {
+      setCapacityLoading(true);
+      const cap = await fetchCapacityCheck({
+        clinicId: formData.clinicId,
+        date: formData.date,
+        startTime: formData.selectedTime,
+        passengerCount: totalGroupSize,
+        duration: 30,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      setCapacityCheck(cap);
+      setCapacityLoading(false);
+      if (cap && (cap.is_full || !cap.is_available || totalGroupSize > cap.available_chairs)) {
+        setDistributeLoading(true);
+        const preview = await fetchDistributePreview({
+          clinicId: formData.clinicId,
+          date: formData.date,
+          startTime: formData.selectedTime,
+          passengerCount: totalGroupSize,
+          duration: 30,
+          signal: controller.signal,
+        });
+        if (!controller.signal.aborted) {
+          setDistributePreview(preview);
+          setDistributeLoading(false);
+        }
+      } else {
+        setDistributePreview(null);
+      }
+    };
+    runCapacityCheck();
+    return () => controller.abort();
+  }, [formData.clinicId, formData.date, formData.selectedTime, totalGroupSize]);
 
   // Tìm Category ID từ Service ID
   const getCategoryIdForService = (serviceId: string): number => {
@@ -689,10 +743,10 @@ export default function BookingForm() {
     }
 
     const warnings = calculateCapacityWarnings();
-    if (warnings.length > 0) {
+    if (warnings.length > 0 && !autoDistribute) {
       setErrors(prev => ({
         ...prev,
-        submit: 'Không thể đặt lịch: Có khung giờ vượt quá số ghế trống. Vui lòng bấm "Tự động chia ca tối ưu" hoặc chọn lại giờ!'
+        submit: 'Không thể đặt lịch: Có khung giờ vượt quá số ghế trống. Vui lòng bật Tự động phân phối hoặc chọn lại giờ!'
       }));
       return;
     }
@@ -732,6 +786,7 @@ export default function BookingForm() {
         date: formData.date,
         start_time: formData.selectedTime,
         patients: patients,
+        auto_distribute: autoDistribute,
         // Backward compatibility
         appointment_date: formData.date,
         leader_name: formData.leaderName.trim(),
@@ -755,32 +810,45 @@ export default function BookingForm() {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = (await res.json().catch(() => ({}))) as BookingCreateResponse;
 
       if (res.ok || res.status === 201 || res.status === 200) {
+        const fallbackMembers = [
+          {
+            full_name: formData.leaderName.trim(),
+            phone: leaderPhoneClean,
+            service_name: getServiceName(formData.leaderServiceId),
+            start_time: formData.selectedTime
+          },
+          ...formData.members.map(m => {
+            const mClean = m.phone ? m.phone.replace(/\D/g, '') : '';
+            return {
+              full_name: m.full_name.trim(),
+              phone: mClean.length >= 10 ? mClean : leaderPhoneClean,
+              service_name: getServiceName(m.service_id),
+              start_time: m.start_time || formData.selectedTime
+            };
+          })
+        ];
+        const actualMembers = Array.isArray(data.bookings) && data.bookings.length > 0
+          ? data.bookings.map((b, idx) => ({
+              full_name: b.full_name || b.fullName || fallbackMembers[idx]?.full_name || `Khách ${idx + 1}`,
+              phone: b.phone || fallbackMembers[idx]?.phone || leaderPhoneClean,
+              service_name: b.service_name || fallbackMembers[idx]?.service_name || 'Dịch vụ nha khoa',
+              start_time: b.start_time || fallbackMembers[idx]?.start_time || formData.selectedTime
+            }))
+          : fallbackMembers;
+
         setBookingResult({
           pnr_code: data.pnr_code || 'MS-SUCCESS',
           group_code: data.group_code || 'GRP-01',
           clinic_name: clinics.find(c => (c.clinic_id ?? c.id)?.toString() === formData.clinicId)?.name || 'Nha Khoa Minh Sinh',
           clinic_address: clinics.find(c => (c.clinic_id ?? c.id)?.toString() === formData.clinicId)?.address || '',
           appointment_date: formData.date,
-          members: [
-            {
-              full_name: formData.leaderName.trim(),
-              phone: leaderPhoneClean,
-              service_name: getServiceName(formData.leaderServiceId),
-              start_time: formData.selectedTime
-            },
-            ...formData.members.map(m => {
-              const mClean = m.phone ? m.phone.replace(/\D/g, '') : '';
-              return {
-                full_name: m.full_name.trim(),
-                phone: mClean.length >= 10 ? mClean : leaderPhoneClean,
-                service_name: getServiceName(m.service_id),
-                start_time: m.start_time || formData.selectedTime
-              };
-            })
-          ]
+          members: actualMembers,
+          auto_distributed: data.auto_distributed,
+          warning_message: data.warning_message,
+          distribution_summary: data.distribution_summary
         });
         setStep(4);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1082,6 +1150,19 @@ export default function BookingForm() {
               </div>
             </div>
 
+            {/* Cảnh báo nhanh sức chứa ghế trống khi thêm thành viên */}
+            <CapacityDistributionPanel
+              selectedTime={formData.selectedTime}
+              totalGroupSize={totalGroupSize}
+              capacityCheck={capacityCheck}
+              capacityLoading={capacityLoading}
+              distributePreview={distributePreview}
+              distributeLoading={distributeLoading}
+              autoDistribute={autoDistribute}
+              onAutoDistributeChange={setAutoDistribute}
+              compact
+            />
+
             {/* Nút điều hướng Step 2 */}
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 border-t border-gray-100">
               <button
@@ -1274,8 +1355,20 @@ export default function BookingForm() {
               </div>
             </div>
 
-            {/* Cảnh báo quá tải nếu có */}
-            {capacityWarnings.length > 0 && (
+            {/* Kiểm tra giới hạn ghế trống & Tự động phân phối khung giờ sau */}
+            <CapacityDistributionPanel
+              selectedTime={formData.selectedTime}
+              totalGroupSize={totalGroupSize}
+              capacityCheck={capacityCheck}
+              capacityLoading={capacityLoading}
+              distributePreview={distributePreview}
+              distributeLoading={distributeLoading}
+              autoDistribute={autoDistribute}
+              onAutoDistributeChange={setAutoDistribute}
+            />
+
+            {/* Cảnh báo quá tải nếu có (chỉ chặn khi tắt auto_distribute) */}
+            {capacityWarnings.length > 0 && !autoDistribute && (
               <div className="p-4 bg-red-50 border-2 border-red-200 rounded-[10px] space-y-2">
                 <div className="flex items-center gap-2 text-red-700 font-black text-xs sm:text-sm">
                   <AlertTriangle className="w-5 h-5 shrink-0" /> CẢNH BÁO: KHUNG GIỜ VƯỢT QUÁ SỨC CHỨA
@@ -1313,7 +1406,7 @@ export default function BookingForm() {
 
               <button
                 type="button"
-                disabled={loading || capacityWarnings.length > 0}
+                disabled={loading || (capacityWarnings.length > 0 && !autoDistribute)}
                 onClick={handleSubmitBooking}
                 className="w-full sm:w-auto bg-blue-600 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-[10px] font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95"
               >
@@ -1385,6 +1478,14 @@ export default function BookingForm() {
                     <div className="font-medium text-xs leading-snug text-blue-100">{bookingResult.clinic_address}</div>
                   </div>
                 </div>
+
+                {/* Kết quả tự động phân phối khung giờ thực tế */}
+                <BookingDistributionSummaryBanner
+                  autoDistributed={bookingResult.auto_distributed}
+                  warningMessage={bookingResult.warning_message}
+                  distributionSummary={bookingResult.distribution_summary}
+                  members={bookingResult.members}
+                />
 
                 {/* Danh sách thành viên trong vé */}
                 <div className="space-y-3">

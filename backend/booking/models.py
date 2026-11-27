@@ -332,7 +332,7 @@ class Payment(models.Model):
                 self.billing.status = 'PAID'
                 self.billing.save(update_fields=['status'])
 class InventoryDetail(models.Model):
-    item_id = models.AutoField(primary_key=True)
+    item_id = models.AutoField(primary_key=True, db_column='inventory_id')
     item_name = models.CharField(max_length=255, verbose_name="Tên vật tư")
     unit = models.CharField(max_length=50, verbose_name="Đơn vị tính")
     category = models.CharField(max_length=100, blank=True, null=True, verbose_name="Phân loại")
@@ -399,6 +399,9 @@ class Article(models.Model):
 
     class Meta:
         db_table = 'db_table_articles'
+        permissions = [
+            ('manage_wordpress_posts', '[WordPress] Có quyền quản lý và viết bài trên WordPress'),
+        ]
 
     @property
     def total_paid(self):

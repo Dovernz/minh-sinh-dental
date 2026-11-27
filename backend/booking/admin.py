@@ -147,14 +147,12 @@ class BaseRBACAdmin(ModelAdmin):
     def has_module_permission(self, request):
         if request.user.is_superuser:
             return True
-        if request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
-            return True
-        return False
+        return super().has_module_permission(request) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
     def has_view_permission(self, request, obj=None):
-        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+        if request.user.is_superuser:
             return True
-        return False
+        return super().has_view_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
     def get_urls(self):
         urls = super().get_urls()
@@ -173,19 +171,19 @@ class BaseRBACAdmin(ModelAdmin):
         return response
 
     def has_add_permission(self, request):
-        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+        if request.user.is_superuser:
             return True
-        return False
+        return super().has_add_permission(request) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
     def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+        if request.user.is_superuser:
             return True
-        return False
-        
+        return super().has_change_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
+
     def has_delete_permission(self, request, obj=None):
-        if request.user.is_superuser or request.user.groups.filter(name__in=['Reception', 'Admin']).exists():
+        if request.user.is_superuser:
             return True
-        return False
+        return super().has_delete_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
 import urllib.request
 import json
@@ -418,6 +416,8 @@ class CustomerAdmin(BaseRBACAdmin):
         return custom_urls + urls
 
     def add_view(self, request, form_url='', extra_context=None):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
         from django.template.response import TemplateResponse
         from django.shortcuts import redirect
         from django.contrib import messages
@@ -503,6 +503,10 @@ class CustomerAdmin(BaseRBACAdmin):
         return TemplateResponse(request, "admin/customer_add.html", context)
 
     def customer_profile_view(self, request, object_id):
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        if request.method == 'POST' and not self.has_change_permission(request):
+            raise PermissionDenied
         from django.template.response import TemplateResponse
         from .models import Customer, Booking, BookingDetail, ConsultationDetail, Consultation, ServiceDetail, Employee
         from django.shortcuts import get_object_or_404, redirect
@@ -699,6 +703,21 @@ class EmployeeAdmin(BaseRBACAdmin):
     list_filter = ('specialty', 'role')
     search_fields = ('full_name', 'phone', 'email')
 
+    def has_module_permission(self, request):
+        return request.user.is_superuser or ModelAdmin.has_module_permission(self, request) or request.user.groups.filter(name='Admin').exists()
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or ModelAdmin.has_view_permission(self, request, obj) or request.user.groups.filter(name='Admin').exists()
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser or ModelAdmin.has_add_permission(self, request) or request.user.groups.filter(name='Admin').exists()
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or ModelAdmin.has_change_permission(self, request, obj) or request.user.groups.filter(name='Admin').exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser or ModelAdmin.has_delete_permission(self, request, obj) or request.user.groups.filter(name='Admin').exists()
+
     def change_view(self, request, object_id, form_url='', extra_context=None):
         if request.GET.get('mode') == 'native':
             return super().change_view(request, object_id, form_url, extra_context)
@@ -711,6 +730,8 @@ class EmployeeAdmin(BaseRBACAdmin):
         return TemplateResponse(request, 'admin/employee_embed_form.html', context)
 
     def add_view(self, request, form_url='', extra_context=None):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
         if request.GET.get('mode') == 'native':
             return super().add_view(request, form_url, extra_context)
         from django.template.response import TemplateResponse
@@ -863,7 +884,7 @@ class BookingAdmin(BaseRBACAdmin):
 class BookingStatusHistoryAdmin(BaseRBACAdmin):
     list_display = ('booking', 'status', 'created_at')
     list_filter = ('status', 'created_at')
-    search_fields = ('billing__booking__customer__name',)
+    search_fields = ('booking__customer__name', 'booking__customer__phone', 'booking__pnr_code', 'status')
     def has_change_permission(self, request, obj=None):
         return False
 
@@ -1400,7 +1421,7 @@ class MenuLinkAdmin(ModelAdmin):
     get_menu_title.short_description = "Tiêu đề Menu"
     list_display = ('get_menu_title', 'url', 'order', 'is_active')
     list_display_links = ('get_menu_title', 'url')
-    search_fields = ('get_menu_title',)
+    search_fields = ('title', 'url')
     inlines = [MenuLinkInline]
     exclude = ('parent',)
 
@@ -1518,16 +1539,19 @@ class CommissionRateAdmin(ModelAdmin):
     get_end_date.short_description = "Đến ngày"
     
     def has_module_permission(self, request):
-        return request.user.is_superuser or request.user.is_staff
-        
+        return request.user.is_superuser or super().has_module_permission(request) or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or super().has_view_permission(request, obj) or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
+
     def has_add_permission(self, request):
-        return True
-        
+        return request.user.is_superuser or super().has_add_permission(request) or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
+
     def has_change_permission(self, request, obj=None):
-        return True
-        
+        return request.user.is_superuser or super().has_change_permission(request, obj) or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
+
     def has_delete_permission(self, request, obj=None):
-        return True
+        return request.user.is_superuser or super().has_delete_permission(request, obj) or request.user.groups.filter(name__in=['Admin', 'Accountant']).exists()
 
 
 

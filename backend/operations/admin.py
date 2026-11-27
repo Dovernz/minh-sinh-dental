@@ -16,23 +16,23 @@ from .models import ManageBooking, DailySchedule, WeeklySchedule
 class BaseRBACAdmin(ModelAdmin):
     def has_module_permission(self, request):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
+        return super().has_module_permission(request) or request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
+        return super().has_view_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
 
     def has_add_permission(self, request):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
+        return super().has_add_permission(request) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
+        return super().has_change_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
         
     def has_delete_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
+        return super().has_delete_permission(request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
 class BookingStatusHistoryInline(TabularInline):
     model = BookingStatusHistory
@@ -56,15 +56,15 @@ from django.views.decorators.csrf import csrf_exempt
 class ManageBookingAdmin(BaseRBACAdmin):
     def has_module_permission(self, request):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Reception').exists()
+        return ModelAdmin.has_module_permission(self, request) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
         
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Reception').exists()
+        return ModelAdmin.has_view_permission(self, request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
         
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name='Reception').exists()
+        return ModelAdmin.has_change_permission(self, request, obj) or request.user.groups.filter(name__in=['Reception', 'Admin']).exists()
 
     from booking.admin import BookingAdminForm
     form = BookingAdminForm
@@ -98,7 +98,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
+        return ModelAdmin.has_view_permission(self, request, obj) or request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
 
     def changelist_view(self, request, extra_context=None):
         clinic_id_str = request.GET.get('custom_clinic')
@@ -115,7 +115,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             from django.utils.dateparse import parse_date
             qs = response.context_data['cl'].queryset
             
-            clinics = Clinic.objects.all()
+            clinics = Clinic.objects.all().order_by('clinic_id')
 
             clinic_id = None
             if clinic_id_str:
@@ -137,13 +137,14 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                 except ValueError:
                     pass
             
-            # apply custom filters manually
-            if clinic_id_str:
+            # Always filter by both resolved clinic_id and selected_date using local timezone bounds
+            from django.utils import timezone as dj_tz
+            tz = dj_tz.get_current_timezone()
+            day_start = dj_tz.make_aware(datetime.datetime.combine(selected_date, datetime.time.min), tz)
+            day_end = day_start + datetime.timedelta(days=1)
+            if clinic_id:
                 qs = qs.filter(clinic_id=clinic_id)
-            if date_str:
-                qs = qs.filter(start_time__date=selected_date)
-            elif not clinic_id_str and not date_str:
-                qs = qs.filter(clinic_id=clinic_id, start_time__date=selected_date)
+            qs = qs.filter(start_time__gte=day_start, start_time__lt=day_end)
                 
             qs = qs.select_related('customer')
             
@@ -156,9 +157,14 @@ class DailyScheduleAdmin(BaseRBACAdmin):
             from django.utils.timezone import localtime
             booking_spans = []
             for b in qs:
-                if not b.start_time or not b.end_time: continue
+                if not b.start_time:
+                    continue
                 b_start_local = localtime(b.start_time).time()
-                b_end_local = localtime(b.end_time).time()
+                if b.end_time:
+                    b_end_local = localtime(b.end_time).time()
+                else:
+                    dur = b.estimated_duration or 30
+                    b_end_local = localtime(b.start_time + datetime.timedelta(minutes=dur)).time()
                 if b_end_local <= b_start_local:
                     b_end_local = (datetime.datetime.combine(datetime.date.today(), b_start_local) + datetime.timedelta(minutes=30)).time()
                 booking_spans.append({"booking": b, "start": b_start_local, "end": b_end_local, "chair": None})
@@ -176,10 +182,11 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                     if span["start"] < ts.end_time and eff_end > ts.start_time:
                         active_bookings.append(span)
                         
-                used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None and span["booking"].status.lower() not in ['completed', 'cancelled'])
+                done_statuses = {'completed', 'cancelled', 'canceled', 'đã xong', 'đã hủy'}
+                used_chairs = set(span["chair"] for span in active_bookings if span["chair"] is not None and (span["booking"].status or '').lower() not in done_statuses)
                 for span in active_bookings:
                     if span["chair"] is None:
-                        is_done = span["booking"].status.lower() in ['completed', 'cancelled']
+                        is_done = (span["booking"].status or '').lower() in done_statuses
                         assigned = False
                         for c in chairs:
                             if c not in used_chairs:
@@ -188,7 +195,7 @@ class DailyScheduleAdmin(BaseRBACAdmin):
                                     used_chairs.add(c)
                                 assigned = True
                                 break
-                        if not assigned and is_done:
+                        if not assigned:
                             span["chair"] = chairs[0] if chairs else None
                                 
                 for c in chairs:
@@ -212,7 +219,7 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser: return True
-        return request.user.groups.filter(name__in=['Reception', 'Doctor']).exists()
+        return ModelAdmin.has_view_permission(self, request, obj) or request.user.groups.filter(name__in=['Reception', 'Doctor', 'Admin']).exists()
 
     def changelist_view(self, request, extra_context=None):
         clinic_id_str = request.GET.get('custom_clinic')
@@ -251,13 +258,14 @@ class WeeklyScheduleAdmin(BaseRBACAdmin):
             if not end_date or end_date < start_date:
                 end_date = start_date + timedelta(days=6)
             
-            # apply custom filters manually
-            if clinic_id_str:
+            # Always filter by both resolved clinic_id and date range using local timezone bounds
+            from django.utils import timezone as dj_tz
+            tz = dj_tz.get_current_timezone()
+            range_start = dj_tz.make_aware(datetime.datetime.combine(start_date, datetime.time.min), tz)
+            range_end = dj_tz.make_aware(datetime.datetime.combine(end_date + timedelta(days=1), datetime.time.min), tz)
+            if clinic_id:
                 qs = qs.filter(clinic_id=clinic_id)
-            if start_date_str or end_date_str:
-                qs = qs.filter(start_time__date__gte=start_date, start_time__date__lte=end_date)
-            elif not clinic_id_str and not start_date_str:
-                qs = qs.filter(clinic_id=clinic_id, start_time__date__gte=start_date, start_time__date__lte=end_date)
+            qs = qs.filter(start_time__gte=range_start, start_time__lt=range_end)
                 
             qs = qs.exclude(status__iexact='cancelled').distinct()
             
