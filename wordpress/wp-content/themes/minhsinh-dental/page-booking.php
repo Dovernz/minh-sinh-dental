@@ -173,9 +173,8 @@ get_header();
 
 /* Body */
 .booking-body { padding: 36px 40px; min-height: 400px; box-sizing: border-box; }
-.booking-step-pane { display: none; animation: fadeIn 0.4s ease; box-sizing: border-box; }
-.booking-step-pane.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.booking-step-pane { display: none; opacity: 1; box-sizing: border-box; }
+.booking-step-pane.active { display: block; opacity: 1; }
 .pane-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; color: var(--ms-text-dark); }
 .pane-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
 
@@ -229,9 +228,11 @@ textarea.form-control { resize: vertical; min-height: 68px; line-height: 1.5; }
 /* Buttons */
 .btn-add-companion { background: var(--ms-primary-light); color: var(--ms-primary); border: 1px dashed var(--ms-primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; box-sizing: border-box; }
 .btn-add-companion:hover { background: var(--ms-primary); color: #fff; }
-.btn-ms { padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; box-sizing: border-box; }
-.btn-primary { background: var(--ms-primary); color: #fff; }
-.btn-secondary { background: #e2e8f0; color: var(--ms-text-dark); }
+.btn-ms { padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: background-color 0.2s, transform 0.15s; box-sizing: border-box; opacity: 1; }
+.btn-primary { background: #2563eb; color: #ffffff; opacity: 1; }
+.btn-primary:hover:not(:disabled) { background: #1d4ed8; opacity: 1; }
+.btn-ms:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: #e2e8f0; color: var(--ms-text-dark); opacity: 1; }
 
 /* Time Slots */
 .time-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; box-sizing: border-box; }
@@ -1085,6 +1086,8 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         btnPrev.style.display = (currentStep > 1 && currentStep < 4) ? "block" : "none";
         btnNext.innerText = currentStep === 3 ? "Xác nhận Đặt lịch" : "Tiếp tục";
+        btnNext.disabled = false;
+        btnNext.style.opacity = "1";
         if(currentStep === 4) btnNext.style.display = "none";
     }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, Users, Plus, Trash2, CheckCircle2, ChevronRight, ChevronLeft, AlertTriangle, Printer, Barcode, QrCode, PlaneTakeoff, Info, Zap, Sparkles, LayoutGrid, ListOrdered, Phone, User, Loader2, AlertCircle, CalendarPlus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import CapacityDistributionPanel, { BookingDistributionSummaryBanner } from '@/components/booking/CapacityDistributionPanel';
 import {
   fetchCapacityCheck,
@@ -1038,15 +1038,11 @@ export default function BookingForm() {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        {/* STEP 1: CLINIC & DATE */}
+      {/* STEP 1: CLINIC & DATE */}
         {step === 1 && (
-          <motion.div
+          <div
             key="step1"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
+            className="space-y-6 opacity-100"
           >
             <div className="bg-blue-50/70 p-4 sm:p-6 md:p-8 rounded-[10px] border border-blue-100 space-y-4">
               <h2 className="text-lg sm:text-xl font-black text-blue-900 flex items-center gap-2">
@@ -1103,17 +1099,14 @@ export default function BookingForm() {
                 Tiếp tục: Nhập thông tin người khám <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* STEP 2: MEMBERS & CONTACT INFO */}
         {step === 2 && (
-          <motion.div
+          <div
             key="step2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 opacity-100"
           >
             {/* Header thông tin người khám */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-gray-100">
@@ -1315,17 +1308,14 @@ export default function BookingForm() {
                 Tiếp tục: Chọn giờ khám <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* STEP 3: TIME SELECTION & CONFIRMATION */}
         {step === 3 && (
-          <motion.div
+          <div
             key="step3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 opacity-100"
           >
             <div className="flex flex-col gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
@@ -1360,14 +1350,12 @@ export default function BookingForm() {
               )}
 
               {autoAllocationNotice && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-blue-50 border border-blue-200 text-blue-900 p-3.5 sm:p-4 rounded-[10px] text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm"
+                <div
+                  className="bg-blue-50 border border-blue-200 text-blue-900 p-3.5 sm:p-4 rounded-[10px] text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-sm opacity-100"
                 >
                   <Zap className="w-4 h-4 text-blue-600 fill-blue-600 shrink-0" />
                   <span>{autoAllocationNotice}</span>
-                </motion.div>
+                </div>
               )}
             </div>
 
@@ -1400,14 +1388,14 @@ export default function BookingForm() {
                       type="button"
                       disabled={isPast || isFull}
                       onClick={() => handleGlobalTimeSelect(time)}
-                      className={`relative p-2.5 sm:p-3 rounded-[10px] border-2 transition-all flex flex-col items-center justify-center gap-0.5 ${
+                      className={`relative p-2.5 sm:p-3 rounded-[10px] border-2 transition-colors flex flex-col items-center justify-center gap-0.5 ${
                         isSelected
-                          ? 'bg-blue-600 text-white font-bold ring-2 ring-blue-600 shadow-md transform scale-105 transition-all border-blue-600'
+                          ? 'bg-[#2563eb] text-white font-bold ring-2 ring-[#2563eb] shadow-md transform scale-105 border-[#2563eb] opacity-100'
                           : isPast
                           ? 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-70'
                           : isFull
                           ? 'bg-gray-50 border-gray-100 opacity-40 cursor-not-allowed'
-                          : 'border-gray-200 bg-white hover:border-blue-300'
+                          : 'border-gray-200 bg-white hover:border-blue-300 opacity-100'
                       }`}
                     >
                       <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white font-bold' : isPast ? 'text-gray-400' : 'text-gray-800'}`}>
@@ -1587,7 +1575,11 @@ export default function BookingForm() {
                 type="button"
                 disabled={loading || (capacityWarnings.length > 0 && !autoDistribute)}
                 onClick={handleSubmitBooking}
-                className="w-full sm:w-auto bg-blue-600 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-[10px] font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95"
+                className={`w-full sm:w-auto text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-[10px] font-bold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95 ${
+                  loading || (capacityWarnings.length > 0 && !autoDistribute)
+                    ? 'bg-[#2563eb] opacity-50 cursor-not-allowed'
+                    : 'bg-[#2563eb] hover:bg-[#1d4ed8] opacity-100 shadow-xl shadow-blue-200 cursor-pointer'
+                }`}
               >
                 {loading ? (
                   <>
@@ -1602,16 +1594,14 @@ export default function BookingForm() {
                 )}
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* STEP 4: BOARDING PASS (HOÀN TẤT) */}
         {step === 4 && bookingResult && (
-          <motion.div
+          <div
             key="step4"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8"
+            className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8 opacity-100"
           >
             <div className="text-center space-y-2">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
@@ -1745,9 +1735,8 @@ export default function BookingForm() {
                 <PlaneTakeoff className="w-4 h-4" /> Đặt lịch hẹn mới
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
