@@ -11,12 +11,16 @@
 
     function openDrawer() {
       drawer.classList.add('is-open');
+      drawer.setAttribute('aria-hidden', 'false');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
       if (backdrop) backdrop.classList.add('is-open');
       document.body.classList.add('drawer-open');
     }
 
     function closeDrawer() {
       drawer.classList.remove('is-open');
+      drawer.setAttribute('aria-hidden', 'true');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
       if (backdrop) backdrop.classList.remove('is-open');
       document.body.classList.remove('drawer-open');
     }

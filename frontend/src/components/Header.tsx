@@ -28,9 +28,9 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* Nút Hamburger (Mobile) */}
-          <div className="flex items-center lg:hidden">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="text-gray-600 hover:text-blue-600 p-2">
+          {/* Nút Hamburger (Mobile & Tablet < 1280px) */}
+          <div className="flex items-center xl:hidden">
+              <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Menu" aria-expanded={isMobileMenuOpen} className="text-gray-600 hover:text-blue-600 p-2">
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {isMobileMenuOpen ? (
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -42,20 +42,20 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
           </div>
 
           {/* Logo */}
-          <div className="flex-1 flex justify-center lg:justify-start">
+          <div className="flex-1 flex justify-center xl:justify-start">
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Logo" className="w-14 h-14 object-contain rounded-full border shadow-sm bg-white" />
-              <span className="font-bold text-xl lg:text-2xl text-blue-900 tracking-tight whitespace-nowrap">Nha Khoa Minh Sinh</span>
+              <span className="font-bold text-xl xl:text-2xl text-blue-900 tracking-tight whitespace-nowrap">Nha Khoa Minh Sinh</span>
             </Link>
           </div>
 
-          {/* Navigation (Desktop) */}
-          <ul className="hidden lg:flex items-center gap-8">
+          {/* Navigation (Desktop >= 1280px) */}
+          <ul className="hidden xl:flex items-center gap-8">
             {menus.map((menu: any) => (
                 <li key={menu.id} className="relative group">
                     {menu.children && menu.children.length > 0 ? (
                         <>
-                            <Link href={menu.url || "#"} className="flex items-center gap-1 font-medium text-gray-600 hover:text-blue-600 transition-colors py-4">
+                            <Link href={menu.url || "#"} className="flex items-center gap-1 font-medium text-gray-600 hover:text-blue-600 transition-colors py-4 whitespace-nowrap">
                                 {menu.title} 
                                 <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                             </Link>
@@ -71,7 +71,7 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
                             </ul>
                         </>
                     ) : (
-                        <Link href={menu.url || "#"} className="flex items-center gap-1 font-medium text-gray-600 hover:text-blue-600 transition-colors py-4">
+                        <Link href={menu.url || "#"} className="flex items-center gap-1 font-medium text-gray-600 hover:text-blue-600 transition-colors py-4 whitespace-nowrap">
                             {menu.title}
                         </Link>
                     )}
@@ -79,9 +79,9 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
             ))}
           </ul>
 
-          {/* Nút Đặt lịch (Desktop) */}
-          <div className="hidden lg:flex items-center ml-8">
-            <Link href="/booking" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-full transition-colors shadow-md hover:shadow-lg flex items-center gap-2">
+          {/* Nút Đặt lịch (Desktop >= 1280px) */}
+          <div className="hidden xl:flex items-center ml-8">
+            <Link href="/booking" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-full transition-colors shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               Đặt lịch ngay
             </Link>
@@ -90,9 +90,9 @@ export default function Header({ menus = [] }: { menus?: any[] }) {
       </div>
 
       {/* Mobile Menu */}
-      <div className={`fixed inset-0 bg-gray-900/50 z-40 lg:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
+      <div className={`fixed inset-0 bg-gray-900/50 z-40 xl:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)} />
       
-      <div className={`fixed inset-y-0 left-0 w-[58vw] min-w-[260px] max-w-[380px] bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl lg:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 w-[58vw] min-w-[260px] max-w-[380px] bg-white z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl xl:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
                 <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full border" />
