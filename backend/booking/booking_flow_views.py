@@ -135,9 +135,10 @@ class BookingDistributionPreviewView(APIView):
             normalized_patients = []
             for p in patients:
                 normalized_patients.append({
-                    'fullName': p.get('fullName') or p.get('full_name') or 'Khách hàng',
+                    'fullName': p.get('fullName') or p.get('full_name') or p.get('name') or 'Khách hàng',
                     'phone': p.get('phone'),
                     'category_id': p.get('category_id'),
+                    'service_name': p.get('service_name'),
                     'duration': int(p.get('duration') or duration),
                     'start_time': p.get('start_time') or p.get('time')
                 })
@@ -159,6 +160,12 @@ class BookingDistributionPreviewView(APIView):
             for item in dist['distributed_patients']:
                 item.pop('assigned_start_dt', None)
                 item.pop('assigned_end_dt', None)
+                item.setdefault('name', item.get('fullName') or item.get('full_name') or 'Khách hàng')
+                item.setdefault('assigned_time', item.get('assigned_start_time'))
+
+        if 'distribution_summary' in dist:
+            for summary in dist['distribution_summary']:
+                summary.setdefault('count', summary.get('assigned_count', 0))
 
         return Response(dist, status=status.HTTP_200_OK)
 

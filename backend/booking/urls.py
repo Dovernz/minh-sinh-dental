@@ -41,6 +41,7 @@ urlpatterns = [
     path('services/', ServiceListView.as_view(), name='api-services'),
     path('bookings/', BookingCreateView.as_view(), name='api-bookings'),
     path('bookings/distribute-preview/', BookingDistributionPreviewView.as_view(), name='api-bookings-distribute-preview'),
+    path('capacity-distribute/', BookingDistributionPreviewView.as_view(), name='api-capacity-distribute'),
     path('bookings/group/<str:group_code>/', BookingGroupDetailView.as_view(), name='api-booking-group-detail'),
     path('bookings/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete'),
     path('booking/<int:pk>/complete/', BookingCompleteView.as_view(), name='api-booking-complete-alias'),
